@@ -12,12 +12,14 @@ A skill that promotes the [cognitive variability](https://infranodus.com/about/c
 
 ## Installation Instructions
 
-To activate a skill, in Claude Web, you can add it via Settings > Capabilities.
+1. Go into the folder of the skill and download the `.zip` file with the skill inside.
 
-In Claude CLI (Claude Code) tool, you can activate the skill using the `/plugins` command (follow the instructions to add the skill there).
+2. In your favorite LLM client, upload the skill using one of the following procedures:
 
-In Claude API, you can access a specific skills using the `/skills` endpoint.
+- in Claude Web, you can add it via Settings > Capabilities.
 
-If anyone knows how to activate the skills in Claude Desktop, please, do let me know in the comments!
+- in Claude CLI (Claude Code) tool, you can activate the skill using the `/plugins` command (follow the instructions to add the skill there).
 
-You can also add the Claude skill to ChatGPT or any other LLM client. Just upload the file and tell the model to follow the instructions.
+- in Claude API, you can access a specific skills using the `/skills` endpoint.
+
+- in ChatGPT or any other LLM client you can upload the file and tell the model to follow the instructions.
