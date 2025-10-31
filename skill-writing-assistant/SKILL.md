@@ -1,6 +1,6 @@
 ---
 name: writing-assistant
-description: "Refine texts in any language: perfect grammar and spelling, paraphrase ideas, avoid AI detection while maintaining authentic voice"
+description: "Refine texts in any language: perfect grammar and spelling, paraphrase ideas, avoid AI detection while maintaining authentic voice. Detects grammatical patterns that signal cognitive states or structural issues—acting as a sensory system for deeper strategic insights."
 ---
 
 # Writing Assistant Skill
@@ -36,6 +36,28 @@ The user's writing style is characterized by:
 - Overly enthusiastic tone or excessive exclamation marks
 - Perfect parallel structures that feel too neat
 - Repetitive sentence patterns
+
+## Pattern Detection for Strategic Insights
+
+During grammar correction, the writing assistant acts as a **sensory system** detecting structural signals that may indicate deeper strategic issues:
+
+### Grammatical Patterns as Cognitive Signals
+
+**What to detect during correction:**
+- **Repetitive sentence structures** → Possible cognitive bias/fixation (needs diversification)
+- **Error clustering** → Unclear thinking in specific sections (needs development)
+- **Missing transitions** → Structural gaps between ideas (needs bridging)
+- **Tense inconsistency** → Temporal imbalance (stuck in past/present/future)
+- **Pronoun ambiguity** → Concepts need explicit naming/defining
+- **Passive voice clustering** → Agency gaps in argumentation
+
+**Punctuation rhythm reveals cognitive state:**
+- **Short sentences, many periods** → Drilling down, possibly obsessive
+- **Long flowing sentences** → Exploring/connecting state
+- **Question mark clusters** → Dispersed/exploratory thinking
+- **Em-dashes and parentheticals** → Holding multiple threads
+
+These patterns serve as **diagnostic signals** for when to trigger deeper analysis or suggest cognitive state transitions.
 
 ## Advanced Text Development (Optional)
 
@@ -104,22 +126,40 @@ Compares your text's knowledge graph with Google search results and search queri
 
 Use this when the user wants to optimize their text for SEO or ensure it covers topics people are interested in.
 
-### Workflow with InfraNodus
+### Workflow with Pattern Detection and InfraNodus
 
 If the text needs strategic development (and tools are available):
 
-1. **First**: Correct grammar and style as usual
-2. **Assess topical structure** (optional): Use `generate_text_overview` to understand:
-   - What topics dominate the text
-   - Whether the topical balance matches the intended purpose
-   - If focus is too narrow/dispersed for the text type
-   - Skip this for short texts or when balance isn't relevant
-3. **Identify development opportunities**: Use `develop_text_tool` to find underdeveloped topics and content gaps
-4. **Check external alignment** (optional): Use `generate_seo_report` to understand search demand and discourse alignment
-5. **Provide feedback**: Based on analysis, suggest:
+1. **First**: Correct grammar and style, **noting patterns** during correction:
+   - Track error density by section
+   - Notice repetitive structures or vocabulary
+   - Identify punctuation rhythm patterns
+   - Detect missing transitions or logical gaps
+
+2. **Use patterns as triggers** for deeper analysis:
+   - **High error clustering** → Use `develop_text_tool` on that section
+   - **Repetitive structures** → Use `generate_text_overview` to check topical balance
+   - **Missing transitions** → Identify structural gaps needing bridging
+   - **Vocabulary repetition** → Check if one concept dominates inappropriately
+
+3. **Assess topical structure** when patterns suggest imbalance:
+   - Use `generate_text_overview` to understand topic distribution
+   - Confirm if detected patterns correlate with structural issues
+   - Skip for short texts or when patterns don't indicate problems
+
+4. **Identify development opportunities**: Use `develop_text_tool` for sections with:
+   - Error clusters (unclear thinking)
+   - Vague referents (concepts need defining)
+   - Missing connections (structural gaps)
+
+5. **Check external alignment** (optional): Use `generate_seo_report` when relevant
+
+6. **Provide integrated feedback**:
    - Grammar-corrected text
+   - **Pattern-based insights**: "I noticed repetitive sentence structures in paragraph 3, which might indicate this concept needs varied exploration"
+   - Specific development suggestions based on both patterns and gap analysis
+   - Note when patterns suggest cognitive state issues (for handoff to cognitive variability skill)
    - Topical balance observations (if imbalance seems unintentional)
-   - Specific content additions based on gap analysis
    - SEO alignment recommendations if relevant
 
 **Important**: Only use these tools if they're available and if the user's request implies strategic development, not just editing.

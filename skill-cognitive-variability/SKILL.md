@@ -1,6 +1,6 @@
 ---
 name: cognitive-variability
-description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages energy across personality modes—introverts recharge through depth, extroverts through breadth. Uses playfulness for difficult transitions from chaos to clarity. Cultivates productive tension in collaboration where friction drives insights. Reads emotional feedback—inspiration signals continuation, exhaustion/frustration trigger transitions. Prevents obsessive loops through sustainable cycling between generation (dispersed chaos), consolidation (coherent building), and creative release. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, breakthroughs, decision paralysis, group facilitation, or breaking repetitive patterns.
+description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Receives signals from writing assistant's pattern detection to diagnose cognitive states. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages energy across personality modes. Uses playfulness for difficult transitions from chaos to clarity. Reads emotional feedback—inspiration signals continuation, exhaustion/frustration trigger transitions. Prevents obsessive loops through sustainable cycling. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, breakthroughs, decision paralysis, group facilitation, breaking repetitive patterns, or when grammatical patterns reveal cognitive issues.
 ---
 
 # Cognitive Variability Framework
@@ -16,6 +16,7 @@ Apply cognitive variability when:
 - Decision-making paralyzed by too many or too few options
 - Group work needing state awareness and productive tension
 - User showing signs of cognitive exhaustion or obsession
+- **Writing assistant detects patterns signaling cognitive state issues**
 
 **Signs to trigger this skill**:
 - Repetitive thinking patterns
@@ -23,6 +24,34 @@ Apply cognitive variability when:
 - Analysis paralysis or premature closure
 - Creative blocks or saturation
 - Group dynamics stuck or chaotic
+
+**Signals from writing assistant**:
+- **Repetitive sentence structures** → Biased state, needs diversification
+- **Error clustering** → Unclear thinking, specific areas need development
+- **Punctuation rhythm patterns** → Reveals dwelling in specific cognitive state
+- **Missing transitions** → Structural gaps between idea clusters
+- **Tense inconsistency** → Temporal imbalance in perspective
+
+## Handoff Protocol from Writing Assistant
+
+When receiving signals from the writing assistant:
+
+1. **Pattern Recognition** → **State Diagnosis**:
+   - Short sentences, many periods → Likely in Biased state (drilling down)
+   - Error clusters → Dispersed or transitioning (unclear thinking)
+   - Missing transitions → Gaps between clusters (Diversified but not bridging)
+   - Repetitive structures → Locked in one mode too long
+
+2. **Interpret, Don't Just React**:
+   - Writing assistant detects the pattern
+   - Cognitive variability interprets what it means
+   - Consider context before intervening
+
+3. **Intervention Based on Pattern**:
+   - **Repetitive structures** → Guide toward exploration (Diversified/Dispersed)
+   - **Error clustering** → Help consolidate if dispersed, or develop specific areas
+   - **Missing transitions** → Bridge gaps between idea clusters
+   - **Punctuation rhythm issues** → Suggest state transition based on dwelling time
 
 ---
 
