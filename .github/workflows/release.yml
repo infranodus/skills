@@ -1,0 +1,105 @@
+name: Create Release with Skill Packages
+
+on:
+  push:
+    tags:
+      - 'v*' # triggers on tags like v1.0.0, v1.0.1, etc.
+  workflow_dispatch: # allows manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create skill packages
+        run: |
+          # Create a directory for all skill packages
+          mkdir -p skill-packages
+
+          # Find all directories starting with "skill-" and create zip files
+          for dir in skill-*/; do
+            if [ -d "$dir" ]; then
+              skill_name=$(basename "$dir")
+              echo "Creating package for $skill_name..."
+
+              # Create a zip file with the contents of the skill folder
+              cd "$dir"
+              zip -r "../skill-packages/${skill_name}.zip" . -x "*.DS_Store" -x "__MACOSX/*"
+              cd ..
+
+              echo "✓ Created ${skill_name}.zip"
+            fi
+          done
+
+          # List created packages
+          echo ""
+          echo "Created packages:"
+          ls -la skill-packages/
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get the list of skill packages
+          SKILLS_LIST=""
+          for zip in skill-packages/*.zip; do
+            if [ -f "$zip" ]; then
+              filename=$(basename "$zip" .zip)
+              SKILLS_LIST="${SKILLS_LIST}- \`${filename}.zip\`"$'\n'
+            fi
+          done
+
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## InfraNodus Skills Release
+
+          This release contains the following Claude skill packages:
+
+          ${SKILLS_LIST}
+
+          ### Installation Instructions
+
+          1. Download the skill package(s) you want to use
+          2. In Claude desktop app, go to Settings → Skills
+          3. Click "Add Skill" and select the downloaded .zip file
+          4. The skill will be automatically installed and available for use
+
+          ### How Skills Work Together
+
+          These skills can work independently or together. Some skills may trigger others based on detected patterns or cognitive states.
+
+          For more details about each skill, see the individual skill documentation in the [repository](https://github.com/${{ github.repository }})
+          EOF
+
+          # Set the release notes as output
+          echo "notes_file=release_notes.md" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: InfraNodus Skills ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: skill-packages/*.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload individual skill packages
+        if: success()
+        run: |
+          echo "✅ Release created successfully!"
+          echo "📦 Uploaded skill packages:"
+          for zip in skill-packages/*.zip; do
+            if [ -f "$zip" ]; then
+              echo "  - $(basename $zip)"
+            fi
+          done
