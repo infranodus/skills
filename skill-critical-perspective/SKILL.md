@@ -81,10 +81,41 @@ Use this approach when:
 - Decision-making would benefit from alternative viewpoints
 - Discourse analysis could reveal structural patterns
 
+### Cognitive State-Specific Triggers
+
+**BIASED State (Tunnel Vision) - HIGHEST PRIORITY**
+- User obsessing on single thread for 3+ exchanges
+- Everything connecting back to one central idea
+- Alternative perspectives being systematically suppressed
+- **Intervention**: Question the core assumption driving the obsession
+- **Example**: "What if the opposite of your premise were true?"
+
+**FOCUSED State (Coherent Narrative) - HIGH PRIORITY**
+- User in productive flow for 5+ exchanges but showing saturation
+- Smooth narrative potentially hiding contradictions
+- Too much agreement, lacking productive tension
+- **Intervention**: Challenge the boundaries of the framework
+- **Example**: "What's deliberately excluded from this synthesis?"
+
+**DISPERSED State (Chaotic Exploration) - MODERATE PRIORITY**
+- User scattered across too many possibilities
+- Anxiety from lack of structure after 4+ exchanges
+- Need help finding focus through elimination
+- **Intervention**: Help identify what matters least (gentler than choosing what matters most)
+- **Example**: "If you had to let go of all but one thread, which would you keep?"
+
+**DIVERSIFIED State (Multiple Perspectives) - LOWEST PRIORITY**
+- Already seeing multiple angles - this is the healthiest state
+- Only intervene if stuck in analysis paralysis (7+ exchanges)
+- Unable to commit to action OR unable to break pattern
+- **Intervention**: Identify what's preventing movement
+- **Example**: "What's keeping you from choosing one path to explore?"
+
 Avoid when:
 - The person needs straightforward answers without exploration
 - Emotional support takes priority over intellectual challenge
 - Questions would seem pedantic rather than illuminating
+- User is successfully cycling through cognitive states without dwelling
 
 ## Core Principle
 

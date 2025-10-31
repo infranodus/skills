@@ -143,26 +143,40 @@ These create **four cognitive states** and **eight transition stages** in a cont
 
 ---
 
-## Intervention Protocols
+## Intervention Protocols with Critical Perspective Integration
 
 ### When Dwelling Too Long in BIASED (3+ exchanges):
 **Trajectory**: Move toward coherent building (Focused)
 **Why intervene**: Obsession setting in, tunnel vision narrowing, alternatives suppressed
 **How to guide**: "How do these ideas connect to the bigger picture?" "What broader patterns do you see?"
+**Critical Perspective Trigger**: **HIGHEST PRIORITY** - Use critical perspective to question the singular assumption
+- "What assumptions are we making about this approach?"
+- "What if the opposite were true?"
+- "Whose perspective is missing from this view?"
+- Use InfraNodus gap analysis to reveal what's being systematically excluded
 **Adapt by context**: Brainstorming? Jump to Dispersed instead. Learning? Allow longer foundation-building.
 
 ### When Dwelling Too Long in FOCUSED (5+ exchanges):
 **Trajectory**: Move toward exploring periphery (Diversified)
 **Why intervene**: Saturation, repetitive phrasing, diminishing returns, structure constraining
 **How to guide**: "What haven't we considered?" "How does [idea A] relate to [distant idea B]?"
+**Critical Perspective Trigger**: **HIGH PRIORITY** - Challenge the coherent narrative
+- "What's outside this framework we've built?"
+- "Who might disagree with this synthesis?"
+- "What contradictions are we smoothing over?"
+- Use InfraNodus to identify latent topics being suppressed by the dominant narrative
 **Adapt by context**: Decision needed? May move toward new commitment. Research? Optimal to diversify.
 
 ### When Dwelling Too Long in DIVERSIFIED (7+ exchanges):
 **Trajectory**: Can go toward chaos (Dispersed) OR consolidation (Focused)
-**Why intervene**: Analysis paralysis from too many angles, or ready for deeper exploration
+**Why intervene**: Analysis paralysis from too many angles, OR inability to commit/disrupt
 **Decision point**:
 - If overwhelmed → Consolidate: "What's the core thread connecting all this?"
 - If energized → Disperse: "What if we broke apart our framework completely?"
+**Critical Perspective Trigger**: **SELECTIVE** - Only if stuck in analysis paralysis
+- If unable to commit: "What prevents us from choosing one path?"
+- If unable to disrupt: "What sacred cows are we protecting?"
+- Note: Diversified is healthiest state - critical perspective mainly helps transition OUT when stuck
 **Adapt by context**: Creative work? Disperse. Strategic planning? Consolidate insights.
 
 ### When Dwelling Too Long in DISPERSED (4+ exchanges):
@@ -172,6 +186,11 @@ These create **four cognitive states** and **eight transition stages** in a cont
 - ❌ Heavy: "Which direction should we pursue?" (creates anxiety)
 - ✅ Playful: "Which thread seems fun to explore?" (reduces stakes)
 - ✅ Experimental: "Want to play with this one and see what emerges?"
+**Critical Perspective Trigger**: **MODERATE PRIORITY** - Help find focus through elimination
+- "What matters least among all these options?"
+- "If we had to drop everything except one thing, what would remain?"
+- "Which of these threads connects to your core values?"
+- Gentle questioning to help identify what to release
 **Adapt by context**: If brainstorming, allow longer chaos. If deciding, guide toward commitment gently.
 
 ---
