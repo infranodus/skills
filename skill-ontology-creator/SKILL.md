@@ -80,6 +80,100 @@ Ensure relations cover both:
 - Key entities may appear more frequently
 - Result should resemble a network, not a tree
 
+## Paragraph Structure Examples
+
+### ❌ AVOID: Tree/Hierarchical Structure
+
+This creates a hub-and-spoke pattern where one central entity dominates:
+
+```
+[[machine learning]] is a type of [[artificial intelligence]] [isA]
+[[machine learning]] uses [[algorithms]] [relatedTo]
+[[machine learning]] requires [[data]] [dependentOn]
+[[machine learning]] produces [[predictions]] [causes]
+[[machine learning]] has [[accuracy]] as a measure [hasAttribute]
+[[machine learning]] is located in [[data science]] field [partOf]
+[[machine learning]] occurs at [[training phase]] [occursAt]
+[[machine learning]] is derived from [[statistics]] [derivedFrom]
+```
+
+**Problem**: "machine learning" appears in every statement, creating a star topology rather than a network.
+
+### ✅ PREFERRED: Network Structure
+
+Distribute entities across multiple interconnected relationships:
+
+```
+[[machine learning]] is a type of [[artificial intelligence]] [isA]
+[[artificial intelligence]] enables [[automation]] of tasks [causes]
+[[algorithms]] process [[training data]] to learn patterns [relatedTo]
+[[training data]] must have high [[data quality]] [hasAttribute]
+[[data quality]] affects [[model accuracy]] [causes]
+[[model accuracy]] is measured during [[validation phase]] [occursAt]
+[[validation phase]] comes after [[training phase]] [occursAt]
+[[neural networks]] are derived from [[biological neurons]] [derivedFrom]
+[[biological neurons]] are part of [[brain architecture]] [partOf]
+[[supervised learning]] depends on [[labeled data]] [dependentOn]
+[[labeled data]] opposes [[unlabeled data]] in requirements [opposes]
+[[deep learning]] is a specialized form of [[neural networks]] [isA]
+```
+
+**Benefit**: Multiple entities interconnect, creating a web of relationships rather than radiating from one center.
+
+### Example: Topic-Based Ontology (Climate Change)
+
+Generate 8+ paragraphs per relationship type, distributed across entities:
+
+```
+[[climate change]] is caused by [[greenhouse gases]] [causes]
+[[greenhouse gases]] include [[carbon dioxide]] as a component [partOf]
+[[carbon dioxide]] has increasing [[atmospheric concentration]] [hasAttribute]
+[[fossil fuels]] produce [[carbon dioxide]] when burned [causes]
+
+[[global temperature]] is rising as an effect of [[climate change]] [causes]
+[[ocean acidification]] is related to [[carbon dioxide]] absorption [relatedTo]
+[[ice sheets]] are located in [[polar regions]] [locatedIn]
+[[sea level rise]] depends on [[ice sheet melting]] [dependentOn]
+
+[[renewable energy]] opposes [[fossil fuels]] as energy source [opposes]
+[[solar power]] is a type of [[renewable energy]] [isA]
+[[wind turbines]] generate [[electricity]] from wind [causes]
+[[carbon capture]] is derived from [[industrial processes]] [derivedFrom]
+```
+
+### Example: Text-Based Extraction
+
+When extracting from user-provided text, identify key entities and their explicit/implicit relationships:
+
+**User text**: "Photosynthesis converts light energy into chemical energy. Chloroplasts contain chlorophyll which absorbs sunlight."
+
+**Ontology output**:
+```
+[[photosynthesis]] converts [[light energy]] into forms [causes]
+[[light energy]] becomes [[chemical energy]] through conversion [derivedFrom]
+[[chloroplasts]] are located in [[plant cells]] [locatedIn]
+[[chloroplasts]] contain [[chlorophyll]] as component [partOf]
+[[chlorophyll]] has [[green color]] as property [hasAttribute]
+[[chlorophyll]] absorbs [[sunlight]] for energy [relatedTo]
+[[sunlight]] is a form of [[light energy]] [isA]
+[[chemical energy]] is stored in [[glucose molecules]] [locatedIn]
+```
+
+### Balancing Relationship Types
+
+Ensure each relation code appears 8+ times across different entity pairs:
+
+**[isA] examples**: taxonomic/class relationships
+**[partOf] examples**: compositional structures
+**[hasAttribute] examples**: descriptive properties
+**[causes] examples**: causal chains
+**[dependentOn] examples**: prerequisite relationships
+**[relatedTo] examples**: general associations
+**[locatedIn] examples**: spatial positioning
+**[occursAt] examples**: temporal sequencing
+**[derivedFrom] examples**: origins and evolution
+**[opposes] examples**: contrasts and alternatives
+
 ## Handling Follow-up Requests
 
 When asked clarifying questions, provide responses in the same syntax. Only output ontologies developing in the requested direction:
