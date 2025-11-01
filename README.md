@@ -13,6 +13,8 @@ The skills are designed to work with each other and to hand off important tasks 
 
 - **Writing Assistant** - Grammar correction, style refinement, and pattern detection that can trigger cognitive state analysis.
 
+- **Ontology Creator** - Build structured ontologies, taxonomies, and knowledge graphs by extracting entities, defining relationships, and mapping conceptual structures for any topic or for a collection of texts.
+
 ## Installation
 
 ### Option 1: Download from Releases (Recommended)
@@ -27,20 +29,26 @@ The skills are designed to work with each other and to hand off important tasks 
 2. Each `skill-*` folder contains all necessary files for that skill
 3. Create a `.zip` file of the skill folder contents if needed
 
-## Using the Skills
+## Installing the Skills
 
-### In Claude Web
+### In Claude Web and Claude Desktop
 
 - Add skills via Settings → Capabilities
 
 ### In Claude CLI (Claude Code)
 
-- Activate skills using the `/skills` command and follow the instructions
+- Add the markdown skills folders into the `.claude/skills` folder for global access or into the `~/your_project/.claude/skills` for project access only.
 
 ### In Claude API
 
-- Access specific skills using the `api/v1/skills` endpoint
+- Access specific skills using the `/v1/skills` endpoint
 
 ### In Other LLM Clients
 
-- Upload the SKILL.md file from the skill folder and instruct the model to follow the guidelines
+- Upload the SKILL.md file from the skill folder to a conversation or a project folder and instruct the model to follow the guidelines provided.
+
+## Using the Skills
+
+Your Claude client will automatically infer the necessary skill from the Skill's description. However, you can also explicitly ask it to use a certain skill.
+
+If you find the skill is not activated as often as you'd like (or is activated too frequently), you can also modify the description of the skill and upload it again to your LLM client.
