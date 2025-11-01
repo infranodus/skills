@@ -52,3 +52,29 @@ The skills are designed to work with each other and to hand off important tasks 
 Your Claude client will automatically infer the necessary skill from the Skill's description. However, you can also explicitly ask it to use a certain skill.
 
 If you find the skill is not activated as often as you'd like (or is activated too frequently), you can also modify the description of the skill and upload it again to your LLM client.
+
+## Developing Skills
+
+1. Download or fork the repository
+
+2. Use Claude Web or Desktop to develop new skills (as they have the "skills_creator" skill)
+
+3. Once created, add a new folder, add the skill inside
+
+4. To augment the skill, open the repo in Claude Code or Cursor AI and use [InfraNodus MCP](https://infranodus.com/mcp) to find content gaps or develop the content of the skill. It will use InfraNodus' tools automatically to improve the structure and the content of the skill for you.
+
+5. Ready to launch?
+
+If you tag a new version, when you push the commit to your repo, a GitHub action will be triggered that will generate the release with the `.zip` files you can use to add the skills to Claude Web and Desktop.
+
+a. Create a new tag (e.g., v1.0.0, v1.0.1, v2.0.0)
+
+```bash
+git tag v1.0.0
+```
+
+b. Push the tag to GitHub
+
+```bash
+git push origin v1.0.0
+```
