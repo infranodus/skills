@@ -19,6 +19,8 @@ The skills are designed to work with each other and to hand off important tasks 
 
 - **YouTube Viral Optimizer** - Generate high-CTR YouTube titles, thumbnails, and full video scripts optimized for virality. Covers psychological triggers, SEO-driven title strategy, thumbnail copywriting, algorithm positioning, and a complete script structure (Pattern Interrupt → Hook → Framing → Curiosity Loop → Escalation → Payoff → Relevance Bridge → Loop Reopen). Includes a Graph-to-Script pipeline that uses [InfraNodus MCP server](https://infranodus.com/mcp) to extract structural gaps from any topic and turn them into ready-made curiosity loops. Works for any niche or channel.
 
+- **InfraNodus CLI / Tool Use** - A comprehensive reference for all [InfraNodus MCP server](https://infranodus.com/mcp) tools: text analysis, knowledge graph generation, content gap detection, SEO/GEO optimization, structured memory, text comparison, and GraphRAG retrieval. Includes setup instructions, a full tool catalog with parameters, and practical examples. Designed to be copied into [OpenClaw](https://openclaw.ai/), Claude Code, Cursor, or any LLM client that supports MCP or tool-use prompts — giving any AI assistant access to InfraNodus' text network analysis capabilities.
+
 ## Installation
 
 ### Option 1: Download from Releases (Recommended)
