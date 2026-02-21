@@ -51,7 +51,11 @@ The skills are designed to work with each other and to hand off important tasks 
 
 ### In Other LLM Clients, like ChatGPT
 
-- Upload the SKILL.md file (and additional files from the folder) from the skill folder to a conversation or a project folder and instruct the model to follow the guidelines provided.
+ChatGPT and some other LLM clients don't have an automatic skill installation procedure. However, there are two ways you can install them manually:
+
+1. You can create a Custom GPT and add the instructions from the file there. Then save Custom GPT with a descriptive name you choose and start a new conversation with it or mention it in an existing one using the @ sign.
+
+2. You can create a new project and paste the SKILL.md file (and additional files from the folder) from the skill folder to the system prompt of this project.
 
 ## Using the Skills
 
