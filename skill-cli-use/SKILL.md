@@ -8,6 +8,26 @@ description: >
   analyze Google search results/queries, retrieve from a knowledge base (GraphRAG),
   save/retrieve structured memories, develop latent topics, or bridge conceptual gaps.
   Supports plain text, URLs (including YouTube video transcription), and existing InfraNodus graphs.
+homepage: https://infranodus.com
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "🕸️",
+        "requires": { "bins": ["mcporter"], "env": ["INFRANODUS_API_KEY"] },
+        "primaryEnv": "INFRANODUS_API_KEY",
+        "install":
+          [
+            {
+              "id": "mcporter",
+              "kind": "node",
+              "package": "mcporter",
+              "bins": ["mcporter"],
+              "label": "Install mcporter (node)",
+            },
+          ],
+      },
+  }
 ---
 
 # InfraNodus
