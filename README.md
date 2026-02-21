@@ -49,9 +49,9 @@ The skills are designed to work with each other and to hand off important tasks 
 
 - Access specific skills using the `/v1/skills` endpoint
 
-### In Other LLM Clients
+### In Other LLM Clients, like ChatGPT
 
-- Upload the SKILL.md file from the skill folder to a conversation or a project folder and instruct the model to follow the guidelines provided.
+- Upload the SKILL.md file (and additional files from the folder) from the skill folder to a conversation or a project folder and instruct the model to follow the guidelines provided.
 
 ## Using the Skills
 
