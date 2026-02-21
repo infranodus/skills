@@ -16,10 +16,42 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 
 ## Setup & Auth
 
-InfraNodus uses OAuth via mcporter. To configure:
+### Option 1: API Key (recommended for headless/automated setups)
+
+Set `INFRANODUS_API_KEY` via OpenClaw config or environment variable. The key is a Bearer token from your InfraNodus account.
+
+**OpenClaw config** (`~/.openclaw/openclaw.json`):
+```json
+{
+  "skills": {
+    "entries": {
+      "infranodus": {
+        "enabled": true,
+        "apiKey": "YOUR_INFRANODUS_API_KEY"
+      }
+    }
+  }
+}
+```
+
+OpenClaw maps `apiKey` → `INFRANODUS_API_KEY` env var automatically.
+
+Or set the env var directly: `export INFRANODUS_API_KEY=your_key_here`
+
+When an API key is available, add the server without OAuth:
+```bash
+mcporter config add infranodus \
+  --url https://mcp.infranodus.com/ \
+  --transport http \
+  --header "accept=application/json, text/event-stream" \
+  --header "Authorization=Bearer $INFRANODUS_API_KEY" \
+  --scope home
+```
+
+### Option 2: OAuth (interactive browser login)
 
 ```bash
-# 1. Add the server (once)
+# 1. Add the server with OAuth
 mcporter config add infranodus \
   --url https://mcp.infranodus.com/ \
   --transport http \
@@ -27,16 +59,25 @@ mcporter config add infranodus \
   --header "accept=application/json, text/event-stream" \
   --scope home
 
-# 2. Authenticate (opens browser for OAuth)
+# 2. Authenticate (opens browser)
 mcporter auth infranodus
+```
 
-# 3. Verify
+To re-authenticate: `mcporter auth infranodus --reset`
+
+### Preflight checks
+
+1. `mcporter list` — server must show as healthy
+2. `test -n "$INFRANODUS_API_KEY"` — or OAuth tokens must be cached
+3. If auth fails: re-run `mcporter auth infranodus` or check your API key
+
+### Verify
+
+```bash
 mcporter list infranodus
 ```
 
-Users need an InfraNodus account at https://infranodus.com. The OAuth flow handles API key exchange automatically.
-
-To re-authenticate: `mcporter auth infranodus --reset`
+Users need an InfraNodus account at https://infranodus.com.
 
 ## Calling Tools
 
