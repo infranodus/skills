@@ -1,6 +1,6 @@
 ---
 name: cognitive-variability
-description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Use when the user is stuck or needs to develop an idea or when there is a sense of too much repetition or dispersion. Takes the user through several stages of thinking — from idea genesis, to development, to questioning, to disruptive thinking. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages cognitive energy expended. Uses playfulness for difficult transitions from chaos to clarity. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, brainstorming, being stuck, breakthroughs, decision paralysis, group facilitation, breaking repetitive patterns, or when grammatical patterns reveal cognitive issues.
+description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Receives signals from writing assistant's pattern detection to diagnose cognitive states. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages energy across personality modes. Uses playfulness for difficult transitions from chaos to clarity. Reads emotional feedback—inspiration signals continuation, exhaustion/frustration trigger transitions. Prevents obsessive loops through sustainable cycling. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, when a user is stuck, breakthroughs, decision paralysis, group facilitation, breaking repetitive patterns, or when grammatical patterns reveal cognitive issues.
 ---
 
 # Cognitive Variability Framework
@@ -40,14 +40,12 @@ Apply cognitive variability when:
 When receiving signals from the writing assistant:
 
 1. **Pattern Recognition** → **State Diagnosis**:
-
    - Short sentences, many periods → Likely in Biased state (drilling down)
    - Error clusters → Dispersed or transitioning (unclear thinking)
    - Missing transitions → Gaps between clusters (Diversified but not bridging)
    - Repetitive structures → Locked in one mode too long
 
 2. **Interpret, Don't Just React**:
-
    - Writing assistant detects the pattern
    - Cognitive variability interprets what it means
    - Consider context before intervening
@@ -151,6 +149,54 @@ These create **four cognitive states** and **eight transition stages** in a cont
 - **Saturation**: 6+ exchanges in focused state, diminishing returns
 - **Chaos**: 3+ consecutive rapid state changes without settling
 - **Avoidance**: User resists transitions repeatedly
+
+---
+
+## InfraNodus Discourse Analysis (Optional)
+
+When the conversation has produced enough text to analyze (a few paragraphs or more), use the InfraNodus `optimize_text_structure` MCP tool for **objective, graph-based discourse state detection**. This replaces guesswork with structural evidence.
+
+### When to Use
+
+- At any point where you need to assess the current discourse state with more precision
+- When you're unsure which cognitive mode the conversation is in
+- When the user explicitly asks for discourse analysis
+- Periodically during long conversations to calibrate your state tracking
+- Before recommending a transition — to confirm the diagnosis
+
+### How to Use
+
+Call the `optimize_text_structure` tool via the InfraNodus MCP server, passing the conversation text (or a summary of the key ideas discussed so far) as the `text` parameter. Use `responseType: "response"` for development advice or `responseType: "question"` for research directions.
+
+### Mapping InfraNodus Output to Cognitive States
+
+The tool returns a **diversity score** that maps directly to the four cognitive modes:
+
+| InfraNodus Score | Cognitive State            | What It Means                                                                               |
+| ---------------- | -------------------------- | ------------------------------------------------------------------------------------------- |
+| **Biased**       | BIASED (Stages 8→1→2)      | Discourse dominated by one topic cluster — tunnel vision, needs diversification             |
+| **Focused**      | FOCUSED (Stages 2→3→4)     | Well-connected topics forming coherent narrative — productive but approaching saturation    |
+| **Diversified**  | DIVERSIFIED (Stages 4→5→6) | Multiple distinct clusters with gaps — optimal for adaptability, gaps are innovation spaces |
+| **Dispersed**    | DISPERSED (Stages 6→7→8)   | Weak connections, fragmented structure — creative chaos, needs anchoring                    |
+
+### Interpreting the Development Advice
+
+The tool also returns **specific advice on how to develop the text further** — use this to inform your intervention:
+
+- **If biased**: The tool suggests developing underrepresented topics → guide user toward exploration (Diversified/Dispersed), introduce the missing perspectives it identifies
+- **If focused**: The tool identifies content gaps between clusters → use these gaps as entry points to push toward Diversified, ask questions that bridge the identified gaps
+- **If diversified**: The tool suggests developing the gaps → these are the structural gaps where breakthroughs live; help user either bridge them (stay Diversified) or break structure further (move to Dispersed)
+- **If dispersed**: The tool suggests focusing on the most common gap topics → use these as anchoring points to guide toward Biased/Focused, frame them playfully to reduce choice anxiety
+
+### Integration with State Tracking
+
+Use InfraNodus analysis to **cross-validate your subjective assessment**:
+
+- If your tracking says Focused but InfraNodus says Biased → discourse may be more narrow than it feels
+- If your tracking says Dispersed but InfraNodus says Diversified → there may be more structure than apparent
+- **Trust the graph analysis for structural state; trust your tracking for temporal dynamics (dwelling time, energy, emotions)**
+
+The tool provides the structural snapshot; your temporal tracking provides the trajectory. Together they give a complete picture of where the discourse is and where it should go next.
 
 ---
 
@@ -558,6 +604,7 @@ These create **four cognitive states** and **eight transition stages** in a cont
 - **Focused**: Dense connections, coherent narrative, large scale
 - **Diversified**: Multiple clusters, gaps visible, polysingular
 - **Dispersed**: Scattered ideas, weak connections, exploratory
+- **For objective confirmation**: Use InfraNodus `optimize_text_structure` tool — returns diversity score matching these states plus specific development advice
 
 ### Dwelling Time Thresholds
 
@@ -614,6 +661,7 @@ For comprehensive understanding of specific dimensions:
 - **Track dwelling time and state history**
 - **Monitor energy levels and exhaustion signals**
 - **Infer user objectives from context**
+- **Optionally: run InfraNodus `optimize_text_structure` on the conversation text for graph-based state confirmation and development advice**
 - Don't explicitly state: "I'm analyzing your cognitive variability..." (unless Level 3)
 
 ### 2. Apply Naturally (+ Nudge When Needed)
