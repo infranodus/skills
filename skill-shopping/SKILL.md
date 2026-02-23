@@ -31,6 +31,21 @@ The workflow has 10 phases. Move through them sequentially, but adapt pace to th
 
 ---
 
+## Research Tools — Preferred Order
+
+When available, InfraNodus tools provide structured insights that web search alone often misses — real buyer search patterns, demand-supply gaps, and structural blind spots in the market discourse. For each research phase, **start with the InfraNodus tool call first**, then supplement with web search to fill in specific product details, prices, and reviews. If InfraNodus tools are not available, fall back to web search alone.
+
+| Phase | InfraNodus Tool (start here) | Then Web Search For |
+|-------|------------------------------|---------------------|
+| 2. DEFINE | `analyze_related_search_queries` — discover features buyers care about | Filter categories on shopping sites, review pain points |
+| 3. SURVEY | `search_queries_vs_search_results` — find what people want but can't find | Specific product specs, prices, availability |
+| 4. COMPARE | `generate_content_gaps` — find blind spots across review content | Head-to-head comparison articles |
+| 6. EXPAND | `generate_research_ideas` (shouldTranscend) — lateral alternatives | Alternative product categories |
+
+This order matters: InfraNodus surfaces patterns across many searches at once, revealing gaps that sequential web searches tend to miss. Web search then grounds those insights in specific, current product data.
+
+---
+
 ## Phase 1: DISCOVER — Understand What the User Needs
 
 Start every shopping conversation by understanding two things:
@@ -85,8 +100,8 @@ Example: For robot vacuums, common pain points include:
 - Poor mapping of multi-floor homes
 ```
 
-### Source D: Demand-Side Signal Analysis (InfraNodus)
-Use the `analyze_related_search_queries` InfraNodus tool with 2-3 queries describing the product category (e.g., ["4K projector", "home cinema projector", "short throw projector"]). Set the language and country to match the user's location.
+### Source D: Demand-Side Signal Analysis (InfraNodus) — Start Here
+Before diving into web searches for pain points and filter categories, call `analyze_related_search_queries` with 2-3 queries describing the product category (e.g., ["4K projector", "home cinema projector", "short throw projector"]). Set the language and country to match the user's location. This single call often surfaces features, brand names, and buyer concerns that would take 5-10 web searches to discover individually.
 
 This returns a knowledge graph of what real buyers actually search for in this category. Look for:
 - **Feature terms you haven't considered** — if buyers frequently search for a feature (e.g., "laser dimming", "lens shift") that isn't on your requirements list yet, it's likely important
@@ -103,6 +118,8 @@ Present a consolidated list of ~8-12 features/requirements and ask the user to c
 - **Nice-to-have**: Would be a bonus
 
 Keep this interactive — the user might add things you missed or dismiss things you thought were important.
+
+> **Checkpoint:** Did you run `analyze_related_search_queries`? If not and InfraNodus is available, run it now before proceeding — it often reveals features you'd otherwise miss.
 
 ---
 
@@ -131,8 +148,8 @@ After identifying candidates from established brands, always run a second search
 
 Disruptors often offer better price/performance ratios because they're competing on specs rather than brand recognition. Missing them is one of the most common blind spots in product research — established brands dominate search results and review roundups, but newer entrants may actually be the best fit.
 
-### Demand-Supply Gap Analysis (InfraNodus)
-Use the `search_queries_vs_search_results` InfraNodus tool with 2-3 queries that combine the user's top priorities (e.g., ["quiet 4K projector deep blacks", "short throw projector good contrast", "laser projector low noise"]). Set the language and country to match the user's location.
+### Demand-Supply Gap Analysis (InfraNodus) — Run Before Presenting the List
+After gathering candidates from web searches and the disruptor scan, call `search_queries_vs_search_results` with 2-3 queries that combine the user's top priorities (e.g., ["quiet 4K projector deep blacks", "short throw projector good contrast", "laser projector low noise"]). Set the language and country to match the user's location. This is the single most effective tool for finding underrated products — it reveals what buyers actively want but existing search results fail to deliver.
 
 This tool reveals **what people search for but don't find** — the gap between demand (search queries) and supply (search results). This is precisely where disruptors position themselves. Look for:
 - **Feature combinations people want but established products don't serve** — e.g., if many people search for "quiet projector deep blacks" but search results only show loud models or models with poor contrast, there's an unmet need that newer brands may address
@@ -140,6 +157,8 @@ This tool reveals **what people search for but don't find** — the gap between 
 - **Technology terms in search queries absent from results** — new technologies (e.g., "EBL laser dimming", "RGB triple laser") that buyers are actively seeking but that aren't well-covered in existing content
 
 Any products or brands surfaced through this gap analysis should be added to the candidate list and evaluated against user requirements.
+
+> **Checkpoint:** Did you run `search_queries_vs_search_results`? If not and InfraNodus is available, run it now — this is the best tool for catching products that web search roundups miss.
 
 ### Present the Initial List
 Show the user a table with: Product name, Price (approximate), Rating (and source), and 2-3 key specs relevant to their must-haves.
@@ -168,8 +187,8 @@ This rule exists because review comparisons reflect real-world purchase decision
 
 **If new important features are discovered**, add them to the feature list and re-evaluate the full candidate list against the updated criteria. This may eliminate some products and elevate others.
 
-### Structural Gap Analysis (InfraNodus)
-Once you have comparison content from multiple reviews, use the `generate_content_gaps` InfraNodus tool on the combined review text or URLs of the top candidates. This builds a knowledge graph of all features, technologies, and trade-offs discussed across reviews and identifies **structural gaps** — topical clusters that exist in the market discourse but aren't connected to your current shortlist.
+### Structural Gap Analysis (InfraNodus) — Don't Skip This Step
+Once you have comparison content from multiple reviews, call `generate_content_gaps` on the combined review text or URLs of the top candidates. This is where surprising insights often emerge — the tool builds a knowledge graph across all the review content and finds topical clusters that aren't connected to each other, revealing blind spots that reading reviews linearly would miss.
 
 These gaps can reveal:
 - **Product categories or form factors** you haven't considered (e.g., UST projectors when only evaluating standard throw)
@@ -177,6 +196,8 @@ These gaps can reveal:
 - **Technology trade-offs** that reviewers discuss in passing but that could be decisive for this user's priorities
 
 If the gap analysis surfaces a product category, technology, or feature that aligns with the user's must-haves, search for products that fill that gap and add them to the comparison.
+
+> **Checkpoint:** Did you run `generate_content_gaps` on the review content? If not and InfraNodus is available, this is the point to do it — the combined review text is richest right now.
 
 ---
 
@@ -201,8 +222,8 @@ By now you're probably anchored on 2-3 brands. Deliberately break out of this by
 
 Look for alternatives that match the user's confirmed feature priorities. The point isn't to add noise — it's to make sure you haven't missed a strong contender due to brand-name bias.
 
-### Transcendent Expansion (InfraNodus)
-Use the `generate_research_ideas` InfraNodus tool with `shouldTranscend: true` on a text that summarizes the user's core needs, priorities, and the product category being researched. This goes beyond the current product category to explore whether the user's underlying needs could be better served by a completely different type of product or approach.
+### Transcendent Expansion (InfraNodus) — Challenge Your Assumptions
+Before narrowing to a final shortlist, call `generate_research_ideas` with `shouldTranscend: true` on a text that summarizes the user's core needs, priorities, and the product category being researched. This deliberately breaks out of the current product category to check whether a completely different solution type might serve the user better. Skip this only if the user has explicitly said they want a specific product type and nothing else.
 
 For example:
 - A user searching for a "quiet projector with deep blacks" might actually be better served by a high-end OLED TV if their room allows it — the underlying need is immersive dark-room viewing, not necessarily a projector
@@ -210,6 +231,8 @@ For example:
 - A user wanting a "portable Bluetooth speaker for parties" might discover that a karaoke system or a powered PA speaker serves their actual use case better
 
 The tool analyzes the structural gaps in the discourse around the user's needs and generates ideas that bridge between the user's stated requirements and adjacent product categories or solutions. Only present these lateral alternatives if they genuinely serve the user's core needs better or at significantly better value — the goal is creative problem-solving, not scope creep.
+
+> **Checkpoint:** Did you run `generate_research_ideas` with `shouldTranscend: true`? If not and InfraNodus is available, do it now before locking in the shortlist — this is your last chance to catch lateral alternatives.
 
 ---
 
