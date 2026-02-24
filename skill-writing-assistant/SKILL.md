@@ -1,6 +1,26 @@
 ---
 name: writing-assistant
 description: "Refine texts in any language: perfect grammar and spelling, paraphrase ideas, avoid AI detection while maintaining authentic voice. Detects grammatical patterns that signal cognitive states or structural issues—acting as a sensory system for deeper strategic insights."
+homepage: https://infranodus.com
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "✍️",
+        "requires": { "bins": ["mcporter"], "env": ["INFRANODUS_API_KEY"] },
+        "primaryEnv": "INFRANODUS_API_KEY",
+        "install":
+          [
+            {
+              "id": "mcporter",
+              "kind": "node",
+              "package": "mcporter",
+              "bins": ["mcporter"],
+              "label": "Install mcporter (node)",
+            },
+          ],
+      },
+  }
 ---
 
 # Writing Assistant Skill
@@ -61,7 +81,65 @@ These patterns serve as **diagnostic signals** for when to trigger deeper analys
 
 ## Advanced Text Development (Optional)
 
-For substantial texts that need strategic development (not just grammar fixes), you can use InfraNodus MCP tools if available:
+For substantial texts that need strategic development (not just grammar fixes), you can use InfraNodus MCP tools if available.
+
+### Accessing InfraNodus Tools
+
+The InfraNodus tools are provided by the InfraNodus MCP server at `https://mcp.infranodus.com/`. Users need an InfraNodus account at https://infranodus.com.
+
+**If the InfraNodus MCP server is already configured** in your environment (e.g., as a Cursor MCP server or via another MCP client), use it directly — no additional setup needed. Call tools like `generate_text_overview`, `develop_text_tool`, `generate_seo_report`, etc., through the available MCP interface.
+
+**If the InfraNodus MCP server is not available**, use `mcporter` as a fallback to connect:
+
+*API Key auth (recommended for headless/automated setups):*
+
+Set `INFRANODUS_API_KEY` via environment variable or OpenClaw config (`~/.openclaw/openclaw.json`):
+```json
+{
+  "skills": {
+    "entries": {
+      "infranodus": {
+        "enabled": true,
+        "apiKey": "YOUR_INFRANODUS_API_KEY"
+      }
+    }
+  }
+}
+```
+
+OpenClaw maps `apiKey` → `INFRANODUS_API_KEY` env var automatically. Or set it directly: `export INFRANODUS_API_KEY=your_key_here`
+
+Then add the server:
+```bash
+mcporter config add infranodus \
+  --url https://mcp.infranodus.com/ \
+  --transport http \
+  --header "accept=application/json, text/event-stream" \
+  --header "Authorization=Bearer $INFRANODUS_API_KEY" \
+  --scope home
+```
+
+*OAuth auth (interactive browser login):*
+
+```bash
+mcporter config add infranodus \
+  --url https://mcp.infranodus.com/ \
+  --transport http \
+  --auth oauth \
+  --header "accept=application/json, text/event-stream" \
+  --scope home
+
+mcporter auth infranodus
+```
+
+To re-authenticate: `mcporter auth infranodus --reset`
+
+*Verify and call tools:*
+```bash
+mcporter list infranodus              # should show as healthy
+mcporter call infranodus.<tool_name> key=value
+mcporter call infranodus.<tool_name> --args '{"text": "...", "includeGraph": true}'
+```
 
 ### When to Use InfraNodus Tools
 
