@@ -25,45 +25,84 @@ The skills are designed to work with each other and to hand off important tasks 
 
 ## Installation
 
-### Option 1: Download from Releases (Recommended)
+The skills work with any LLM client. Download them from the GitHub releases page and follow the instructions for your client below.
+
+### Step 1: Download the Skills
+
+**Option A — From Releases (Recommended)**
 
 1. Go to the [Releases](https://github.com/infranodus/skills/releases) page
-2. Download the `.zip` file for the skill you want to use
-3. Install the skill in your Claude client (see below)
+2. Download the `.zip` or `.skill` file for the skill(s) you want
 
-### Option 2: Manual Installation
+**Option B — Clone the Repository**
 
-1. Clone this repository or download individual skill folders
-2. Each `skill-*` folder contains all necessary files for that skill
-3. Create a `.zip` file of the skill folder contents if needed
+1. Clone this repository or download individual `skill-*` folders
+2. Each folder contains all necessary files for that skill
+3. Create a `.zip` of the folder contents if your client requires it
 
-## Installing the Skills
+### Step 2 (Optional): Get an InfraNodus API Key
 
-### In Claude Web and Claude Desktop
+Some skills can access the [InfraNodus MCP Server](https://infranodus.com/mcp) to perform more complex tasks and extract real-time data from external sources (e.g. search intent or search results). The MCP server provides free access for the first few iterations, but you'll need to [get an InfraNodus API key](https://infranodus.com/api-access) for more advanced workflows and to avoid hitting rate limits.
 
-- Add skills via Settings → Capabilities
+### Step 3: Install to Your LLM Client
 
-### In Claude CLI (Claude Code)
+#### Claude Web / Desktop
 
-- Add the markdown skills folders into the `.claude/skills` folder for global access or into the `~/your_project/.claude/skills` for project access only.
+1. Go to **Settings → Capabilities**
+2. Activate **"Code execution and file creation"**
+3. Scroll down to the **Skills** section and activate any default skills you find useful
+4. Click **"Upload Skill"** to add InfraNodus skills (`.zip` or `.skill` files downloaded in Step 1)
 
-### In Claude API
+#### Claude Code
 
-- Access specific skills using the `/v1/skills` endpoint
+Copy each skill folder (e.g. `skill-cognitive-variability`) to the `~/.claude/skills` directory to make it available globally across all projects.
 
-### In Other LLM Clients, like ChatGPT
+To scope a skill to a specific project, create a `.claude/skills` folder inside that project and copy the skill folder(s) there instead.
 
-ChatGPT and some other LLM clients don't have an automatic skill installation procedure. However, there are two ways you can install them manually:
+#### Cursor / Windsurf / Other Code Editors
 
-1. You can create a Custom GPT and add the instructions from the file there. Then save Custom GPT with a descriptive name you choose and start a new conversation with it or mention it in an existing one using the @ sign.
+Copy each skill folder to your project's skills directory (e.g. `.cursor/skills/` for Cursor) or to a global skills directory defined in the editor settings. The skill's `SKILL.md` file will be picked up automatically.
 
-2. You can create a new project and paste the SKILL.md file (and additional files from the folder) from the skill folder to the system prompt of this project.
+#### ChatGPT
+
+ChatGPT doesn't support automatic skill installation, but you can use either of these approaches:
+
+1. **Custom GPT** — Create a new Custom GPT and paste the contents of the skill's `SKILL.md` into the instructions. Save with a descriptive name. You can then start a new conversation with it or mention it in an existing chat using the `@` sign.
+
+2. **Project prompt** — Create a new project and paste the `SKILL.md` file (plus any additional reference files from the skill folder) into the project's system prompt. The skill will be active in every conversation within that project.
+
+#### OpenClaw
+
+[OpenClaw](https://openclaw.ai/) is a local autonomous AI agent that uses skills and MCP servers via [MCPorter](https://github.com/steipete/mcporter).
+
+**Install via OpenClaw chat (recommended):**
+
+```bash
+install this skill: https://github.com/infranodus/skills/releases/download/v1.0.6/skill-cli-use.zip
+```
+
+Replace `v1.0.6` with the [latest release version](https://github.com/infranodus/skills/releases).
+
+**Manual installation:**
+
+```bash
+cp skill-cli-use.zip ~/.openclaw/skills/skill-cli-use.zip
+unzip ~/.openclaw/skills/skill-cli-use.zip -d ~/.openclaw/skills/skill-cli-use
+```
+
+To scope the skill to a specific project, copy it to that project's skills folder instead.
+
+> **Note:** OpenClaw also needs [MCPorter](https://infranodus.com/mcp/deploy-terminal) installed to access MCP server tools. See the [full OpenClaw deployment guide](https://infranodus.com/mcp/deploy-openclaw) for setting up MCPorter with OAuth or API key authentication.
+
+#### Other LLM Clients
+
+For any client not listed above, paste the contents of the skill's `SKILL.md` file into the project instructions or system prompt of the conversation where you want to use it. If the client supports custom assistants or GPTs, you can create one using the `SKILL.md` content and invoke it with an `@` mention.
 
 ## Using the Skills
 
-Your Claude client will automatically infer the necessary skill from the Skill's description. However, you can also explicitly ask it to use a certain skill.
+Your LLM client will automatically infer the necessary skill from the skill's description. However, you can also explicitly ask it to use a certain skill.
 
-If you find the skill is not activated as often as you'd like (or is activated too frequently), you can also modify the description of the skill and upload it again to your LLM client.
+If you find the skill is not activated as often as you'd like (or is activated too frequently), you can modify the description of the skill and upload it again to your LLM client.
 
 ## Developing Skills
 
