@@ -3,7 +3,7 @@ name: Create Release with Skill Packages
 on:
   push:
     tags:
-      - 'v*' # triggers on tags like v1.0.0, v1.0.1, etc.
+      - "v*" # triggers on tags like v1.0.0, v1.0.1, etc.
   workflow_dispatch: # allows manual trigger
 
 permissions:
@@ -22,8 +22,8 @@ jobs:
           # Create a directory for all skill packages
           mkdir -p skill-packages
 
-          # Find all directories starting with "skill-" and create zip files
-          for dir in skill-*/; do
+          # Find all skill directories and create zip files
+          for dir in skill-*/ infranodus-cli/; do
             if [ -d "$dir" ]; then
               skill_name=$(basename "$dir")
               echo "Creating package for $skill_name..."
