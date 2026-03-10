@@ -158,8 +158,10 @@ After identifying candidates from established brands, always run a second search
 - Search for "best new [product] brands [year]" or "[product category] new brands [year]"
 - Look for **new brands that launched in the past 12-18 months** in this product category
 - Check for **Kickstarter/Indiegogo products that have shipped** and been independently reviewed (not just funded — they must have real reviews from buyers)
-- Look for **sub-brands or sister brands** of established manufacturers (e.g., Valerion from AWOL Vision, Nothing from OnePlus ecosystem, Redmi from Xiaomi)
+- Look for **sub-brands or sister brands** of established manufacturers
+- Search the internet to find the newest models
 - Cross-reference any disruptors found against the user's requirements before adding to the candidate list
+- Also propose the user to maybe break some of their constraints (features, prices) if the result can produce sizeable increase in benefit on other points
 
 Disruptors often offer better price/performance ratios because they're competing on specs rather than brand recognition. Missing them is one of the most common blind spots in product research — established brands dominate search results and review roundups, but newer entrants may actually be the best fit.
 
@@ -344,6 +346,7 @@ For the final candidates (especially for electronics, vehicles, or high-value it
 - Search for "[product] resale value" or "[product] holds value"
 - Check if the brand/model retains value well on secondary markets
 - Products that hold value better effectively cost less over time
+- Search ebay completed auctions to see the price
 
 ### Delivery and Support
 
@@ -368,6 +371,10 @@ Present the final 3-4 options in a clear comparison, organized by the user's pri
 - Delivery/support notes
 
 End with a **clear recommendation** that states which option you'd suggest and why, while acknowledging the trade-offs. Make it easy for the user to make the final call.
+
+IT IS IMPERATIVE THAT YOU HELP THE USER FIND THE BEST POSSIBLE OPTION AND MAKE IT EASIER FOR THEM TO MAKE A CHOICE.
+
+IF THEY CANNOT MAKE A CHOICE AND KEEP ASKING FOR CLARIFICATION, YOU NEED TO EXPAND YOUR SEARCH AND ALSO ASK THE USER IF THEY ARE WILLING TO COMPROMISE ON ANY OF THE CONSTRAINTS.
 
 ---
 
