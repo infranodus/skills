@@ -306,7 +306,63 @@ The move fails when it's used dismissively — "why don't you just work within t
 
 ---
 
-## Notes on Hypocrisy as a Charge
+## Stylistic principles for rhetorical force
+
+The following principles govern how strong argumentative prose is constructed. They are about craft — the mechanics that make an argument land rather than merely state. Use them when constructing arguments, and recognize them when analyzing others' rhetoric.
+
+### Precision naming that reframes the object
+
+The most powerful rhetorical move is not describing something accurately but naming it in a way that forces the audience to see its hidden structure. A "coroner's report" on an event, an "engine of anti-thought," a "materialization of a critique" — these don't describe, they reframe. The audience thought they understood the object; the name makes it strange again.
+
+The technique: find the single phrase that names not what something appears to be but what it actually is or does. The name should be more precise than a description — it should contain a judgment that the audience immediately recognizes as true once stated, even if they hadn't formulated it themselves.
+
+### Compress the abstract critique into a concrete sequence
+
+Complex intellectual or political critiques can be compressed into a single sensory image that enacts the critique rather than stating it. "Take a radical philosophy, sand off its edges, paint it beige, and sell it back to the over-class as a wellness accessory" — this is a process rendered as a physical sequence. The abstraction (commodification of dissent) becomes a craft procedure.
+
+The technique: identify the abstract process you're critiquing → find the concrete, physical, sequential equivalent → render it as a series of specific actions. The more specific the sensory detail, the more recognizable the abstraction becomes. Specificity is not decoration here — it is the argument.
+
+### The echo-and-redirect
+
+Take the opponent's own framing or question, quote it exactly, pause, then answer it with maximum compression and minimum words. The gap between the apparent specificity of the question and the brevity of the answer creates rhetorical force.
+
+"You wondered, 'helping what?' The answer is: helping anything." The punch comes from the inversion — a specific question answered with total generality, or a general question answered with devastating specificity. Structure: their exact words → colon or pause → the fewest possible words that detonate on contact.
+
+### Compound adjective chains that reduce person to function
+
+Stacking adjectives that each add a layer of critique, ending in a noun that strips agency — "polished, ignorant, yoga bourgeoise gear cog." By the end of the description the subject is no longer a person making choices but a component performing a function. The technique: move from personal qualities toward systemic role. Each adjective narrows; the final noun completes the reduction.
+
+### The deflation prefix
+
+Hyphenated past-participial constructions — "pre-chewed," "de-fanged," "sand-blasted" — imply that a process of degradation occurred before the audience arrived. Something that once had force has been processed into safety. The current object is not the original thing but its neutered residue.
+
+The technique: identify what the thing once was or claimed to be → find the prefix that names what was removed → attach it. The construction implies that the speaker knows the original and can measure the distance between it and the current imposter.
+
+### Mock-praise before condemnation
+
+"Exquisitely plated shit." "Meticulously curated engine of anti-thought." Using the opponent's own aspirational vocabulary — or the vocabulary they would use to describe themselves favorably — and attaching it to the condemnation. The mock-praise implies they achieved exactly what they set out to achieve. What they set out to achieve is contemptible.
+
+This is more devastating than direct insult because it grants competence while withdrawing significance. The subject isn't failing — they're succeeding at something worthless.
+
+### Ontological elevation of the claim
+
+Rather than arguing a point, declare its category and magnitude: "Supreme metaphysical error." "Semiotic shielding of the dampening down process." This operates at a higher level of abstraction than the opponent and implies mastery of a framework they haven't demonstrated familiarity with. To rebut it, they must first demonstrate they understand the framework.
+
+Use carefully — this only works when the framework is real and the speaker genuinely commands it. When it's hollow, it reads immediately as bluster.
+
+### The domestic analogy that refuses elevation
+
+When an opponent is operating in an elevated intellectual or political register, translate the situation into a physical, domestic, slightly vulgar equivalent and refuse to grant it the seriousness it is claiming. "When you're served a plate of exquisitely plated shit, you don't analyse the garnish."
+
+The vulgarity is not carelessness — it's a deliberate refusal to dignify the situation with the register it's requesting. It also makes the point viscerally memorable in a way that an abstract formulation never would. The technique: find the kitchen, bedroom, or street-level version of the high-minded situation and state it with specificity.
+
+### Land on the strongest word — no ellipses
+
+Every sentence ends somewhere. The question is whether it ends on a strong word or a weak one, a commitment or a hedge. The ellipsis, the trailing qualifier, the "in some ways" or "perhaps" at the end of a point — these diffuse what would otherwise land.
+
+The principle: commit to the formulation completely. Put the emphasis where it belongs and stop there. The sentence should end on its most significant word, not on its most cautious one. This applies to individual sentences, to paragraphs, and to the argument as a whole — the last thing the reader reads is what they carry away.
+
+Hedges belong at the beginning of a claim if they belong anywhere. "Perhaps," "in some cases," "arguably" — front-load the qualification, then commit to the strongest version of the claim. Never use the hedge as an exit from a point you've already made.
 
 Because hypocrisy arguments appear frequently in political and social debate, and are often under- or over-applied:
 
