@@ -147,11 +147,37 @@ The following techniques are worth identifying when they appear in debate, and w
 
 ### Compress the reductio into a question
 
-The most powerful form of a reductio ad absurdum is not an argument — it's a single question. "Wait, so Ukraine is a NATO member?" "By this logic, Europe should help its friend and partner the US, no?" 
+The most powerful form of a reductio ad absurdum is not an argument — it's a single question. "Wait, so Ukraine is a NATO member?" "By this logic, Europe should help its friend and partner the US, no?"
 
 A question is harder to dodge than a claim, because dodging a question is more visible to any audience watching. It also transfers the entire burden of response to the opponent with minimal surface area for them to grab onto. The shorter the question, the more exposed the opponent's position becomes.
 
 When you identify a reductio in an argument, ask: can this be compressed into a single question rather than stated as a multi-step argument?
+
+### The consistency challenge
+
+When an opponent applies a label, standard, or critique to one party but withholds it from another party whose conduct is comparable or whose stated goals are more extreme, name the asymmetry directly. This is the consistency challenge: *you're applying this standard here but not there — what's the actual principle?*
+
+The consistency challenge is most powerful when the asymmetry is factually demonstrable rather than contested — when the opponent's own stated criterion, applied without modification, would produce a conclusion they're refusing to draw. The goal is not to accuse the opponent of bad faith but to expose an inconsistency that they need to either explain or correct.
+
+Structure: identify the criterion the opponent is applying → identify the case where they're not applying it → apply it yourself → ask them to account for the difference. If they can't specify a genuine disanalogy, the position is tribal rather than principled.
+
+### Shift the burden of proof back to the opponent
+
+When an opponent makes a factually grounded claim — especially one that invokes the opponent's own statements, documented positions, or stated goals — the burden shifts to the opponent to either dispute the facts or explain why they don't support the conclusion being drawn. This is not the same as winning the argument, but it changes who has to do the next unit of work.
+
+The technique: anchor your claim in something the opponent cannot easily deny — their own words, publicly stated positions, documented conduct — and then draw the conclusion that follows. Now they must either dispute the anchor (hard, if it's their own statements) or explain why the conclusion doesn't follow. Simply reasserting the original position without engaging the anchor is visible as evasion.
+
+This is especially effective in debates where the opponent has been making assertions without evidence, because it models the standard you're asking them to meet: here is my evidence, here is my conclusion, where is yours?
+
+### Evidence before conclusion — not after
+
+A conclusion that precedes its evidence reads as editorializing. The reader registers the judgment first, then the support — and because the judgment came first, it appears to be the real operative reason, with the evidence recruited afterward to justify it.
+
+The correct order is always: evidence first, conclusion following from it. This is not just a stylistic preference — it's a structural signal about how the argument was actually formed. When the conclusion comes first, it suggests the debater started with the verdict and worked backward. When evidence comes first, it suggests the verdict was reached by following the logic.
+
+In practice: remove any characterizing or evaluative word that appears before you've established the factual basis for it. If the facts genuinely support the characterization, state them first and let the characterization land as a conclusion. If you find yourself reaching for the characterization before you have the facts, that's a signal the characterization may not be well-founded.
+
+The tell in other people's arguments: strong evaluative language appearing before or without supporting evidence. "Contrived," "cynical," "naive," "medieval" — when these arrive ahead of the argument, they're doing work the argument hasn't yet done.
 
 ### Track and name principle shifts explicitly
 
@@ -231,13 +257,20 @@ This is an immunization strategy — it makes the position impossible to test, w
 
 The tell: when every possible response to a critique — engaging, leaving, agreeing, disagreeing — has already been pre-interpreted within the critic's framework as confirming their view. Ask: what would it take to change your mind? If nothing could, the position is closed.
 
-### Aesthetic and tribal critique mistaken for principled argument
+### Aesthetic and tribal language — when it works and when it fails
 
-Some critiques appear principled but are actually operating on a different level — they're expressing a sensibility, enforcing in-group standards, or reacting to a style that violates the critic's taste. These are real responses, but they're only persuasive to people who already share the same aesthetic or tribal membership. They don't operate as general principles that could convince someone outside the in-group.
+Aesthetic and tribal characterizations — language that signals in-group identity, invokes shared sensibility, or expresses cultural contempt — are not inherently illegitimate. They become a problem in specific conditions.
 
-The diagnostic: apply the critique consistently to cases the critic already approves of. If the same feature — privilege, institutional affiliation, imperfect practice of stated values, use of commercial technology — appears in figures the critic admires, but is only cited as disqualifying for figures they dislike, the critique is aesthetic and selective rather than principled.
+**When it fails:** When the aesthetic charge is doing the logical work the argument hasn't done. Calling something "medieval," "neoliberal," "woke," or "naive" functions as a conclusion masquerading as evidence. It only persuades people who already share the same sensibility — it provides no traction with anyone outside the in-group, and it actively damages credibility with skeptical readers who will correctly identify it as tribal rather than principled. The diagnostic: if you removed the characterizing term and replaced it with a factual description, would the argument still hold? If yes, the term is decorative at best and damaging at worst. If no, the term was carrying the argument, which means the argument doesn't actually exist.
 
-This doesn't mean the aesthetic reaction is wrong. It means it's operating below the level of the argument being claimed. Name it as such: "This critique applies equally to X, whom you don't seem to have a problem with. What's the actual principle?"
+**When it works:** When three conditions are met simultaneously:
+1. The characterization is genuinely congruent with the aesthetic and tribal identity of the interlocutor — it signals shared membership rather than opposition
+2. It is supported by actual logical and factual claims that would stand independently of the aesthetic charge
+3. It does not substitute for those claims but accompanies them — the argument holds if the characterization is removed
+
+In this configuration, aesthetic language amplifies a sound argument for an audience already disposed to receive it. It makes the argument land emotionally as well as logically. Used this way, it's a legitimate rhetorical intensifier.
+
+The rule: aesthetic and tribal language should always be the last thing added to an argument, never the first. Build the factual and logical case first. Then, if the characterization is genuinely earned by the evidence and is likely to resonate with the specific audience, add it as amplification. Never let it precede or substitute for the argument.
 
 ### The unfalsifiable position: performance mistaken for argument
 
