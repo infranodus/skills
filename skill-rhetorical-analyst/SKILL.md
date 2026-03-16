@@ -28,7 +28,6 @@ The most common failure in rhetorical analysis is treating one position as the n
 **Always ask**: whose frame am I implicitly accepting as "reasonable"? If the analysis consistently asks one side to justify itself while letting the other side's assumptions pass unchallenged, that asymmetry is itself a bias to name and correct.
 
 This applies especially when:
-
 - One position is more institutionally mainstream than the other
 - One position uses more polished or "measured" language
 - The analyst (including Claude) was trained on corpora that favor a particular milieu
@@ -63,7 +62,7 @@ These are different failure modes with different implications:
 - **Sincere error** = genuinely believing something false or misjudging consequences.
 - **Structural dysfunction** = systems producing bad outcomes without individual bad faith.
 
-Don't conflate them. An outcome that _looks_ hypocritical may be sincere error or collective action failure. The charge of hypocrisy is stronger and requires a higher evidential bar.
+Don't conflate them. An outcome that *looks* hypocritical may be sincere error or collective action failure. The charge of hypocrisy is stronger and requires a higher evidential bar.
 
 Conversely: **coherence is not correctness**. A sincere actor can be sincerely wrong. Don't let "at least they're honest" function as a substitute for evaluating the actual policy or position.
 
@@ -74,7 +73,6 @@ Conversely: **coherence is not correctness**. A sincere actor can be sincerely w
 ### Step 1 — Map the moves
 
 Read the text and identify the distinct argumentative moves. Name each one:
-
 - Moral reframe
 - Partial concession
 - Whataboutism / tu quoque
@@ -91,9 +89,8 @@ Don't over-label. One move can serve multiple functions. Name what's actually ha
 ### Step 2 — Score each move
 
 For each move, score across the three dimensions with brief justification:
-
 - **Persuasion**: High / Medium / Low — and why
-- **Rhetoric**: Strong / Mixed / Weak — and why
+- **Rhetoric**: Strong / Mixed / Weak — and why  
 - **Logic**: Sound / Incomplete / Fallacious — and why
 
 Be specific. "Weak logic" is not enough — name the mechanism (tu quoque, false equivalence, missing premise, etc.).
@@ -106,7 +103,7 @@ After scoring individual moves, look for the structural gaps — places where th
 - What comparative claim is being made without a stated standard?
 - What is the implicit value hierarchy, and is it defended or assumed?
 
-Example from this conversation: "bluntness = honesty therefore preferable" requires the unstated premise that _hypocrisy is a worse political failure mode than sincere wrongness_ — and that premise itself needs an argument (e.g. Arendt: institutional lying destroys the epistemic commons).
+Example from this conversation: "bluntness = honesty therefore preferable" requires the unstated premise that *hypocrisy is a worse political failure mode than sincere wrongness* — and that premise itself needs an argument (e.g. Arendt: institutional lying destroys the epistemic commons).
 
 ### Step 4 — Check your own frame
 
@@ -124,7 +121,6 @@ Name any asymmetries you find. This is not false balance — it's analytical int
 ## Output Format
 
 ### Standard analysis
-
 Present findings as prose with a supporting visual summary (SVG table or diagram). Structure:
 
 1. Brief characterization of the overall argumentative approach
@@ -133,14 +129,12 @@ Present findings as prose with a supporting visual summary (SVG table or diagram
 4. Any hidden priors in the analysis itself, if relevant
 
 ### When the user corrects the analysis
-
 - Accept the correction explicitly
 - Reconstruct what the argument actually was
 - Identify what assumption you had imported
 - Restate the genuine remaining weakness (if any) without the imported frame
 
 ### Depth calibration
-
 - Comment thread / casual debate: focus on 3-4 key moves, keep it conversational
 - Speech / essay / formal argument: full move-by-move treatment
 - User's own argument: emphasize the missing inferential steps and how to complete them
@@ -161,7 +155,7 @@ When you identify a reductio in an argument, ask: can this be compressed into a 
 
 ### The consistency challenge
 
-When an opponent applies a label, standard, or critique to one party but withholds it from another party whose conduct is comparable or whose stated goals are more extreme, name the asymmetry directly. This is the consistency challenge: _you're applying this standard here but not there — what's the actual principle?_
+When an opponent applies a label, standard, or critique to one party but withholds it from another party whose conduct is comparable or whose stated goals are more extreme, name the asymmetry directly. This is the consistency challenge: *you're applying this standard here but not there — what's the actual principle?*
 
 The consistency challenge is most powerful when the asymmetry is factually demonstrable rather than contested — when the opponent's own stated criterion, applied without modification, would produce a conclusion they're refusing to draw. The goal is not to accuse the opponent of bad faith but to expose an inconsistency that they need to either explain or correct.
 
@@ -187,7 +181,7 @@ The tell in other people's arguments: strong evaluative language appearing befor
 
 ### Track and name principle shifts explicitly
 
-When an opponent shifts the basis of their argument across exchanges — first invoking one principle, then another when the first is challenged — most debaters simply chase the new position. The better move is to name the shift explicitly before responding to the new position: _"First it was Article 5, then friendship and partnership, now it's who started the war."_
+When an opponent shifts the basis of their argument across exchanges — first invoking one principle, then another when the first is challenged — most debaters simply chase the new position. The better move is to name the shift explicitly before responding to the new position: *"First it was Article 5, then friendship and partnership, now it's who started the war."*
 
 This does two things simultaneously: it exposes the inconsistency for the audience, and it makes further shifting costly because the pattern is now visible. After naming it once, any subsequent shift is even more damaging to the opponent's credibility.
 
@@ -199,7 +193,7 @@ Spending more than one sentence defending yourself gives the misattribution more
 
 ### Name the uncomfortable implication of your own argument first
 
-Before an opponent can use the uncomfortable consequences of your position as an attack, name them yourself. "Even of its own making." "Even if the logic is twisted and we don't like it."
+Before an opponent can use the uncomfortable consequences of your position as an attack, name them yourself. "Even of its own making." "Even if the logic is twisted and we don't like it." 
 
 This disarms the most obvious line of attack — the opponent was going to point out that your position has uncomfortable implications, and you've already acknowledged it. It reads as intellectual confidence rather than weakness, and it builds credibility for everything else you say. An arguer who volunteers the costs of their own position is harder to dismiss as a partisan.
 
@@ -211,7 +205,7 @@ When an opponent is stuck in a complaint loop about how a situation shouldn't ha
 
 ### Separate descriptive from normative proactively
 
-When making a descriptive observation about how power or logic operates — especially one that might sound like endorsement of what you're describing — draw the line explicitly before being accused of crossing it: _"This is a comment on the quality of our politics, not an attempt to support him in any way."_
+When making a descriptive observation about how power or logic operates — especially one that might sound like endorsement of what you're describing — draw the line explicitly before being accused of crossing it: *"This is a comment on the quality of our politics, not an attempt to support him in any way."*
 
 Do this proactively rather than waiting for the misreading to harden. Once an opponent has successfully framed you as endorsing something you were only describing, correcting that framing costs more energy than preventing it. The proactive separation also demonstrates that you've thought through the distinction yourself — which is itself a mark of analytical seriousness.
 
@@ -233,15 +227,47 @@ However, this only works when it's genuine and proportionate. A brief, honest ac
 
 Use it when there is a genuine tension worth acknowledging. Don't use it as a rhetorical inoculation against critique you haven't earned the right to dismiss.
 
+### Reframe the opponent's position as situationally produced
+
+Before engaging the substance of an opponent's argument, offer a structural explanation for why they hold it — not as an attack but as a diagnostic. The argument: given your situation, this is the position that would be most comfortable to hold. That doesn't make it wrong, but it means the reasoning deserves extra scrutiny, because motivated reasoning and genuine reasoning can produce identical-looking outputs.
+
+This move is most effective as a frame-setter rather than a standalone argument. State the situational explanation, note that you're aware it doesn't automatically invalidate the position, then engage the substance. This sequence inoculates you against the "you're just attacking me personally" response and forces the opponent to address whether their reasoning is actually independent of their circumstances.
+
+Critical deployment condition: deliver it as a question or observation, not as a declaration. "I wonder whether part of what makes this position attractive is..." is far more effective than "The reason you believe this is..." The former invites reflection; the latter provokes defensiveness that makes the rest of the argument harder to land.
+
+### The practical reframe with an evidential demand
+
+When an opponent is arguing from ideology, historical narrative, or tribal loyalty, reframe the entire question in practical or economic terms and simultaneously demand that they meet the same evidential standard on their terrain that you're meeting on yours. The move has two parts: first, show your working ("think about it as an economist — here's what the actual incentive structure produces, here's what the data shows"); second, turn the demand back ("now give me the equivalent on your side — not abstractly, with specific examples and numbers").
+
+This works because ideological arguments are structurally disadvantaged against practical ones when the practical argument is specific and the ideological one is general. The demand for equivalent specificity exposes the asymmetry. If the opponent can't provide the numbers, they've effectively conceded the terrain without saying so.
+
+The move fails if your own practical argument isn't genuinely specific — you need to actually do the work first, not just demand it of others.
+
+### The concession audit at the end of a long exchange
+
+In a debate that has run across many exchanges, positions shift, concessions accumulate, and neither party tracks the movement precisely. At a natural closing point, enumerate what the opponent has actually conceded across the full conversation — stated neutrally, not triumphantly. This makes the arc of the debate visible in a way that individual exchanges don't, and it forces the opponent to either own the movement or dispute specific items.
+
+The key is neutrality of tone. A triumphant summary ("so you've admitted I was right about everything") provokes denial regardless of its accuracy. A descriptive summary ("I notice we've moved from X to Y, and you've agreed with Z") is harder to dismiss because it's stated as observation rather than victory. If the opponent disputes a claimed concession, they have to re-engage the substance to do so — which is itself revealing.
+
+The move also has a secondary function: it models intellectual honesty. By tracking the actual movement of the debate rather than simply reasserting your opening position, you signal that you've been listening and that the exchange has been genuine rather than performative.
+
+### The consistency challenge applied to the opponent's own behavior outside the debate
+
+The standard consistency challenge applies a principle across cases within the argument. A more powerful variant applies the opponent's own stated principle to their observable behavior outside the debate — their recent public statements, their documented actions, their publicly visible positions — and shows the contradiction.
+
+This works because it's harder to dismiss than an abstract logical challenge. The opponent can't claim misrepresentation or misunderstanding — the behavior is public and specific. They have to either explain the apparent contradiction, deny the behavior (which is risky if it's verifiable), or modify the principle to exclude themselves — which is the most damaging option, because it reveals the principle as self-serving.
+
+The structure: "You've argued that X principle should apply. Your recent [statement / action / position] does precisely what you're arguing against. Either the principle doesn't apply to you, in which case explain why — or it does, and you're subject to your own critique." Short, specific, anchored in the observable.
+
 ## Arguing from conclusions vs arguing from principles
 
-One of the clearest diagnostics of debate quality is whether participants are arguing _from_ principles toward conclusions, or _from_ conclusions toward whatever principle seems to support them in the moment.
+One of the clearest diagnostics of debate quality is whether participants are arguing *from* principles toward conclusions, or *from* conclusions toward whatever principle seems to support them in the moment.
 
 **Arguing from conclusions** looks like: the debater knows what outcome they want, and reaches for whichever principle justifies it — shifting the stated principle when pressed, introducing distinctions that weren't in the original claim, and treating logical consistency as optional. This pattern is detectable when an opponent keeps shifting the basis of their argument across exchanges without acknowledging the shift.
 
 **Arguing from principles** looks like: the debater states a general principle, applies it consistently across cases including uncomfortable ones, and follows it where it leads even when the destination is inconvenient. This is harder to attack directly — opponents have to either accept the principle (which usually costs them) or specify a genuine disanalogy between cases (which requires real intellectual work).
 
-When you identify this asymmetry in a debate, name it. The question to apply: _does this person's stated principle survive contact with a case they're emotionally invested in on the other side?_ If not, the principle is post-hoc rationalization, not a genuine premise.
+When you identify this asymmetry in a debate, name it. The question to apply: *does this person's stated principle survive contact with a case they're emotionally invested in on the other side?* If not, the principle is post-hoc rationalization, not a genuine premise.
 
 A related pattern: **the reductio that gets ignored**. When a debater applies an opponent's principle consistently and arrives at a conclusion the opponent finds absurd, the opponent has three honest options — accept the conclusion, reject the principle, or specify the disanalogy. Ignoring the reductio and continuing as if it wasn't made is a strong signal that the original principle was never really the operative reason.
 
@@ -270,7 +296,6 @@ Aesthetic and tribal characterizations — language that signals in-group identi
 **When it fails:** When the aesthetic charge is doing the logical work the argument hasn't done. Calling something "medieval," "neoliberal," "woke," or "naive" functions as a conclusion masquerading as evidence. It only persuades people who already share the same sensibility — it provides no traction with anyone outside the in-group, and it actively damages credibility with skeptical readers who will correctly identify it as tribal rather than principled. The diagnostic: if you removed the characterizing term and replaced it with a factual description, would the argument still hold? If yes, the term is decorative at best and damaging at worst. If no, the term was carrying the argument, which means the argument doesn't actually exist.
 
 **When it works:** When three conditions are met simultaneously:
-
 1. The characterization is genuinely congruent with the aesthetic and tribal identity of the interlocutor — it signals shared membership rather than opposition
 2. It is supported by actual logical and factual claims that would stand independently of the aesthetic charge
 3. It does not substitute for those claims but accompanies them — the argument holds if the characterization is removed
@@ -287,9 +312,33 @@ The practical consequence: a person holding an unfalsifiable position will often
 
 When analyzing such a position: ask what evidence or argument would change it. If the answer is nothing, or if every possible challenge has been pre-framed as complicity, the position is a performance. Engaging with it as if it were an argument is a category error.
 
+### The diagnostic label that degrades with repetition
+
+A characterization used to describe an opponent's error or pattern — "paranoia," "motivated reasoning," "naivety," "complicity" — is most powerful on its first deployment. Used precisely once, it names something real and lands with force. Used repeatedly across a long exchange, it becomes a tic — a way of dismissing rather than engaging, a label doing the work that arguments should be doing.
+
+The opponent will correctly identify the pattern: "you keep returning to the same characterization instead of addressing what I said." And they'll be right. Each subsequent use weakens rather than strengthens the case, because it signals that the debater has run out of specific responses and is recycling a frame instead.
+
+The rule: deploy a diagnostic label once, name it as a pattern if needed, then abandon it entirely in favor of substantive engagement. If the pattern genuinely recurs, point to specific new instances rather than repeating the label. Naming the behavior is different from naming the name of the behavior.
+
+### Register mismatch: warmth and tenderness mid-argument
+
+Pivoting to warmth, affection, or spiritual register in the middle of a hard-fought argument — without invitation from the opponent and without the exchange having genuinely resolved — reads as condescension rather than generosity. It signals one of two things: that you've run out of substantive moves and are reaching for an exit, or that you consider yourself to be operating at a higher emotional or spiritual level than the opponent. Neither is persuasive to someone who is still in the argument.
+
+The opponent will correctly read it as a rhetorical move rather than a genuine gesture — and will name it: "that's a strong move when you have nothing left to add." The warmth then becomes evidence against you.
+
+Warmth is appropriate and effective in two conditions: at the genuine end of a resolved exchange, where both parties have moved and the emotional register can shift naturally; or as an opening move that sets a collaborative rather than adversarial frame before substance begins. In the middle of an unresolved argument, it's almost always a mistake.
+
+### The irony trap of the meta-argument
+
+When you make a meta-argument about how your opponent is arguing — accusing them of not listening, of binary thinking, of dismissiveness, of projection — you become immediately vulnerable to demonstrating the same behavior in the same exchange. Audiences notice even when debaters don't. If you accuse an opponent of not hearing you and then fail to engage a specific point they've made, the irony undermines everything.
+
+The safeguard: before making any meta-argument about your opponent's argumentative behavior, audit your own conduct in the same exchange. Have you done the thing you're about to accuse them of? If yes, acknowledge it first — or don't make the meta-argument at all.
+
+This is especially acute with accusations of binary thinking, dismissiveness, and projection — three patterns that are almost impossible to accuse someone of without simultaneously risking demonstration. The accuser rarely notices. The audience always does.
+
 ### The effectiveness reframe
 
-One of the most powerful moves in interpersonal and political debate is to accept an opponent's diagnosis entirely — yes, the situation is as you describe, yes, the problem is real — and then redirect to a single question: _is what you're doing actually helping to change it?_
+One of the most powerful moves in interpersonal and political debate is to accept an opponent's diagnosis entirely — yes, the situation is as you describe, yes, the problem is real — and then redirect to a single question: *is what you're doing actually helping to change it?*
 
 This reframe doesn't challenge the values, the critique, or the emotional response. It accepts all of it. What it challenges is the gap between the stated goal and the chosen method. The question is not "are you right about the problem?" but "does your response to the problem produce the outcome you want?"
 
@@ -301,15 +350,15 @@ The move fails when it's used dismissively — "why don't you just work within t
 
 ## Common Fallacies Reference
 
-| Name                 | Structure                               | Tell                                                                    |
-| -------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
-| Tu quoque            | "You do it too"                         | Doesn't rebut the original claim                                        |
-| Ad hominem           | Attack the person, not the claim        | Emotional charge substitutes for refutation                             |
-| False equivalence    | A ≈ B when A ≠ B in relevant ways       | Conflates style with substance, or form with content                    |
-| Whataboutism         | Deflect to a different subject          | Changes terrain rather than engaging                                    |
-| Begging the question | Conclusion smuggled into premise        | The "neutral baseline" that isn't neutral                               |
-| Missing premise      | Inference gap                           | Two true premises that don't connect without a third                    |
-| Motte and bailey     | Defend easy claim, assert difficult one | Retreat to safe version when challenged, advance bold version otherwise |
+| Name | Structure | Tell |
+|------|-----------|------|
+| Tu quoque | "You do it too" | Doesn't rebut the original claim |
+| Ad hominem | Attack the person, not the claim | Emotional charge substitutes for refutation |
+| False equivalence | A ≈ B when A ≠ B in relevant ways | Conflates style with substance, or form with content |
+| Whataboutism | Deflect to a different subject | Changes terrain rather than engaging |
+| Begging the question | Conclusion smuggled into premise | The "neutral baseline" that isn't neutral |
+| Missing premise | Inference gap | Two true premises that don't connect without a third |
+| Motte and bailey | Defend easy claim, assert difficult one | Retreat to safe version when challenged, advance bold version otherwise |
 
 ---
 
@@ -337,19 +386,19 @@ The punch comes from inversion: a highly specific question answered with a singl
 
 ### Compound adjective chains that reduce person to function
 
-Stacking adjectives that each add a layer of critique, ending in a noun that strips agency. By the end of the description the subject is no longer a person making choices but a component performing a systemic role. "Affable, credentialed, conference-circuit friction-reducer." "Well-meaning, grant-funded, NGO-formatted disruption absorber." "Polished, ignorant, bourgeoise gear cog." Each adjective narrows the field; the final compound noun completes the reduction from agent to mechanism.
+Stacking adjectives that each add a layer of critique, ending in a noun that strips agency. By the end of the description the subject is no longer a person making choices but a component performing a systemic role. "Affable, credentialed, conference-circuit friction-reducer." "Well-meaning, grant-funded, NGO-formatted disruption absorber." Each adjective narrows the field; the final compound noun completes the reduction from agent to mechanism.
 
 The technique: move from personal qualities toward systemic role, from character toward function. Reserve this for cases where the systemic reduction is genuinely illuminating — when the point is precisely that the person is performing a function the system requires regardless of their individual intentions.
 
 ### The deflation prefix
 
-Hyphenated past-participial constructions imply that a process of degradation occurred before the audience arrived. Something that once had force has been processed into safety. The current object is not the original thing but its treated residue — "pre-approved," "de-politicized," "threat-neutralized," "de-fanged.", "sand-blasted" The prefix names what was removed.
+Hyphenated past-participial constructions imply that a process of degradation occurred before the audience arrived. Something that once had force has been processed into safety. The current object is not the original thing but its treated residue — "pre-approved," "de-politicized," "threat-neutralized," "safety-certified." The prefix names what was removed.
 
 The technique: identify what the thing once was or claimed to be → find the prefix that names the removal operation → attach it. The construction implies that the speaker knows the original and can measure the distance between it and the current domesticated version. It also implies an agent who performed the removal — which is more damning than simply describing the degraded state.
 
 ### Mock-praise before condemnation
 
-Use the opponent's own aspirational vocabulary — or the vocabulary they would use to describe themselves favorably — and attach it directly to the condemnation. "Meticulously curated engine of anti-thought." "A flawlessly executed argument for a nonexistent truth." The mock-praise implies they achieved exactly what they set out to achieve. What they set out to achieve is the problem.
+Use the opponent's own aspirational vocabulary — or the vocabulary they would use to describe themselves favorably — and attach it directly to the condemnation. "Impeccably sourced conclusions that happen to be useless." "A flawlessly executed argument for doing nothing." The mock-praise implies they achieved exactly what they set out to achieve. What they set out to achieve is the problem.
 
 This is more devastating than direct insult because it grants competence while withdrawing significance. The subject isn't failing at something worthwhile — they're succeeding at something worthless. It also inoculates the response against the "you just don't understand it" counter, because you've already demonstrated that you understand it perfectly.
 
@@ -381,8 +430,8 @@ Because hypocrisy arguments appear frequently in political and social debate, an
 
 **The stronger version of the hypocrisy argument** (following Arendt): Institutional hypocrisy — where leaders systematically say one thing and do another — is structurally corrosive to democratic accountability because it degrades the shared epistemic reality that makes evaluation of leaders possible. This is a stronger claim than "they're personally dishonest" and doesn't require proof of individual intent.
 
-The mechanism matters: polished, values-laden language doesn't just obscure bad policy — it _insulates_ it from accountability. When the rhetoric is respectable enough, the policy underneath it doesn't get evaluated on its outcomes. The language does the protective work.
+The mechanism matters: polished, values-laden language doesn't just obscure bad policy — it *insulates* it from accountability. When the rhetoric is respectable enough, the policy underneath it doesn't get evaluated on its outcomes. The language does the protective work.
 
-This reframes what bluntness or disruption can mean in such a system. It isn't necessarily "sincere wrongness" — it can function as a stress test on an arrangement that had been failing quietly for decades behind respectable rhetoric. Whether the stress test is _good_ is a separate question. But treating it as self-evidently worse than the polished dysfunction it disrupts is itself a hidden prior worth naming.
+This reframes what bluntness or disruption can mean in such a system. It isn't necessarily "sincere wrongness" — it can function as a stress test on an arrangement that had been failing quietly for decades behind respectable rhetoric. Whether the stress test is *good* is a separate question. But treating it as self-evidently worse than the polished dysfunction it disrupts is itself a hidden prior worth naming.
 
 When this argument appears, check whether it's being made at the individual or institutional level, and whether the evidential standard matches the level of the claim.
