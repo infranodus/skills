@@ -149,4 +149,8 @@ Because hypocrisy arguments appear frequently in political and social debate, an
 
 **The stronger version of the hypocrisy argument** (following Arendt): Institutional hypocrisy — where leaders systematically say one thing and do another — is structurally corrosive to democratic accountability because it degrades the shared epistemic reality that makes evaluation of leaders possible. This is a stronger claim than "they're personally dishonest" and doesn't require proof of individual intent.
 
+The mechanism matters: polished, values-laden language doesn't just obscure bad policy — it *insulates* it from accountability. When the rhetoric is respectable enough, the policy underneath it doesn't get evaluated on its outcomes. The language does the protective work.
+
+This reframes what bluntness or disruption can mean in such a system. It isn't necessarily "sincere wrongness" — it can function as a stress test on an arrangement that had been failing quietly for decades behind respectable rhetoric. Whether the stress test is *good* is a separate question. But treating it as self-evidently worse than the polished dysfunction it disrupts is itself a hidden prior worth naming.
+
 When this argument appears, check whether it's being made at the individual or institutional level, and whether the evidential standard matches the level of the claim.
