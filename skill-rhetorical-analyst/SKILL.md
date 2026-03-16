@@ -6,14 +6,17 @@ description: >-
   wants to analyze a debate, comment thread, speech, article, or any
   argumentative text - identifying the moves being made, scoring their
   effectiveness, exposing hidden assumptions, tracking logical gaps, and
-  checking for asymmetric standards being applied. Also use when the user wants
-  to stress-test their own argument, understand why something feels persuasive
-  but wrong (or right but unpersuasive), or when they push back on an analysis
-  and want the reasoning examined for its own hidden priors. Trigger on phrases
-  like "analyze this argument", "what's wrong with this reasoning", "is this a
-  good point", "what rhetorical moves are being used", "why is this persuasive",
-  "break down this debate", or when a user shares a text and asks what's going
-  on rhetorically.
+  checking for asymmetric standards being applied. When InfraNodus MCP tools
+  are available, ALWAYS begin by running generate_topical_clusters,
+  generate_content_gaps, and optimize_text_structure before any linear
+  reading — these are mandatory first steps, not optional enrichment. Also use
+  when the user wants to stress-test their own argument, understand why
+  something feels persuasive but wrong (or right but unpersuasive), or when
+  they push back on an analysis and want the reasoning examined for its own
+  hidden priors. Trigger on phrases like "analyze this argument", "what's
+  wrong with this reasoning", "is this a good point", "what rhetorical moves
+  are being used", "why is this persuasive", "break down this debate", or when
+  a user shares a text and asks what's going on rhetorically.
 ---
 
 # Rhetorical Analyst
@@ -143,9 +146,41 @@ Conversely: **coherence is not correctness**. A sincere actor can be sincerely w
 
 ## Workflow
 
-### Step 1 — Map the moves
+**If InfraNodus MCP tools are available, Steps 1–3 below are mandatory tool calls, not optional enrichment. Run them before identifying any moves. The structural analysis precedes the linear reading — not the other way around.**
 
-Read the text and identify the distinct argumentative moves. Name each one:
+### Step 1 — Map the rhetorical terrain (InfraNodus: `generate_topical_clusters`)
+
+Before reading the argument sequentially, run the full text through `generate_topical_clusters`. This reveals the network structure of the argument: which concepts are dominant (high connectivity), which are peripheral, and which are being connected in non-obvious ways.
+
+**Key diagnostic:** Does the stated topic correspond to the structurally dominant cluster? When they diverge — when the argument claims to be about X but the network shows it's structurally organized around Y — that divergence reveals the hidden operative premise. This is the single most important diagnostic in the analysis. Do not proceed to linear move-mapping until you have answered this question from the cluster output.
+
+After running, summarize:
+- The 3–5 main clusters and their relative weight
+- Whether the stated topic is the structurally central one
+- Any clusters that appear dominant despite being rhetorically understated
+
+### Step 2 — Identify structural gaps (InfraNodus: `generate_content_gaps`)
+
+Run `generate_content_gaps` on the same text. Content gaps in the network sense are concepts that would connect existing clusters but are absent. In rhetorical terms, these map directly onto missing inferential steps — the premises the argument requires but doesn't supply.
+
+**Key diagnostic:** For each gap identified, determine which type it is:
+- **Flaw-gap**: the speaker hasn't examined their own premises — exposure is useful
+- **Concealment-gap**: the premise is present but strategically withheld — sequential exposure is the technique
+- **Co-authorship gap**: productive space designed for the audience to complete — direct exposure is the least effective response; offer a competing inference instead
+
+Do not name a "key structural gap" in the analysis until you have checked it against the gap analysis output. If the network confirms the gap, the finding is structural, not intuited.
+
+### Step 3 — Diagnose bias and coherence (InfraNodus: `optimize_text_structure`)
+
+Run `optimize_text_structure` with `responseType: "question"`. This generates the questions the argument's own structure implies it should be answering but isn't — the missing inferential steps as explicit demands.
+
+Optionally: run with `responseType: "transcend"` when the argument appears to operate within a framework that forecloses certain conclusions. This surfaces the broader discourse framework the argument may be unconsciously importing.
+
+Use the output to complete Step 5 (finding hidden joints) below with structural grounding rather than intuition.
+
+### Step 4 — Map the moves (linear reading)
+
+Having established the network structure, now read the argument sequentially and identify distinct argumentative moves. Name each one:
 - Moral reframe
 - Partial concession
 - Whataboutism / tu quoque
@@ -157,9 +192,9 @@ Read the text and identify the distinct argumentative moves. Name each one:
 - Missing inferential step
 - Hidden premise
 
-Don't over-label. One move can serve multiple functions. Name what's actually happening.
+Don't over-label. One move can serve multiple functions. Name what's actually happening. Cross-reference with the cluster analysis: moves that correspond to peripheral clusters are likely post-hoc rationalization; moves that correspond to dominant clusters are structurally load-bearing.
 
-### Step 2 — Score each move
+### Step 5 — Score each move
 
 For each move, score across the three dimensions with brief justification:
 - **Persuasion**: High / Medium / Low — and why
@@ -168,17 +203,18 @@ For each move, score across the three dimensions with brief justification:
 
 Be specific. "Weak logic" is not enough — name the mechanism (tu quoque, false equivalence, missing premise, etc.).
 
-### Step 3 — Find the hidden joints
+### Step 6 — Find the hidden joints
 
-After scoring individual moves, look for the structural gaps — places where the argument would need one more step to be complete. Ask:
+After scoring individual moves, look for the structural gaps — places where the argument would need one more step to be complete. Use the output from Step 2 as the primary source; add any gaps identified through linear reading that the network analysis may have missed.
 
+Ask:
 - What is being asserted as self-evident that actually requires a premise?
 - What comparative claim is being made without a stated standard?
 - What is the implicit value hierarchy, and is it defended or assumed?
 
-Example from this conversation: "bluntness = honesty therefore preferable" requires the unstated premise that *hypocrisy is a worse political failure mode than sincere wrongness* — and that premise itself needs an argument (e.g. Arendt: institutional lying destroys the epistemic commons).
+The gaps from network analysis are harder to dismiss as the analyst's imposition — they emerge from the argument's own structure.
 
-### Step 4 — Check your own frame
+### Step 7 — Check your own frame
 
 Before delivering the analysis, ask:
 
@@ -196,10 +232,16 @@ Name any asymmetries you find. This is not false balance — it's analytical int
 ### Standard analysis
 Present findings as prose with a supporting visual summary (SVG table or diagram). Structure:
 
-1. Brief characterization of the overall argumentative approach
-2. Move-by-move analysis with three-dimension scoring
-3. The key structural gap (the missing step)
-4. Any hidden priors in the analysis itself, if relevant
+1. Network structure summary — the dominant clusters, whether the stated topic matches the structurally central one, and what divergence reveals (from Step 1)
+2. Brief characterization of the overall argumentative approach
+3. Move-by-move analysis with three-dimension scoring
+4. The key structural gap — confirmed or surfaced by network gap analysis (from Step 2), categorized as flaw / concealment / co-authorship gap
+5. Any hidden priors in the analysis itself, if relevant
+
+When InfraNodus tools were used, structural findings (Steps 1–3) should be named as such — "the network analysis shows..." — to distinguish structurally derived findings from linearly intuited ones. This distinction is analytically meaningful.
+
+### When InfraNodus tools are not available
+Proceed with Steps 4–7 only. Note that gap identification is intuited rather than structurally derived. The analysis is valid but gap findings are less robust.
 
 ### When the user corrects the analysis
 - Accept the correction explicitly
@@ -208,9 +250,9 @@ Present findings as prose with a supporting visual summary (SVG table or diagram
 - Restate the genuine remaining weakness (if any) without the imported frame
 
 ### Depth calibration
-- Comment thread / casual debate: focus on 3-4 key moves, keep it conversational
-- Speech / essay / formal argument: full move-by-move treatment
-- User's own argument: emphasize the missing inferential steps and how to complete them
+- Comment thread / casual debate: focus on 3-4 key moves; run Steps 1–2 only if InfraNodus is available; keep it conversational
+- Speech / essay / formal argument: full workflow, all InfraNodus steps mandatory if available
+- User's own argument: emphasize missing inferential steps and how to complete them; Step 2 (gap analysis) is especially valuable here
 
 ---
 
@@ -525,25 +567,25 @@ When this argument appears, check whether it's being made at the individual or i
 
 ## InfraNodus tools — when and how to use them
 
-When InfraNodus MCP tools are available, they can significantly enhance rhetorical analysis by providing structural, network-based insight that linear reading misses. The following maps each tool to specific analytical tasks in this skill.
+Steps 1–3 of the Workflow above are mandatory tool calls when InfraNodus is available. This section provides full guidance on what each tool does, how to use it, and what to look for in the output. Read this before executing the workflow steps.
 
-### `generate_topical_clusters` — map the rhetorical terrain
+### `generate_topical_clusters` — map the rhetorical terrain (Workflow Step 1)
 
 **When to use:** At the start of any analysis of a substantial argument, article, speech, or debate thread. Before identifying moves, run the text through topical cluster analysis to see which concepts are dominant, which are peripheral, and how they group.
 
-**What it adds:** The skill's workflow starts with "map the moves" — but that mapping is linear and sequential. Topical clustering reveals the structural weight distribution across the whole argument: which ideas are central (high connectivity), which are isolated, and which are being connected in ways not visible in linear reading. A dominant cluster that appears early and then disappears is a different rhetorical choice than one that recurs throughout.
+**What it adds:** The workflow's move-mapping is linear and sequential. Topical clustering reveals the structural weight distribution across the whole argument: which ideas are central (high connectivity), which are isolated, and which are being connected in ways not visible in linear reading. A dominant cluster that appears early and then disappears is a different rhetorical choice than one that recurs throughout.
 
-**Key diagnostic:** Run the text → identify the 3-5 main clusters → check whether the stated topic actually corresponds to the structurally dominant cluster. When they diverge — when the argument claims to be about X but the network shows it's structurally organized around Y — that divergence reveals the hidden operative premise.
+**Key diagnostic:** Run the text → identify the 3–5 main clusters → check whether the stated topic actually corresponds to the structurally dominant cluster. When they diverge — when the argument claims to be about X but the network shows it's structurally organized around Y — that divergence reveals the hidden operative premise.
 
-### `generate_content_gaps` — identify the inferential gaps structurally
+### `generate_content_gaps` — identify the inferential gaps structurally (Workflow Step 2)
 
-**When to use:** After topical clustering, when looking for the hidden assumptions and missing inferential steps the skill targets in Step 3.
+**When to use:** After topical clustering, when looking for the hidden assumptions and missing inferential steps the skill targets in Step 6.
 
 **What it adds:** Content gaps in the network sense are concepts that would connect existing clusters but are absent. In rhetorical terms, these map directly onto the "missing inferential step" — the premise that connects stated claim to conclusion but isn't present. The gap analysis makes this structural rather than intuitive: instead of guessing what's missing, you see which conceptual bridge the argument requires but doesn't build.
 
 **Key diagnostic:** The gaps identified are candidates for the co-authorship mechanism. A gap the audience is likely to fill with their own prior is a designed participation space. A gap the audience is unlikely to fill independently is either a flaw or a concealment. The distinction determines the correct analytical response.
 
-### `optimize_text_structure` — diagnose bias and coherence
+### `optimize_text_structure` — diagnose bias and coherence (Workflow Step 3)
 
 **When to use:** When analyzing an argument suspected of being tribally organized rather than principally structured, or assessing whether it's over-concentrated (biased) or too dispersed to make a coherent point.
 
@@ -551,7 +593,7 @@ When InfraNodus MCP tools are available, they can significantly enhance rhetoric
 
 **Key modes:** Use `responseType: "question"` to generate the questions the argument's own structure implies it should be answering but isn't — these are the missing inferential steps as explicit demands. Use `responseType: "transcend"` when the argument appears to operate within a framework that forecloses certain conclusions.
 
-### `generate_research_questions` — surface hidden premises as questions
+### `generate_research_questions` — surface hidden premises as questions (supplements Workflow Step 6)
 
 **When to use:** After gap analysis, when making hidden assumptions explicit in a form deployable in the debate itself.
 
@@ -559,7 +601,7 @@ When InfraNodus MCP tools are available, they can significantly enhance rhetoric
 
 **Practical deployment:** Use the generated questions directly as the consistency challenge: "your argument requires an answer to X — what is it?" If the opponent hasn't provided one, the question exposes the gap. If their answer contradicts their position elsewhere, the consistency challenge follows.
 
-### `develop_latent_topics` — find the underdeveloped operative premises
+### `develop_latent_topics` — find the underdeveloped operative premises (supplements Workflow Step 6)
 
 **When to use:** When an argument has concepts that appear briefly but carry significant structural weight — ideas connecting multiple clusters without being elaborated. These are often where the actual operative premises live.
 
@@ -567,7 +609,7 @@ When InfraNodus MCP tools are available, they can significantly enhance rhetoric
 
 **Key mode:** Use `requestMode: "transcend"` to see how latent concepts connect the argument to broader discourse frameworks the arguer may be importing unconsciously. This surfaces the trained-milieu priors the skill warns against.
 
-### `memory_add_relations` — build a persistent graph of a debate
+### `memory_add_relations` — build a persistent graph of a debate (for extended exchanges)
 
 **When to use:** When analyzing an extended debate across multiple exchanges, or tracking how arguments evolve across a long thread.
 
@@ -575,7 +617,7 @@ When InfraNodus MCP tools are available, they can significantly enhance rhetoric
 
 **Practical application:** Save opening positions, add each response as new text to the same graph. Structural changes between iterations reveal the actual movement of the argument — often different from what either participant claims happened.
 
-### `generate_research_ideas` with `shouldTranscend: true` — offer a competing participation space
+### `generate_research_ideas` with `shouldTranscend: true` — offer a competing participation space (for co-authorship gaps)
 
 **When to use:** When facing an argument organized around a co-authorship gap — a productive inferential space the audience is filling with their own premises — and direct logical refutation has been identified as the wrong tool.
 
