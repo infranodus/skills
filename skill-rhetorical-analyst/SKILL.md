@@ -183,6 +183,24 @@ When making a descriptive observation about how power or logic operates — espe
 
 Do this proactively rather than waiting for the misreading to harden. Once an opponent has successfully framed you as endorsing something you were only describing, correcting that framing costs more energy than preventing it. The proactive separation also demonstrates that you've thought through the distinction yourself — which is itself a mark of analytical seriousness.
 
+### Use rhetorical intensity to carry genuine conviction — but check that the argument matches the prose
+
+Some debaters have the ability to write or speak with genuine rhetorical force — vivid metaphor, escalating rhythm, compressed outrage that lands like a fist. This is a real skill and it works: it signals conviction, it makes the reader feel the weight of what's being said, it elevates the exchange above the flat transactional register of most debate.
+
+But rhetorical intensity is not a substitute for argument. The danger is precisely that the better the prose, the easier it is for both writer and reader to mistake stylistic force for logical force. A claim stated with magnificent contempt is still just a claim. When analyzing a rhetorically powerful argument, always ask: if I flatten the prose entirely and restate this as a bare claim, does it still hold? What is actually being argued versus what is being performed?
+
+The tell: when the rhetoric escalates at exactly the point where the argument gets thin. Intensity filling the gap where a premise should be.
+
+When deploying this style yourself: earn the intensity. Make sure the argument underneath the prose is sound before amplifying it. Magnificent rhetoric in service of a genuine insight is among the most persuasive things in debate. Magnificent rhetoric in service of a weak or self-serving claim is detectable — and when detected, it damages credibility more than plain prose would have.
+
+### Self-deprecation as a credibility move — used sparingly
+
+Acknowledging a weakness or contradiction in your own position — especially one the opponent hasn't yet raised — is a powerful credibility signal. It demonstrates that you're holding yourself to the same standard you're applying to others, and it preempts the "but you also..." attack.
+
+However, this only works when it's genuine and proportionate. A brief, honest acknowledgment of a real tension ("there's a small contradiction in me doing this, but...") lands well. Elaborate self-flagellation reads as performance. And crucially: the acknowledgment should be proportionate to the actual contradiction — naming a minor inconsistency as if it were devastating undercuts the seriousness of the rest of the argument, while brushing off a major one with a parenthetical signals that you know the problem is bigger than you're letting on.
+
+Use it when there is a genuine tension worth acknowledging. Don't use it as a rhetorical inoculation against critique you haven't earned the right to dismiss.
+
 ## Arguing from conclusions vs arguing from principles
 
 One of the clearest diagnostics of debate quality is whether participants are arguing *from* principles toward conclusions, or *from* conclusions toward whatever principle seems to support them in the moment.
@@ -194,6 +212,52 @@ One of the clearest diagnostics of debate quality is whether participants are ar
 When you identify this asymmetry in a debate, name it. The question to apply: *does this person's stated principle survive contact with a case they're emotionally invested in on the other side?* If not, the principle is post-hoc rationalization, not a genuine premise.
 
 A related pattern: **the reductio that gets ignored**. When a debater applies an opponent's principle consistently and arrives at a conclusion the opponent finds absurd, the opponent has three honest options — accept the conclusion, reject the principle, or specify the disanalogy. Ignoring the reductio and continuing as if it wasn't made is a strong signal that the original principle was never really the operative reason.
+
+## Failure modes to identify and name
+
+### Assertion stated as argument
+
+A claim is not an argument. An argument requires premises that support a conclusion. When a debater states something as if its truth were self-evident — invoking authority, expressing contempt, or simply asserting with great confidence — without providing the inferential structure that would make it demonstrable, that's assertion dressed as argument.
+
+The tell: the claim lands with rhetorical force but cannot be interrogated because no premises were offered to interrogate. Ask: what would it take to show this is wrong? If there's no answer, it's an assertion.
+
+Naming this in debate: "You've stated this strongly but I don't see the argument. What are the premises?" This forces the debater to either provide the structure or reveal that there isn't one.
+
+### Ruling out alternatives by definitional fiat
+
+A position becomes unfalsifiable when its holder has framed every possible challenge as evidence of the challenger's failure rather than their own. Engaging with the argument becomes "accepting its premise." Disagreeing becomes proof of the very flaw being criticized. Leaving becomes the only principled response, and staying becomes complicity.
+
+This is an immunization strategy — it makes the position impossible to test, which means it can never be wrong. But a position that cannot be falsified or challenged is not a position: it's a performance of a position. The holder isn't defending a claim; they're defending their identity as the kind of person who holds the claim.
+
+The tell: when every possible response to a critique — engaging, leaving, agreeing, disagreeing — has already been pre-interpreted within the critic's framework as confirming their view. Ask: what would it take to change your mind? If nothing could, the position is closed.
+
+### Aesthetic and tribal critique mistaken for principled argument
+
+Some critiques appear principled but are actually operating on a different level — they're expressing a sensibility, enforcing in-group standards, or reacting to a style that violates the critic's taste. These are real responses, but they're only persuasive to people who already share the same aesthetic or tribal membership. They don't operate as general principles that could convince someone outside the in-group.
+
+The diagnostic: apply the critique consistently to cases the critic already approves of. If the same feature — privilege, institutional affiliation, imperfect practice of stated values, use of commercial technology — appears in figures the critic admires, but is only cited as disqualifying for figures they dislike, the critique is aesthetic and selective rather than principled.
+
+This doesn't mean the aesthetic reaction is wrong. It means it's operating below the level of the argument being claimed. Name it as such: "This critique applies equally to X, whom you don't seem to have a problem with. What's the actual principle?"
+
+### The unfalsifiable position: performance mistaken for argument
+
+Related to definitional fiat but worth stating separately. A position that is so invested in its own purity that it has pre-immunized itself against every possible challenge is not an intellectual position — it's a stance. Stances can be held with enormous conviction and expressed with great eloquence, but they cannot be engaged with productively because they've foreclosed the possibility of being wrong.
+
+The practical consequence: a person holding an unfalsifiable position will often mistake their own consistency for strength. They're not being consistent — they're being closed. Real intellectual strength is the willingness to specify the conditions under which you'd revise your view.
+
+When analyzing such a position: ask what evidence or argument would change it. If the answer is nothing, or if every possible challenge has been pre-framed as complicity, the position is a performance. Engaging with it as if it were an argument is a category error.
+
+### The effectiveness reframe
+
+One of the most powerful moves in interpersonal and political debate is to accept an opponent's diagnosis entirely — yes, the situation is as you describe, yes, the problem is real — and then redirect to a single question: *is what you're doing actually helping to change it?*
+
+This reframe doesn't challenge the values, the critique, or the emotional response. It accepts all of it. What it challenges is the gap between the stated goal and the chosen method. The question is not "are you right about the problem?" but "does your response to the problem produce the outcome you want?"
+
+This is especially effective when the opponent's response — however aesthetically satisfying or principled-feeling — demonstrably doesn't change anything, or when a modification of the approach would produce better results toward the same end they already hold. The structure is: agree on the goal, question the method, offer or suggest an alternative.
+
+Done well, this is not a dismissal but an invitation. It takes the opponent seriously enough to ask why their approach isn't working. It's also harder to resist than a direct challenge, because it doesn't require the opponent to abandon their values — only to examine whether their current expression of those values is effective.
+
+The move fails when it's used dismissively — "why don't you just work within the system" as a way of avoiding the critique entirely. The effectiveness question has to be genuine, and the alternative offered has to be real.
 
 ## Common Fallacies Reference
 
