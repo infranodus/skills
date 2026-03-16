@@ -21,6 +21,8 @@ The skills are designed to work with each other and to hand off important tasks 
 
 - **Shopping Assistant** - A systematic, multi-phase shopping research workflow that acts as your personal shopping advisor. Gathers requirements, researches product categories via web search, builds comparison matrices, analyzes reviews for recurring praise and complaints, and converges on 3-4 best options with clear reasoning. Designed to save hours of research and avoid both impulse buys and analysis paralysis.
 
+- **Rhetorical Analyst** - Analyze arguments, debate tactics, and rhetorical moves across three dimensions: persuasion, rhetoric, and logic. Identifies the moves being made, scores their effectiveness, exposes hidden assumptions, tracks logical gaps, and checks for asymmetric standards — including the analyst's own. Use it to break down debates, stress-test your own arguments, or understand why something feels persuasive but wrong.
+
 - **InfraNodus CLI / Tool Use** - A comprehensive reference for all [InfraNodus MCP server](https://infranodus.com/mcp) tools: text analysis, knowledge graph generation, content gap detection, SEO/GEO optimization, structured memory, text comparison, and GraphRAG retrieval. Includes setup instructions, a full tool catalog with parameters, and practical examples. Designed to be copied into [OpenClaw](https://openclaw.ai/), Claude Code, Cursor, or any LLM client that supports MCP or tool-use prompts — giving any AI assistant access to InfraNodus' text network analysis capabilities.
 
 ## Installation
