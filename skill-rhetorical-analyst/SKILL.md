@@ -1,6 +1,19 @@
 ---
 name: rhetorical-analyst
-description: Analyze arguments, debate tactics, and rhetorical moves across three dimensions: persuasion, rhetoric, and logic. Use this skill when the user wants to analyze a debate, comment thread, speech, article, or any argumentative text — identifying the moves being made, scoring their effectiveness, exposing hidden assumptions, tracking logical gaps, and checking for asymmetric standards being applied. Also use when the user wants to stress-test their own argument, understand why something feels persuasive but wrong (or right but unpersuasive), or when they push back on an analysis and want the reasoning examined for its own hidden priors. Trigger on phrases like "analyze this argument", "what's wrong with this reasoning", "is this a good point", "what rhetorical moves are being used", "why is this persuasive", "break down this debate", or when a user shares a text and asks what's going on rhetorically.
+description: >-
+  Analyze arguments, debate tactics, and rhetorical moves across three
+  dimensions: persuasion, rhetoric, and logic. Use this skill when the user
+  wants to analyze a debate, comment thread, speech, article, or any
+  argumentative text - identifying the moves being made, scoring their
+  effectiveness, exposing hidden assumptions, tracking logical gaps, and
+  checking for asymmetric standards being applied. Also use when the user wants
+  to stress-test their own argument, understand why something feels persuasive
+  but wrong (or right but unpersuasive), or when they push back on an analysis
+  and want the reasoning examined for its own hidden priors. Trigger on phrases
+  like "analyze this argument", "what's wrong with this reasoning", "is this a
+  good point", "what rhetorical moves are being used", "why is this persuasive",
+  "break down this debate", or when a user shares a text and asks what's going
+  on rhetorically.
 ---
 
 # Rhetorical Analyst
