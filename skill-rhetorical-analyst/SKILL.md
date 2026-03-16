@@ -2,21 +2,18 @@
 name: rhetorical-analyst
 description: >-
   Analyze arguments, debate tactics, and rhetorical moves across three
-  dimensions: persuasion, rhetoric, and logic. Use this skill when the user
-  wants to analyze a debate, comment thread, speech, article, or any
-  argumentative text - identifying the moves being made, scoring their
-  effectiveness, exposing hidden assumptions, tracking logical gaps, and
-  checking for asymmetric standards being applied. When InfraNodus MCP tools
-  are available, ALWAYS begin by running generate_topical_clusters,
-  generate_content_gaps, and optimize_text_structure before any linear
-  reading — these are mandatory first steps, not optional enrichment. Also use
-  when the user wants to stress-test their own argument, understand why
-  something feels persuasive but wrong (or right but unpersuasive), or when
-  they push back on an analysis and want the reasoning examined for its own
-  hidden priors. Trigger on phrases like "analyze this argument", "what's
-  wrong with this reasoning", "is this a good point", "what rhetorical moves
-  are being used", "why is this persuasive", "break down this debate", or when
-  a user shares a text and asks what's going on rhetorically.
+  dimensions: persuasion, rhetoric, and logic. Use when the user wants to
+  analyze a debate, comment thread, speech, article, or any argumentative
+  text — identifying moves, scoring effectiveness, exposing hidden
+  assumptions, tracking logical gaps, and checking for asymmetric standards.
+  When InfraNodus MCP tools are available, ALWAYS begin with
+  generate_topical_clusters, generate_content_gaps, and
+  optimize_text_structure before linear reading. Also use to stress-test
+  arguments or understand why something feels persuasive but wrong. Trigger
+  on: "analyze this argument", "what's wrong with this reasoning", "is this
+  a good point", "what rhetorical moves are being used", "why is this
+  persuasive", "break down this debate", or when a user shares text asking
+  what's going on rhetorically.
 ---
 
 # Rhetorical Analyst
@@ -44,6 +41,7 @@ The most common failure in rhetorical analysis is treating one position as the n
 **Always ask**: whose frame am I implicitly accepting as "reasonable"? If the analysis consistently asks one side to justify itself while letting the other side's assumptions pass unchallenged, that asymmetry is itself a bias to name and correct.
 
 This applies especially when:
+
 - One position is more institutionally mainstream than the other
 - One position uses more polished or "measured" language
 - The analyst (including Claude) was trained on corpora that favor a particular milieu
@@ -98,13 +96,13 @@ Reverse the sequence — expose the hidden assumption first, then show the outco
 
 Aesthetic and tribal framing amplifies this asymmetry. Front-load the tribal signal before the logical exposure, and audiences pre-categorize the hidden premise as deliberate bad faith before examining it. Analysis becomes confirmation — the audience is pattern-matching rather than reasoning. But place the tribal framing after the logical exposure, and it lands as earned characterization. The audience has already traced the inference themselves, so the judgment feels like their own conclusion rather than an assertion they're being asked to accept.
 
-The practical test for whether sequence is doing legitimate work or substituting for argument: can the audience articulate *why* the outcome counts as evidence of the hidden assumption? If the inferential step remains genuinely invisible — if the gap has been shown to exist but not what fills it — then framing is doing the work the argument should be doing. The perception shift from analysis to allegiance happens precisely here: when the connection between assumption and outcome is felt rather than traced, the charge of hypocrisy or dysfunction becomes unfalsifiable, because the audience has no independent path to the conclusion that doesn't run through the framing they were given.
+The practical test for whether sequence is doing legitimate work or substituting for argument: can the audience articulate _why_ the outcome counts as evidence of the hidden assumption? If the inferential step remains genuinely invisible — if the gap has been shown to exist but not what fills it — then framing is doing the work the argument should be doing. The perception shift from analysis to allegiance happens precisely here: when the connection between assumption and outcome is felt rather than traced, the charge of hypocrisy or dysfunction becomes unfalsifiable, because the audience has no independent path to the conclusion that doesn't run through the framing they were given.
 
 The sequencing rule follows directly: establish the inferential chain before applying any characterization. Show the mechanism, then name what it is. This doesn't guarantee reception — audiences with strong priors will re-categorize even complete inferential chains once tribal framing arrives — but it creates the conditions under which genuine persuasion is possible rather than foreclosing it. It also changes the analyst's own accountability: an argument whose conclusion the audience can trace independently is an argument that can be falsified. An argument whose conclusion they can only feel is not.
 
 **The gap as feature, not flaw: co-authorship and the limits of exposure.**
 
-The entire apparatus of exposing hidden assumptions rests on a premise worth interrogating: that inferential gaps are either oversights to be corrected or premises being concealed. But the most durable ideological structures don't survive despite their missing steps — they survive *because* of them. The gap is where the audience inserts themselves, completing the argument with their own premises, making the conclusion feel self-generated rather than received. Expose the assumption and you don't defeat it — you evict the audience from co-authorship. What follows is often not revision but defensiveness, because what's been disrupted isn't a logical error but the audience's own investment in having reached the conclusion themselves.
+The entire apparatus of exposing hidden assumptions rests on a premise worth interrogating: that inferential gaps are either oversights to be corrected or premises being concealed. But the most durable ideological structures don't survive despite their missing steps — they survive _because_ of them. The gap is where the audience inserts themselves, completing the argument with their own premises, making the conclusion feel self-generated rather than received. Expose the assumption and you don't defeat it — you evict the audience from co-authorship. What follows is often not revision but defensiveness, because what's been disrupted isn't a logical error but the audience's own investment in having reached the conclusion themselves.
 
 Three types of inferential gap require different analytical responses:
 
@@ -138,7 +136,7 @@ These are different failure modes with different implications:
 - **Sincere error** = genuinely believing something false or misjudging consequences.
 - **Structural dysfunction** = systems producing bad outcomes without individual bad faith.
 
-Don't conflate them. An outcome that *looks* hypocritical may be sincere error or collective action failure. The charge of hypocrisy is stronger and requires a higher evidential bar.
+Don't conflate them. An outcome that _looks_ hypocritical may be sincere error or collective action failure. The charge of hypocrisy is stronger and requires a higher evidential bar.
 
 Conversely: **coherence is not correctness**. A sincere actor can be sincerely wrong. Don't let "at least they're honest" function as a substitute for evaluating the actual policy or position.
 
@@ -155,6 +153,7 @@ Before reading the argument sequentially, run the full text through `generate_to
 **Key diagnostic:** Does the stated topic correspond to the structurally dominant cluster? When they diverge — when the argument claims to be about X but the network shows it's structurally organized around Y — that divergence reveals the hidden operative premise. This is the single most important diagnostic in the analysis. Do not proceed to linear move-mapping until you have answered this question from the cluster output.
 
 After running, summarize:
+
 - The 3–5 main clusters and their relative weight
 - Whether the stated topic is the structurally central one
 - Any clusters that appear dominant despite being rhetorically understated
@@ -164,6 +163,7 @@ After running, summarize:
 Run `generate_content_gaps` on the same text. Content gaps in the network sense are concepts that would connect existing clusters but are absent. In rhetorical terms, these map directly onto missing inferential steps — the premises the argument requires but doesn't supply.
 
 **Key diagnostic:** For each gap identified, determine which type it is:
+
 - **Flaw-gap**: the speaker hasn't examined their own premises — exposure is useful
 - **Concealment-gap**: the premise is present but strategically withheld — sequential exposure is the technique
 - **Co-authorship gap**: productive space designed for the audience to complete — direct exposure is the least effective response; offer a competing inference instead
@@ -181,6 +181,7 @@ Use the output to complete Step 5 (finding hidden joints) below with structural 
 ### Step 4 — Map the moves (linear reading)
 
 Having established the network structure, now read the argument sequentially and identify distinct argumentative moves. Name each one:
+
 - Moral reframe
 - Partial concession
 - Whataboutism / tu quoque
@@ -197,8 +198,9 @@ Don't over-label. One move can serve multiple functions. Name what's actually ha
 ### Step 5 — Score each move
 
 For each move, score across the three dimensions with brief justification:
+
 - **Persuasion**: High / Medium / Low — and why
-- **Rhetoric**: Strong / Mixed / Weak — and why  
+- **Rhetoric**: Strong / Mixed / Weak — and why
 - **Logic**: Sound / Incomplete / Fallacious — and why
 
 Be specific. "Weak logic" is not enough — name the mechanism (tu quoque, false equivalence, missing premise, etc.).
@@ -208,6 +210,7 @@ Be specific. "Weak logic" is not enough — name the mechanism (tu quoque, false
 After scoring individual moves, look for the structural gaps — places where the argument would need one more step to be complete. Use the output from Step 2 as the primary source; add any gaps identified through linear reading that the network analysis may have missed.
 
 Ask:
+
 - What is being asserted as self-evident that actually requires a premise?
 - What comparative claim is being made without a stated standard?
 - What is the implicit value hierarchy, and is it defended or assumed?
@@ -230,6 +233,7 @@ Name any asymmetries you find. This is not false balance — it's analytical int
 ## Output Format
 
 ### Standard analysis
+
 Present findings as prose with a supporting visual summary (SVG table or diagram). Structure:
 
 1. Network structure summary — the dominant clusters, whether the stated topic matches the structurally central one, and what divergence reveals (from Step 1)
@@ -241,15 +245,18 @@ Present findings as prose with a supporting visual summary (SVG table or diagram
 When InfraNodus tools were used, structural findings (Steps 1–3) should be named as such — "the network analysis shows..." — to distinguish structurally derived findings from linearly intuited ones. This distinction is analytically meaningful.
 
 ### When InfraNodus tools are not available
+
 Proceed with Steps 4–7 only. Note that gap identification is intuited rather than structurally derived. The analysis is valid but gap findings are less robust.
 
 ### When the user corrects the analysis
+
 - Accept the correction explicitly
 - Reconstruct what the argument actually was
 - Identify what assumption you had imported
 - Restate the genuine remaining weakness (if any) without the imported frame
 
 ### Depth calibration
+
 - Comment thread / casual debate: focus on 3-4 key moves; run Steps 1–2 only if InfraNodus is available; keep it conversational
 - Speech / essay / formal argument: full workflow, all InfraNodus steps mandatory if available
 - User's own argument: emphasize missing inferential steps and how to complete them; Step 2 (gap analysis) is especially valuable here
@@ -270,7 +277,7 @@ When you identify a reductio in an argument, ask: can this be compressed into a 
 
 ### The consistency challenge
 
-When an opponent applies a label, standard, or critique to one party but withholds it from another party whose conduct is comparable or whose stated goals are more extreme, name the asymmetry directly. This is the consistency challenge: *you're applying this standard here but not there — what's the actual principle?*
+When an opponent applies a label, standard, or critique to one party but withholds it from another party whose conduct is comparable or whose stated goals are more extreme, name the asymmetry directly. This is the consistency challenge: _you're applying this standard here but not there — what's the actual principle?_
 
 The consistency challenge is most powerful when the asymmetry is factually demonstrable rather than contested — when the opponent's own stated criterion, applied without modification, would produce a conclusion they're refusing to draw. The goal is not to accuse the opponent of bad faith but to expose an inconsistency that they need to either explain or correct.
 
@@ -296,7 +303,7 @@ The tell in other people's arguments: strong evaluative language appearing befor
 
 ### Track and name principle shifts explicitly
 
-When an opponent shifts the basis of their argument across exchanges — first invoking one principle, then another when the first is challenged — most debaters simply chase the new position. The better move is to name the shift explicitly before responding to the new position: *"First it was Article 5, then friendship and partnership, now it's who started the war."*
+When an opponent shifts the basis of their argument across exchanges — first invoking one principle, then another when the first is challenged — most debaters simply chase the new position. The better move is to name the shift explicitly before responding to the new position: _"First it was Article 5, then friendship and partnership, now it's who started the war."_
 
 This does two things simultaneously: it exposes the inconsistency for the audience, and it makes further shifting costly because the pattern is now visible. After naming it once, any subsequent shift is even more damaging to the opponent's credibility.
 
@@ -308,7 +315,7 @@ Spending more than one sentence defending yourself gives the misattribution more
 
 ### Name the uncomfortable implication of your own argument first
 
-Before an opponent can use the uncomfortable consequences of your position as an attack, name them yourself. "Even of its own making." "Even if the logic is twisted and we don't like it." 
+Before an opponent can use the uncomfortable consequences of your position as an attack, name them yourself. "Even of its own making." "Even if the logic is twisted and we don't like it."
 
 This disarms the most obvious line of attack — the opponent was going to point out that your position has uncomfortable implications, and you've already acknowledged it. It reads as intellectual confidence rather than weakness, and it builds credibility for everything else you say. An arguer who volunteers the costs of their own position is harder to dismiss as a partisan.
 
@@ -320,7 +327,7 @@ When an opponent is stuck in a complaint loop about how a situation shouldn't ha
 
 ### Separate descriptive from normative proactively
 
-When making a descriptive observation about how power or logic operates — especially one that might sound like endorsement of what you're describing — draw the line explicitly before being accused of crossing it: *"This is a comment on the quality of our politics, not an attempt to support him in any way."*
+When making a descriptive observation about how power or logic operates — especially one that might sound like endorsement of what you're describing — draw the line explicitly before being accused of crossing it: _"This is a comment on the quality of our politics, not an attempt to support him in any way."_
 
 Do this proactively rather than waiting for the misreading to harden. Once an opponent has successfully framed you as endorsing something you were only describing, correcting that framing costs more energy than preventing it. The proactive separation also demonstrates that you've thought through the distinction yourself — which is itself a mark of analytical seriousness.
 
@@ -376,13 +383,13 @@ The structure: "You've argued that X principle should apply. Your recent [statem
 
 ## Arguing from conclusions vs arguing from principles
 
-One of the clearest diagnostics of debate quality is whether participants are arguing *from* principles toward conclusions, or *from* conclusions toward whatever principle seems to support them in the moment.
+One of the clearest diagnostics of debate quality is whether participants are arguing _from_ principles toward conclusions, or _from_ conclusions toward whatever principle seems to support them in the moment.
 
 **Arguing from conclusions** looks like: the debater knows what outcome they want, and reaches for whichever principle justifies it — shifting the stated principle when pressed, introducing distinctions that weren't in the original claim, and treating logical consistency as optional. This pattern is detectable when an opponent keeps shifting the basis of their argument across exchanges without acknowledging the shift.
 
 **Arguing from principles** looks like: the debater states a general principle, applies it consistently across cases including uncomfortable ones, and follows it where it leads even when the destination is inconvenient. This is harder to attack directly — opponents have to either accept the principle (which usually costs them) or specify a genuine disanalogy between cases (which requires real intellectual work).
 
-When you identify this asymmetry in a debate, name it. The question to apply: *does this person's stated principle survive contact with a case they're emotionally invested in on the other side?* If not, the principle is post-hoc rationalization, not a genuine premise.
+When you identify this asymmetry in a debate, name it. The question to apply: _does this person's stated principle survive contact with a case they're emotionally invested in on the other side?_ If not, the principle is post-hoc rationalization, not a genuine premise.
 
 A related pattern: **the reductio that gets ignored**. When a debater applies an opponent's principle consistently and arrives at a conclusion the opponent finds absurd, the opponent has three honest options — accept the conclusion, reject the principle, or specify the disanalogy. Ignoring the reductio and continuing as if it wasn't made is a strong signal that the original principle was never really the operative reason.
 
@@ -411,6 +418,7 @@ Aesthetic and tribal characterizations — language that signals in-group identi
 **When it fails:** When the aesthetic charge is doing the logical work the argument hasn't done. Calling something "medieval," "neoliberal," "woke," or "naive" functions as a conclusion masquerading as evidence. It only persuades people who already share the same sensibility — it provides no traction with anyone outside the in-group, and it actively damages credibility with skeptical readers who will correctly identify it as tribal rather than principled. The diagnostic: if you removed the characterizing term and replaced it with a factual description, would the argument still hold? If yes, the term is decorative at best and damaging at worst. If no, the term was carrying the argument, which means the argument doesn't actually exist.
 
 **When it works:** When three conditions are met simultaneously:
+
 1. The characterization is genuinely congruent with the aesthetic and tribal identity of the interlocutor — it signals shared membership rather than opposition
 2. It is supported by actual logical and factual claims that would stand independently of the aesthetic charge
 3. It does not substitute for those claims but accompanies them — the argument holds if the characterization is removed
@@ -465,7 +473,7 @@ One further precision: distinguishing tribal signaling from genuine conviction i
 
 ### The effectiveness reframe
 
-One of the most powerful moves in interpersonal and political debate is to accept an opponent's diagnosis entirely — yes, the situation is as you describe, yes, the problem is real — and then redirect to a single question: *is what you're doing actually helping to change it?*
+One of the most powerful moves in interpersonal and political debate is to accept an opponent's diagnosis entirely — yes, the situation is as you describe, yes, the problem is real — and then redirect to a single question: _is what you're doing actually helping to change it?_
 
 This reframe doesn't challenge the values, the critique, or the emotional response. It accepts all of it. What it challenges is the gap between the stated goal and the chosen method. The question is not "are you right about the problem?" but "does your response to the problem produce the outcome you want?"
 
@@ -477,15 +485,15 @@ The move fails when it's used dismissively — "why don't you just work within t
 
 ## Common Fallacies Reference
 
-| Name | Structure | Tell |
-|------|-----------|------|
-| Tu quoque | "You do it too" | Doesn't rebut the original claim |
-| Ad hominem | Attack the person, not the claim | Emotional charge substitutes for refutation |
-| False equivalence | A ≈ B when A ≠ B in relevant ways | Conflates style with substance, or form with content |
-| Whataboutism | Deflect to a different subject | Changes terrain rather than engaging |
-| Begging the question | Conclusion smuggled into premise | The "neutral baseline" that isn't neutral |
-| Missing premise | Inference gap | Two true premises that don't connect without a third |
-| Motte and bailey | Defend easy claim, assert difficult one | Retreat to safe version when challenged, advance bold version otherwise |
+| Name                 | Structure                               | Tell                                                                    |
+| -------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| Tu quoque            | "You do it too"                         | Doesn't rebut the original claim                                        |
+| Ad hominem           | Attack the person, not the claim        | Emotional charge substitutes for refutation                             |
+| False equivalence    | A ≈ B when A ≠ B in relevant ways       | Conflates style with substance, or form with content                    |
+| Whataboutism         | Deflect to a different subject          | Changes terrain rather than engaging                                    |
+| Begging the question | Conclusion smuggled into premise        | The "neutral baseline" that isn't neutral                               |
+| Missing premise      | Inference gap                           | Two true premises that don't connect without a third                    |
+| Motte and bailey     | Defend easy claim, assert difficult one | Retreat to safe version when challenged, advance bold version otherwise |
 
 ---
 
@@ -557,9 +565,9 @@ Because hypocrisy arguments appear frequently in political and social debate, an
 
 **The stronger version of the hypocrisy argument** (following Arendt): Institutional hypocrisy — where leaders systematically say one thing and do another — is structurally corrosive to democratic accountability because it degrades the shared epistemic reality that makes evaluation of leaders possible. This is a stronger claim than "they're personally dishonest" and doesn't require proof of individual intent.
 
-The mechanism matters: polished, values-laden language doesn't just obscure bad policy — it *insulates* it from accountability. When the rhetoric is respectable enough, the policy underneath it doesn't get evaluated on its outcomes. The language does the protective work.
+The mechanism matters: polished, values-laden language doesn't just obscure bad policy — it _insulates_ it from accountability. When the rhetoric is respectable enough, the policy underneath it doesn't get evaluated on its outcomes. The language does the protective work.
 
-This reframes what bluntness or disruption can mean in such a system. It isn't necessarily "sincere wrongness" — it can function as a stress test on an arrangement that had been failing quietly for decades behind respectable rhetoric. Whether the stress test is *good* is a separate question. But treating it as self-evidently worse than the polished dysfunction it disrupts is itself a hidden prior worth naming.
+This reframes what bluntness or disruption can mean in such a system. It isn't necessarily "sincere wrongness" — it can function as a stress test on an arrangement that had been failing quietly for decades behind respectable rhetoric. Whether the stress test is _good_ is a separate question. But treating it as self-evidently worse than the polished dysfunction it disrupts is itself a hidden prior worth naming.
 
 When this argument appears, check whether it's being made at the individual or institutional level, and whether the evidential standard matches the level of the claim.
 
