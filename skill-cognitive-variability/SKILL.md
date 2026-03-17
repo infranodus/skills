@@ -1,9 +1,67 @@
 ---
 name: cognitive-variability
-description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Receives signals from writing assistant's pattern detection to diagnose cognitive states. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages energy across personality modes. Uses playfulness for difficult transitions from chaos to clarity. Reads emotional feedback—inspiration signals continuation, exhaustion/frustration trigger transitions. Prevents obsessive loops through sustainable cycling. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, when a user is stuck, breakthroughs, decision paralysis, group facilitation, breaking repetitive patterns, or when grammatical patterns reveal cognitive issues.
+description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Helps enhance and develop biased, focused, diversified, dispersed states. Receives signals from writing assistant's pattern detection to diagnose cognitive states. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages energy across personality modes. Uses playfulness for difficult transitions from chaos to clarity. Reads emotional feedback—inspiration signals continuation, exhaustion/frustration trigger transitions. Prevents obsessive loops through sustainable cycling through topical clusters and latent nodes. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, when a user is stuck, breakthroughs, decision paralysis, group facilitation, breaking repetitive patterns, or when grammatical patterns reveal cognitive issues.
 ---
 
 # Cognitive Variability Framework
+
+Cognitive variabiilty framework is based on ensuring temporal fractal dynamics of circulation between four different cognitive states.
+
+## Cognitive States Summary
+
+Each cognitive state can be beneficial depending on the objective. However, at some point dwelling in that same state can hinder further progress, so it may be beneficial to shift to an adjacent state (usually along the trajectory) in order to resolve current issues and tensions. Follows a model inspired from ecological dynamics and Panarchy but adapted to the cognitive process.
+
+In order to identify the state InfraNodus tools to analyze or optimize text can be used.
+
+**The cognitive states are**
+
+**BIASED** (low modularity, focus on one idea or topical cluster)
+
+- Good for: Starting a new idea or deepening a perspective.
+- Works through: Focusing on concepts with high betweenness centrality and then building a cluster around them.
+- Problematic when: One stays there too long because it will hinder access to other perspectives and result in a highly biased state for too long.
+
+**FOCUSED** (medium modularity, focus on a topical cluster with adjacent ideas supporting it)
+
+- Good for: Deepening a perspective and using adjacent ideas to develop it further, formulating clear, coherent statements.
+- Works through: Developing a dominant cluster and attaching adjacent high betweenness centrality concepts to them.
+- Problematic when: The method stops yielding results and so new clusters and latent ideas need to be integrated and developed, focus shift may be needed.
+
+**DIVERSIFIED** (high modularity, several topical clusters and concepts share the attention)
+
+- Good for: Having a pluralist perspective, integrating different viewpoints, having a balanced, thought-through ideation process that proposes several perspectives and connects them in a coherent way.
+- Works through: Developing several topical clusters and making sure smaller clusters are equally represented, while connecting all clusters through the supernetwork of high-betweenness centrality concepts using the structural gaps between them.
+- Problematic when: One stays there too long as it may become difficult to mobilize ideas into specific actions, can turn into a discoursive exercise without any capacity to transform.
+
+**DISPERSED** (excessive modularity, fragmented state, ideas may seem to be disjointed)
+
+- Good for: Imagination and creativity — filling in the gaps or giving space for new ideas and clusters to emerge.
+- Works through: Breaking connections between the clusters and high betweenness centrality concepts, and by introducing previously unrelated ideas from outside of the structure (transcend / tangent modes).
+- Problematic when: Stayed in too long because of incoherences that may result from it.
+
+### Cognitive Variability Pathways
+
+The states circulate via BIASED → FOCUSED → DIVERSIFIED → DISPERSED → BIASED etc.
+
+However it's also possible to go on a loop like BIASED → FOCUSED → BIASED → FOCUSED → DIVERSIFIED → FOCUSED → DIVERSIFIED → DISPERSED → DIVERSIFIED → DISPERSED → BIASED etc.
+
+It is also possible to shift from any state to another other state but the scheme has to go through an Eight-Like pattern
+
+```
+          BIASED              DIVERSIFIED
+        .--~~~~~~--.        .--~~~~~~--.
+      /  .---~~---.  \    /  .---~~---.  \
+    /  /  .--~~--.  \  \/  /  .--~~--.  \  \
+   |  |  / FOCUS  \  | /\ |  / GAPS   \  |  |
+   |  | | cluster  | |/  \| | between   | |  |
+   |  |  \ nodes  /  /\  /\  \ clusters /  |  |
+    \  \  '--~~--'  / /  \ \  '--~~--'  /  /
+      \  '---~~---'  / \  / \  '---~~---'  /
+        '--~~~~~~--'    \/    '--~~~~~~--'
+         FOCUSED    <-CROSS->   DISPERSED
+```
+
+The Eight-Like pattern represents two interconnected loops of cognitive circulation. The left lobe (BIASED ↔ FOCUSED) represents the connecting/building cycle. The right lobe (DIVERSIFIED ↔ DISPERSED) represents the exploring/dispersing cycle. The crossing point in the middle is where the shift between the two modes happens — from building to exploring and back. Any transition between non-adjacent states passes through this crossing point, creating the figure-eight dynamic.
 
 ## When to Use This Skill
 
@@ -17,15 +75,32 @@ Apply cognitive variability when:
 - Decision-making paralyzed by too many or too few options
 - Group work needing state awareness and productive tension
 - User showing signs of cognitive exhaustion or obsession
-- **Writing assistant detects patterns signaling cognitive state issues**
+- User needs to dive into a specific idea or develop it further
+
+- **Writing assistant detects patterns signaling cognitive states**
 
 **Signs to trigger this skill**:
 
+The skill can be triggered both to enhace a state in case of:
+
+- Need to develop an idea from zero (maintaining biased state)
+- Need to focus on a topic (maintaining focused state)
+- Need to explore various perspectives (maintaining diversified state)
+- Need to create space for new ideas and creative thinking (maintaining dispersed state)
+
+Or to shift from a state in case of:
+
 - Repetitive thinking patterns
+- Obsessive loops
+- Too much bias or focus on a single topic
 - Inability to see alternatives
+- Slowing down of innovation
 - Analysis paralysis or premature closure
 - Creative blocks or saturation
 - Group dynamics stuck or chaotic
+- Ideas that are too dispersed
+- Incoherent thinking
+- Need for creative thinking
 
 **Signals from writing assistant**:
 
@@ -34,6 +109,8 @@ Apply cognitive variability when:
 - **Punctuation rhythm patterns** → Reveals dwelling in specific cognitive state
 - **Missing transitions** → Structural gaps between idea clusters
 - **Tense inconsistency** → Temporal imbalance in perspective
+- **Dispersed ideas** → More coherence is needed
+- **Saturation of ideas** → Focused state
 
 ## Handoff Protocol from Writing Assistant
 
@@ -152,7 +229,7 @@ These create **four cognitive states** and **eight transition stages** in a cont
 
 ---
 
-## InfraNodus Discourse Analysis (Optional)
+## InfraNodus Discourse Analysis (Optional but recommended when available)
 
 When the conversation has produced enough text to analyze (a few paragraphs or more), use the InfraNodus `optimize_text_structure` MCP tool for **objective, graph-based discourse state detection**. This replaces guesswork with structural evidence.
 
@@ -202,6 +279,12 @@ The tool provides the structural snapshot; your temporal tracking provides the t
 
 ## Intervention Protocols with Critical Perspective Integration
 
+### When BIASED State Needs to Be Maintained
+
+Keep focus on the main high betweenness concepts and cluster of ideas. Develop connections between them.
+
+**InfraNodus tool cluster routing:** Call `analyze_text ` on conversation text. Identify the high-BC concepts and top clusters, increase connectinos within it.
+
 ### When Dwelling Too Long in BIASED (3+ exchanges):
 
 **Trajectory**: Move toward coherent building (Focused)
@@ -214,6 +297,14 @@ The tool provides the structural snapshot; your temporal tracking provides the t
 - "Whose perspective is missing from this view?"
 - Use InfraNodus gap analysis to reveal what's being systematically excluded
   **Adapt by context**: Brainstorming? Jump to Dispersed instead. Learning? Allow longer foundation-building.
+
+**InfraNodus tool cluster routing:** Call `generate_topical_clusters` `develop_latent_topics` and `optimize_text_structure` on the conversation text. Identify the high-BC bridge node connecting the dominant cluster to the most underrepresented one. Anchor your next question or intervention in that node — this gives the discourse a concrete exit path out of tunnel vision toward a neighbouring cluster rather than a disorienting jump. In case of going back to DISPERSED state, use the `transcend` mode to bring in the outside discourse and new ideas or to go on a tangent.
+
+## When FOCUSED state needs to be maintained
+
+Keep focus on the main topical cluster and connect it to existing smaller clusters.
+
+**InfraNodus tool cluster routing:** Call `optimize_text_structure ` on conversation text and focus on building the main cluster's connections to the adjacent ones.
 
 ### When Dwelling Too Long in FOCUSED (5+ exchanges):
 
@@ -228,6 +319,14 @@ The tool provides the structural snapshot; your temporal tracking provides the t
 - Use InfraNodus to identify latent topics being suppressed by the dominant narrative
   **Adapt by context**: Decision needed? May move toward new commitment. Research? Optimal to diversify.
 
+  **InfraNodus tool routing:** Call `generate_topical_clusters` and `optimize_text_structure` as well as `develop_latent_topics`. Look for clusters with low node density or low internal connectivity — these are the underattended areas the coherent narrative is smoothing over. Introduce a concept from the weakest cluster, or surface a latent node sitting at its periphery, to redistribute attention before saturation fully sets in. Focus on developing those smaller clusters. In case of going back to the BIASED state, focus on the dominant betweenness concepts again and connections between them.
+
+### When DIVERSIFIED State Needs to Be Maintained
+
+Balance between staying within the cluster by oscillating between ideas inside that cluster and also using the high betweenness centrality network to jump from one cluster to another and building more coherent connections between those clusters.
+
+**InfraNodus tool cluster routing:** Call `generate_content_gaps ` and `generate_topical_clusters` on conversation text to see which clusters need to be further developed and also better connected within.
+
 ### When Dwelling Too Long in DIVERSIFIED (7+ exchanges):
 
 **Trajectory**: Can go toward chaos (Dispersed) OR consolidation (Focused)
@@ -241,6 +340,14 @@ The tool provides the structural snapshot; your temporal tracking provides the t
 - If unable to disrupt: "What sacred cows are we protecting?"
 - Note: Diversified is healthiest state - critical perspective mainly helps transition OUT when stuck
   **Adapt by context**: Creative work? Disperse. Strategic planning? Consolidate insights.
+
+  **InfraNodus attention routing:** Call `develop_latent_topics` and `develop_conceptual_bridges` - in the `transcend` mode so you can develop ideas that belong to the outside of the discourse and bring in new perspectives. Use `optimize_text_structure` to bridge the gaps between clusters. In case of going back to the FOCUSED state, start working on a dominant cluster again.
+
+### When DISPERSED Needs To Be Maintained
+
+Jump between different smaller clusters and concepts without staying too long in them.
+
+**InfraNodus attention routing:** Call `develop_latent_topics` and `develop_conceptual_bridges` - in the `transcend` mode so you can develop ideas that belong to the outside of the discourse and bring in new perspectives. Use `generate_content_gaps` to focus on gaps between clusters. In case of going back to the DIVERSIFIED state, do not use `trancend` mode, focus on bridging the gaps between dominant clusters.
 
 ### When Dwelling Too Long in DISPERSED (4+ exchanges):
 
@@ -257,6 +364,8 @@ The tool provides the structural snapshot; your temporal tracking provides the t
 - "Which of these threads connects to your core values?"
 - Gentle questioning to help identify what to release
   **Adapt by context**: If brainstorming, allow longer chaos. If deciding, guide toward commitment gently.
+
+**InfraNodus attention routing:** Call `optimize_text_structure`. If high-BC bridge nodes exist between clusters, route the discourse through them — frame a question or synthesis around that bridging concept to maintain productive cross-cluster flow and prevent paralysis. If no clear high-BC nodes emerge, identify the most prominent topical cluster and use it as a temporary anchor to consolidate before the next exploratory move to BIASED.
 
 ---
 
