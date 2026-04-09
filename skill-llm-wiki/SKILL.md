@@ -173,19 +173,35 @@ All ontology/knowledge-graph files are stored in a single `.infranodus/` folder 
    - `.infranodus/sources-ontology.md`
    - `.infranodus/full-wiki-ontology.md` (for the whole wiki combined)
 
-#### CRITICAL: Incremental Updates Only
+#### CRITICAL: Incremental Updates, Never Full Rewrites
 
 **NEVER regenerate ontology files from scratch.** Ontology files are curated artifacts that accumulate human-reviewed knowledge over time. They contain specific phrasings, relationship nuances, and domain-specific insights that cannot be automatically reconstructed from source pages alone.
+
+##### Adding new relations
 
 When updating ontologies after new sources are ingested:
 
 - **READ the existing ontology file FIRST** — understand its format, style, and content
-- **PRESERVE all existing lines** — do not modify, rephrase, reformat, or delete any existing content
 - **APPEND new lines at the end** — add only lines covering genuinely new content from the new sources
 - **Match the existing format exactly** — same casing conventions, same `[relationCode]` tag style, same entity naming patterns
-- **If delegating to sub-agents**: include the existing file content (or its path) in the prompt, explicitly instruct "APPEND ONLY, do not rewrite", and verify the diff afterward
+- **If delegating to sub-agents**: include the existing file content (or its path) in the prompt, explicitly instruct "READ FIRST, then APPEND ONLY, do not rewrite", and verify the diff afterward
 
-Violations of this rule destroy curated knowledge. A full rewrite loses:
+##### Removing or modifying existing relations
+
+Removal and modification of existing lines IS allowed when there is a clear reason:
+
+- **Factually wrong**: A relation contradicts the current wiki content (e.g., a source was reinterpreted, a claim was debunked by newer evidence)
+- **Superseded**: A newer, more precise relation replaces a vague or incomplete one — remove the old line and add the improved version
+- **Duplicate**: Two lines say the same thing with slightly different wording — keep the better one
+- **Stale**: A relation references content that was removed from the wiki (e.g., a source was deleted, a concept was merged into another)
+
+When removing or modifying, briefly note the reason in the commit message or log so the change is traceable.
+
+**What is NOT allowed**: wholesale regeneration that replaces all lines with freshly generated content. The default operation is always append. Removal is a deliberate, line-by-line editorial decision.
+
+##### Why this matters
+
+A full rewrite loses:
 - Relationship type tags (`[isA]`, `[causes]`, etc.) that carry semantic meaning
 - Specific nuanced phrasings (e.g., "[[choreographed routine]] is still [[periodic]] even on complex terrain")
 - Entity casing and naming conventions established by the ontology-creator skill
