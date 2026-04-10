@@ -1,7 +1,7 @@
 ---
 name: llm-wiki
 description: >
-  Guide users through setting up a personal LLM-maintained wiki — a persistent, compounding knowledge base where the LLM incrementally builds and maintains interlinked markdown pages from raw sources. Use this skill when the user wants to: set up a personal knowledge base, create a research wiki, organize notes with LLM help, build a "second brain", set up an Obsidian + LLM workflow, create a persistent knowledge graph from documents, or mentions "LLM wiki". This skill asks questions to understand the user's domain and goals, then scaffolds the entire wiki structure, schema, and workflows tailored to their needs.
+  Guide users through setting up a personal LLM-maintained wiki — a persistent, compounding knowledge base where the LLM incrementally builds and maintains interlinked markdown pages from raw sources. Use this skill when the user wants to: set up a personal knowledge base, create a research wiki, organize notes with LLM help, build a "second brain", set up an Obsidian + LLM workflow, create a persistent knowledge graph from documents, plan research priorities and next steps, or mentions "LLM wiki". This skill asks questions to understand the user's domain and goals, then scaffolds the entire wiki structure, schema, and workflows tailored to their needs. It also helps plan ongoing research by analyzing knowledge gaps and creating actionable todo lists.
 allowed-tools:
   - Read
   - Write
@@ -43,6 +43,7 @@ Every LLM Wiki has three layers:
 6. TOOLING     -> Obsidian plugins, InfraNodus tools for gap analysis, research, and text optimization, CLI tools, search, git
 7. SCAFFOLD    -> Create the directory structure and starter files
 8. FIRST RUN   -> Ingest the first source together as a test drive
+9. PLAN        -> Analyze gaps, prioritize research directions, create actionable todos
 ```
 
 ---
@@ -150,6 +151,7 @@ wiki-name/
     log.md                # Chronological record of operations
     overview.md           # High-level synthesis of everything
   output/                 # Folder for output of the interactions
+  todos/                  # Research priorities and actionable task lists
   CLAUDE.md               # Schema — instructions for the LLM
   AGENTS.md               # Schema - instructions for the LLM (Codex-compatible)
 ```
@@ -473,6 +475,145 @@ Close with:
 - Quick reference for the three core operations (ingest, query, lint)
 - Reminder that the schema is a living document — they should update it whenever they discover a better convention
 - Encourage them to ingest a few more sources to build momentum
+- Suggest running Phase 9 (Plan) once they have 10+ sources ingested
+
+---
+
+## Phase 9: PLAN — Research Direction and Todo Planning
+
+After the wiki has accumulated enough content (typically 10+ sources, or after a significant round of ingestion), help the user step back and plan what to research next. This phase analyzes the wiki's current state — using InfraNodus gap analysis and the wiki's own structure — to produce a prioritized todo list that lives in a `todos/` folder at the project root.
+
+**This phase can be run at any time**, not just during initial setup. It's the natural follow-up whenever the user asks "what should I work on next?" or after a batch of new sources has been ingested.
+
+### Step 9.1: Assess Current State
+
+Read the wiki's structural health:
+
+1. **Read `wiki/index.md`** to understand what exists
+2. **Read `wiki/overview.md`** for the current synthesis
+3. **Check for existing InfraNodus analyses** in `output/*-knowledge-graph-analysis.md` — these contain identified content gaps, cluster structure, and recommendations
+4. **Check `wiki/questions/`** for open research questions
+5. **Check `wiki/data/`** for personal data pages (empty = a gap worth flagging)
+6. **Check `todos/`** for existing todo files (to avoid duplicating or contradicting prior plans)
+
+Summarize the state back to the user: how many sources, what's well-covered, what's thin.
+
+### Step 9.2: Identify Priorities
+
+Using the InfraNodus analyses and wiki structure, identify the highest-value work to do next. Prioritize by convergence — gaps flagged by multiple analyses are more important than one-off mentions.
+
+Common priority types:
+
+| Priority Type | Description | Example |
+|---|---|---|
+| **Content gap** | Two clusters in the knowledge graph are disconnected — a bridging concept or source is needed | "Criticality ↔ Metastability — no source connects these two frameworks" |
+| **Weak coverage** | A topic has few sources relative to its importance | "Only 1 intervention study across 48 sources" |
+| **Empty section** | A wiki section exists but has no content | "wiki/data/ has no personal data pages" |
+| **Naming/framework gap** | A framework is partially built — some systems have labels/states, others don't | "HRV and movement states named, breathing states missing" |
+| **Source to find** | A specific paper or source type is needed to fill a gap | "Need breathing-specific fractal variability studies" |
+| **Synthesis needed** | Enough raw material exists but no synthesis page connects it | "Three connection pages mention trauma but no unified framework" |
+
+Present the identified priorities as a ranked list. Ask the user via AskUserQuestion:
+
+> Here are the top priorities I see. Which ones do you want to work on?
+
+Offer the priorities as multi-select options so the user can pick which ones matter to them. Include an option to add their own priorities.
+
+### Step 9.3: Create Todo Files
+
+For each selected priority, create a markdown file in `todos/` at the project root.
+
+```bash
+mkdir -p todos
+```
+
+**Todo file format** (`todos/<priority-slug>.md`):
+
+```markdown
+# <Priority Title>
+
+Deadline: <YYYY-MM-DD>
+
+## Tasks
+
+- [ ] <Task description>
+  - <Sub-details, context, specific files to update>
+  - Deadline: <YYYY-MM-DD>
+
+- [ ] <Task description>
+  - <Sub-details>
+  - Deadline: <YYYY-MM-DD>
+```
+
+**Guidelines for writing todos:**
+
+- **Checkboxes** (`- [ ]`) for every actionable item — these render as clickable checkboxes in Obsidian
+- **Sub-bullets** for context, specific files to touch, or implementation notes
+- **Deadlines** on each task if the user provided an overall timeline
+- **Group by workstream** — each todo file is one coherent workstream, not a grab-bag of unrelated tasks
+- **Reference wiki pages** using `[[wikilinks]]` where relevant so the user can navigate from the todo to the related content
+- **Keep tasks at the right altitude** — specific enough to act on ("Find and ingest Chialvo 2010"), not so granular that it's busywork ("Open browser, search for Chialvo 2010, download PDF, move to raw/papers/")
+- **Include the "why"** — a brief note on why this priority matters (which gap it fills, which analysis flagged it)
+
+### Step 9.4: Timeline (Optional)
+
+If the user wants deadlines, ask via AskUserQuestion:
+
+> What timeframe are you working with for these priorities?
+
+- A) 2 weeks — aggressive, daily milestones
+- B) 1 month — comfortable, weekly milestones
+- C) No deadlines — I'll work through these at my own pace
+- D) Custom — I'll specify
+
+If they choose a timeframe, distribute deadlines across the period, respecting task dependencies (e.g., "ingest sources" must come before "write framework that synthesizes them").
+
+### Step 9.5: Connect to Actionize (Optional)
+
+Check if the `/actionize` skill is available (listed in available skills). If it is, ask via AskUserQuestion:
+
+> Want to turn these priorities into a tracked plan with Telegram reminders? The `/actionize` skill can set up daily deadline nudges and progress tracking.
+
+- A) Yes — run `/actionize` with these priorities
+- B) No — the todo files are enough
+
+**If yes**, invoke the `/actionize` skill (via the Skill tool) and pass a summary of the selected priorities as input. Format the input as:
+
+```
+Priorities from wiki gap analysis:
+
+1. **{Priority title}** — {description}. Tasks: {task list from todo file}. Deadline: {deadline if set}.
+2. **{Priority title}** — ...
+...
+
+Priority order: #1 → #2 → #3. Schedule with reminders.
+```
+
+The `/actionize` skill will handle: co-designing the plan with the user, creating `.plan/` with status tracking, setting up Telegram bot + daily cron reminders, and installing the `done.sh` CLI for marking tasks complete from the terminal.
+
+The two systems are complementary — both should exist:
+- `todos/` = the visible, Obsidian-browsable research plan (committed to git, checkboxes in markdown)
+- `.plan/` = the reminder/tracking engine with Telegram integration (gitignored, personal, machine-readable status)
+
+**If `/actionize` is not available**, mention that the user can install it for Telegram reminders and deadline tracking. The todo files work standalone without it.
+
+### Step 9.6: Present the Result
+
+Show the user what was created:
+
+```
+RESEARCH PLAN CREATED
+════════════════════════════════════════
+Priorities:  {count} workstreams
+Todo files:  todos/{list filenames}
+Timeline:    {date range or "open-ended"}
+════════════════════════════════════════
+```
+
+List each todo file with its task count. Remind the user:
+- Checkboxes are clickable in Obsidian
+- Run Phase 9 again after the next batch of ingestion to refresh priorities
+- Use `wiki/questions/` for individual research questions vs `todos/` for planned workstreams
 
 ---
 
