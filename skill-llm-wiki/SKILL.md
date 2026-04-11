@@ -158,7 +158,7 @@ wiki-name/
 
 ### Knowledge Graphs
 
-All ontology/knowledge-graph files are stored in a single `.infranodus/` folder at the project root (sibling of `wiki/`, `raw/`, etc.). This folder has no subfolders — all graph files live flat in `.infranodus/`. This is a core part of the wiki workflow — not optional.
+All ontology/knowledge-graph files are stored in a single `infranodus/` folder at the project root (sibling of `wiki/`, `raw/`, etc.). This folder has no subfolders — all graph files live flat in `infranodus/`. This is a core part of the wiki workflow — not optional.
 
 #### Ontology Generation Workflow
 
@@ -168,12 +168,12 @@ All ontology/knowledge-graph files are stored in a single `.infranodus/` folder 
 
 3. **What to feed**: Read all `.md` files in the folder, combine their content (stripping YAML frontmatter), and pass the combined text to the ontology-creator skill. The skill will extract entities and relationships in `[[wikilinks]]` format.
 
-4. **Where to save**: Save the generated ontology as `<folder-name>-ontology.md` inside the `.infranodus/` folder at the project root. For example:
-   - `.infranodus/systems-ontology.md`
-   - `.infranodus/concepts-ontology.md`
-   - `.infranodus/connections-ontology.md`
-   - `.infranodus/sources-ontology.md`
-   - `.infranodus/full-wiki-ontology.md` (for the whole wiki combined)
+4. **Where to save**: Save the generated ontology as `<folder-name>-ontology.md` inside the `infranodus/` folder at the project root. For example:
+   - `infranodus/systems-ontology.md`
+   - `infranodus/concepts-ontology.md`
+   - `infranodus/connections-ontology.md`
+   - `infranodus/sources-ontology.md`
+   - `infranodus/full-wiki-ontology.md` (for the whole wiki combined)
 
 #### CRITICAL: Incremental Updates, Never Full Rewrites
 
@@ -204,6 +204,7 @@ When removing or modifying, briefly note the reason in the commit message or log
 ##### Why this matters
 
 A full rewrite loses:
+
 - Relationship type tags (`[isA]`, `[causes]`, etc.) that carry semantic meaning
 - Specific nuanced phrasings (e.g., "[[choreographed routine]] is still [[periodic]] even on complex terrain")
 - Entity casing and naming conventions established by the ontology-creator skill
@@ -504,14 +505,14 @@ Using the InfraNodus analyses and wiki structure, identify the highest-value wor
 
 Common priority types:
 
-| Priority Type | Description | Example |
-|---|---|---|
-| **Content gap** | Two clusters in the knowledge graph are disconnected — a bridging concept or source is needed | "Criticality ↔ Metastability — no source connects these two frameworks" |
-| **Weak coverage** | A topic has few sources relative to its importance | "Only 1 intervention study across 48 sources" |
-| **Empty section** | A wiki section exists but has no content | "wiki/data/ has no personal data pages" |
-| **Naming/framework gap** | A framework is partially built — some systems have labels/states, others don't | "HRV and movement states named, breathing states missing" |
-| **Source to find** | A specific paper or source type is needed to fill a gap | "Need breathing-specific fractal variability studies" |
-| **Synthesis needed** | Enough raw material exists but no synthesis page connects it | "Three connection pages mention trauma but no unified framework" |
+| Priority Type            | Description                                                                                   | Example                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Content gap**          | Two clusters in the knowledge graph are disconnected — a bridging concept or source is needed | "Criticality ↔ Metastability — no source connects these two frameworks" |
+| **Weak coverage**        | A topic has few sources relative to its importance                                            | "Only 1 intervention study across 48 sources"                           |
+| **Empty section**        | A wiki section exists but has no content                                                      | "wiki/data/ has no personal data pages"                                 |
+| **Naming/framework gap** | A framework is partially built — some systems have labels/states, others don't                | "HRV and movement states named, breathing states missing"               |
+| **Source to find**       | A specific paper or source type is needed to fill a gap                                       | "Need breathing-specific fractal variability studies"                   |
+| **Synthesis needed**     | Enough raw material exists but no synthesis page connects it                                  | "Three connection pages mention trauma but no unified framework"        |
 
 Present the identified priorities as a ranked list. Ask the user via AskUserQuestion:
 
@@ -537,12 +538,12 @@ Deadline: <YYYY-MM-DD>
 ## Tasks
 
 - [ ] <Task description>
-  - <Sub-details, context, specific files to update>
-  - Deadline: <YYYY-MM-DD>
+      - <Sub-details, context, specific files to update>
+      - Deadline: <YYYY-MM-DD>
 
 - [ ] <Task description>
-  - <Sub-details>
-  - Deadline: <YYYY-MM-DD>
+      - <Sub-details>
+      - Deadline: <YYYY-MM-DD>
 ```
 
 **Guidelines for writing todos:**
@@ -592,6 +593,7 @@ Priority order: #1 → #2 → #3. Schedule with reminders.
 The `/actionize` skill will handle: co-designing the plan with the user, creating `.plan/` with status tracking, setting up Telegram bot + daily cron reminders, and installing the `done.sh` CLI for marking tasks complete from the terminal.
 
 The two systems are complementary — both should exist:
+
 - `todos/` = the visible, Obsidian-browsable research plan (committed to git, checkboxes in markdown)
 - `.plan/` = the reminder/tracking engine with Telegram integration (gitignored, personal, machine-readable status)
 
@@ -611,6 +613,7 @@ Timeline:    {date range or "open-ended"}
 ```
 
 List each todo file with its task count. Remind the user:
+
 - Checkboxes are clickable in Obsidian
 - Run Phase 9 again after the next batch of ingestion to refresh priorities
 - Use `wiki/questions/` for individual research questions vs `todos/` for planned workstreams
