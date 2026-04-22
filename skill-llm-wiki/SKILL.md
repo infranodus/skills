@@ -42,7 +42,7 @@ Every LLM Wiki has three layers:
 5. WORKFLOWS   -> Define ingest, query, and lint operations
 6. TOOLING     -> Obsidian plugins, InfraNodus tools for gap analysis, research, and text optimization, CLI tools, search, git
 7. SCAFFOLD    -> Create the directory structure and starter files
-8. FIRST RUN   -> Ingest the first source together as a test drive
+8. INGEST      -> Ingest sources from raw/ — test drive on first run, bulk re-ingest thereafter
 9. PLAN        -> Analyze gaps, prioritize research directions, create actionable todos
 ```
 
@@ -144,8 +144,16 @@ Every wiki has at least:
 
 ```
 wiki-name/
-  raw/                    # Immutable source documents
-    assets/               # Downloaded images, PDFs
+  raw/                    # Immutable source documents — organize by source TYPE
+    notes/                # Personal notes, journal entries, voice-memo transcripts (.md)
+    papers/               # Academic papers — PDFs CONVERTED to markdown before landing here
+    youtube/              # YouTube / podcast transcripts (optional)
+    articles/             # Web articles (e.g. from Obsidian Web Clipper) (optional)
+    search-results/       # SERP / Google search data, InfraNodus exports (optional)
+    patents/              # Patent filings — PDF converted to markdown (optional)
+    books/                # One markdown file per chapter (optional)
+    interviews/           # Interview or meeting transcripts (optional)
+    assets/               # Downloaded images, original PDFs, binaries
   wiki/                   # LLM-generated pages (the wiki itself)
     index.md              # Content catalog — what's in the wiki
     log.md                # Chronological record of operations
@@ -155,6 +163,12 @@ wiki-name/
   CLAUDE.md               # Schema — instructions for the LLM
   AGENTS.md               # Schema - instructions for the LLM (Codex-compatible)
 ```
+
+### Typed `raw/` subfolders
+
+Organize `raw/` by source TYPE, not by topic — the LLM applies format-specific ingest rules (e.g. a YouTube transcript is summarized differently from an academic paper, a patent differently from a personal note). Standard subfolders: `raw/notes/` and `raw/papers/`. Add more as the user's source mix grows: `raw/youtube/`, `raw/articles/`, `raw/search-results/`, `raw/patents/`, `raw/books/`, `raw/interviews/`, `raw/meetings/`, etc. **Create new subfolders on the fly** — don't ask permission for every new type.
+
+PDFs must be **converted to markdown before landing in `raw/papers/`** so the LLM can read them without burning context on PDF extraction each time. Suggest `marker`, `pdftotext`, MarkItDown, or a Zotero markdown export. The original PDF can live in `raw/assets/` for reference.
 
 ### Knowledge Graphs
 
@@ -440,43 +454,143 @@ Show the user the created structure. Walk through each file briefly. Ask:
 
 ---
 
-## Phase 8: FIRST RUN — Test Drive with a Real Source
+## Phase 8: INGEST — Test Drive and Ongoing Ingest
+
+**This phase is re-runnable.** On first invocation (wiki has no sources yet), it walks the user through a first ingest as a test drive. On subsequent invocations (wiki already exists), it bulk-ingests anything in `raw/` that hasn't been processed yet — **without restarting from Phase 1**.
+
+### Detecting the mode
+
+Before anything else:
+
+```bash
+SOURCES_COUNT=$(find wiki/sources -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+echo "Existing source pages: $SOURCES_COUNT"
+```
+
+- `SOURCES_COUNT == 0` → **Phase 8.A (first run / test drive)** below
+- `SOURCES_COUNT > 0` → **Phase 8.B (ongoing bulk ingest)** below — skip 8.A entirely
+
+---
+
+### Phase 8.A — First Run (test drive)
 
 The best way to validate the setup is to use it. Guide the user through their first ingest.
 
-### If they have a source ready:
+**If they have a source ready:**
 
-1. Ask them if they want to copy it to the `raw/` folder
-2. Run the full ingest workflow as defined in the schema
-3. Show them the results: the source summary, any entity/concept pages created, the updated index and log
-4. Ask for feedback: "Is this the right level of detail? Too much? Too little? Want me to adjust the format?"
+1. Ask which `raw/` subfolder it belongs in (`raw/notes/`, `raw/papers/`, `raw/youtube/`, etc. — create the subfolder on the fly if missing). Organize by source TYPE, not topic.
+2. Copy or move the source into place. **For PDFs, convert to markdown first** (`marker`, `pdftotext`, MarkItDown, or a Zotero markdown export) and land the `.md` in `raw/papers/`. The original PDF can sit in `raw/assets/` for reference.
+3. Run the full ingest workflow as defined in the schema
+4. Show them the results: the source summary, any entity/concept pages created, the updated index and log
+5. Ask for feedback: "Is this the right level of detail? Too much? Too little? Want me to adjust the format?"
 
-### If they don't have a source yet:
+**If they don't have a source yet:**
 
 - Suggest they grab a web article related to their domain using Obsidian Web Clipper or by pasting a URL
 - Offer to fetch a relevant article via web search as a demo source
 - Walk through what the ingest would produce
 
-### Iterate on the Schema
-
-The first ingest almost always reveals adjustments needed:
+**Iterate on the schema.** The first ingest almost always reveals adjustments needed:
 
 - Page format tweaks
 - Frontmatter field changes
 - Cross-referencing rules that need refining
 - Workflow steps to add or remove
 
-Update the schema based on feedback. This is the beginning of the co-evolution process — the schema will keep improving with use.
+Update `CLAUDE.md` / `AGENTS.md` based on feedback. This starts the co-evolution process — the schema keeps improving with use.
+
+---
+
+### Phase 8.B — Ongoing Bulk Ingest (re-runnable)
+
+When the user re-invokes the skill (or explicitly says "ingest", "ingest new sources", "process raw/", etc.), **jump directly here**. Do NOT re-run DISCOVER / SCOPE / STRUCTURE / SCHEMA / SCAFFOLD — the wiki already exists.
+
+#### Step 8.B.1 — Confirmation prompt (use this wording verbatim)
+
+Present this to the user every time, so the operation is predictable and they never need to type the instruction themselves:
+
+> **Bulk ingest — I'll ingest everything in `raw/` that doesn't yet have a matching `wiki/sources/*.md` page.**
+>
+> For each new source I'll: (1) read it, (2) create the source summary in `wiki/sources/`, (3) update or create relevant system / concept / connection / question pages, (4) update `wiki/index.md` and append to `wiki/log.md`, (5) flag any contradictions with existing wiki content.
+>
+> After the batch I'll refresh the ontologies in `infranodus/` (**append-only, never regenerated**) and re-run the InfraNodus knowledge-graph analysis into `output/`.
+>
+> Scope options:
+> - **A)** Everything in `raw/` (default)
+> - **B)** A specific subfolder only (e.g. just `raw/papers/`)
+> - **C)** A specific file
+>
+> Proceed with A, or tell me B/C?
+
+Wait for user confirmation. If they pick B or C, narrow the inventory accordingly.
+
+#### Step 8.B.2 — Inventory unprocessed sources
+
+```bash
+# For each file in raw/ (recursive), check whether a matching wiki/sources/<slug>.md exists.
+# The slug is derived from the file stem (kebab-case).
+find raw -type f \( -name '*.md' -o -name '*.txt' \) | while read -r f; do
+  stem=$(basename "$f" | sed 's/\.[^.]*$//')
+  if [ ! -f "wiki/sources/$stem.md" ]; then
+    echo "UNPROCESSED: $f"
+  fi
+done
+```
+
+Report the count and list to the user before proceeding. If the list is long (>10), ask whether to process all in one batch or cap at N.
+
+#### Step 8.B.3 — Ingest each source
+
+For every unprocessed file, follow the ingest workflow defined in the schema (typically: source summary → system/concept/connection updates → question pages → index → log → contradiction flags). Report one-line progress after each: `[3/12] ingested raw/papers/hausdorff-1996.md → wiki/sources/hausdorff-1996.md (+2 concepts, +1 connection)`.
+
+#### Step 8.B.4 — Refresh ontologies and graph analyses
+
+After the batch (not per-file):
+
+1. For each wiki folder touched (systems/, concepts/, connections/, sources/, questions/), **append** new relations to `infranodus/<folder>-ontology.md` using the `ontology-creator` skill. **Never regenerate from scratch** — read the existing file first, then add only lines covering genuinely new content. Match existing format exactly.
+2. Re-run `generate_knowledge_graph` on each updated ontology (`modifyAnalyzedText: 'none'`)
+3. Overwrite `output/<folder>-knowledge-graph-analysis.md` with the fresh analysis
+
+#### Step 8.B.5 — Summarize
+
+Close the batch with:
+
+- How many sources ingested, by subfolder
+- Which wiki sections grew (and by how much)
+- Which gaps closed, which new gaps opened (from the InfraNodus diff)
+- Suggest Phase 9 (PLAN) if ≥10 new sources came in or if gaps shifted meaningfully
+
+---
+
+### Encouraging new raw material
+
+If `raw/` is sparse, or the user says "I want to ingest more but don't know what to grab," suggest concrete capture channels mapped to typed subfolders. **Create the subfolder on the fly** — don't ask permission for every new category.
+
+| Source type | Capture method | Drop into |
+|---|---|---|
+| Personal notes, journal entries, voice-memo transcripts | Plain `.md` files, Obsidian notes, Whisper transcription | `raw/notes/` |
+| Academic papers (PDFs) | **Convert to markdown first** (`marker`, `pdftotext`, MarkItDown, Zotero export) | `raw/papers/` |
+| YouTube videos / podcasts | Paste URL — InfraNodus `analyze_text` with url arg auto-transcribes, or yt-dlp + Whisper | `raw/youtube/` |
+| Web articles, blog posts | Obsidian Web Clipper → markdown | `raw/articles/` |
+| Google search results (SERPs) | InfraNodus `analyze_google_search_results` export, or SEO-tool CSV | `raw/search-results/` |
+| Patents | Google Patents PDF → markdown | `raw/patents/` |
+| Books | One markdown file per chapter | `raw/books/` |
+| Interviews / meeting notes | Transcription output (Otter, Whisper, etc.) | `raw/interviews/` or `raw/meetings/` |
+| Email threads, Slack exports | Export → markdown | `raw/communications/` |
+
+Call this list out proactively when running Phase 8.B so the user sees concrete next-capture options.
+
+---
 
 ### Handoff
 
-Close with:
+After first-run OR after a bulk-ingest batch, close with:
 
-- A summary of what was built
+- A summary of what was ingested and what changed in the wiki
 - Quick reference for the three core operations (ingest, query, lint)
-- Reminder that the schema is a living document — they should update it whenever they discover a better convention
-- Encourage them to ingest a few more sources to build momentum
-- Suggest running Phase 9 (Plan) once they have 10+ sources ingested
+- Reminder that the schema is a living document — update it whenever a better convention emerges
+- Encourage continued ingestion to build momentum
+- Suggest running Phase 9 (PLAN) once ≥10 sources exist OR after a batch that meaningfully shifted gaps
 
 ---
 
