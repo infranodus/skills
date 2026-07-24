@@ -7,6 +7,13 @@ description: >
   generate research questions or ideas, compare texts, optimize text/content for SEO,
   analyze Google search results/queries, retrieve from a knowledge base (GraphRAG),
   save/retrieve structured memories, develop latent topics, or bridge conceptual gaps.
+  Also builds knowledge graphs of code repos and Obsidian vaults: invoked in any project
+  folder ("graph this repo", "analyze this project/vault", "/infranodus") it mines docs,
+  docstrings, WHY/NOTE comments, commit messages, and PR/issue threads into saved
+  InfraNodus graphs with a report. For questions about a project's themes, decisions,
+  rationale, or knowledge gaps — especially when infranodus/manifest.json exists in the
+  project root — query the existing graphs FIRST (analyze_existing_graph_by_name,
+  retrieve_from_knowledge_base) before reading files.
   Supports plain text, URLs (including YouTube video transcription), and existing InfraNodus graphs.
 homepage: https://infranodus.com
 metadata:
@@ -33,6 +40,26 @@ metadata:
 # InfraNodus
 
 Text network analysis and knowledge graph tools via the InfraNodus MCP server.
+
+## Repo / Vault Graphs (invoked inside a project folder)
+
+When asked to graph, analyze, or ask questions about a repo, project, or Obsidian
+vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
+
+1. **Fast path:** `infranodus/manifest.json` exists + the request is a question →
+   query the existing graphs (`analyze_existing_graph_by_name`,
+   `retrieve_from_knowledge_base`, `generate_content_gaps`). Do NOT re-extract.
+2. **Extract:** run `python3 scripts/repo2statements.py .` (add `--vault` for an
+   Obsidian/md vault). Deterministic, no LLM: mines md docs, docstrings,
+   WHY/NOTE/TODO comments, commit bodies, PR/issue threads into
+   `infranodus/*-ontology.md` scope files + `manifest.json`. Code-structure
+   extraction is deferred — never hand-write structural statements.
+3. **Upload:** one `create_knowledge_graph` per scope
+   (`repo-<project>-<scope>`), record `graphName` + `url` back into
+   `manifest.json`, save fetched graph JSON locally.
+4. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
+   influential concepts, gateways, gaps) and print the graph URLs (viewable in
+   browser, Cursor/VSCode extension, Obsidian plugin).
 
 ## Setup & Auth
 

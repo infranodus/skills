@@ -28,6 +28,8 @@ deterministic repo scan  →  [[wikilink]] statements  →  create_knowledge_gra
 
 ### A1. New reference: `references/repo-extraction.md`
 
+> **STATUS UPDATE (2026-07-22): the code-structure tiers below are DEFERRED — they will be added later.** v1 of repo analysis instead mines the repo's natural-language layer: in-repo `.md` files, docstrings, and `WHY:`/`NOTE:` comments pulled from source; around-repo commit-message bodies, PR descriptions, and issue threads via `git log` / `gh` CLI. See `infranodus-app/docs/llms/infranodus-command.md` §4a for the v1 spec. The tiers below remain the spec for the later structure phase; the shared-wikilink rule (verbatim file paths) is the join point between the two.
+
 Deterministic repo → statements conversion. **No LLM.** Ship a script in `scripts/repo2statements.py` (or `.js`); the skill instructs Claude only to *run* it.
 
 Three fidelity tiers (script implements 1+2; tier 3 optional):
