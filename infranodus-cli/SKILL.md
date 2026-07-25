@@ -46,6 +46,11 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 When asked to graph, analyze, or ask questions about a repo, project, or Obsidian
 vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
 
+0. **Transport:** native InfraNodus MCP tools visible in the session → use
+   them directly (uploads via `upload_scopes.py --emit-chunks` + native calls
+   + `--record`); else mcporter; else install mcporter (`npm install -g
+   mcporter`) and, if `INFRANODUS_API_KEY` is missing, AskUserQuestion to get
+   a key / OAuth / skip upload. Never install mcporter when native tools exist.
 1. **Fast path:** `infranodus/manifest.json` exists + the request is a question →
    query the existing graphs (`analyze_existing_graph_by_name`,
    `retrieve_from_knowledge_base`, `generate_content_gaps`). Do NOT re-extract.
