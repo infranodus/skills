@@ -1,6 +1,27 @@
 # TODO: Repo-as-Graph support for InfraNodus skills
 
-*Drafted 2026-07-21. Goal: make InfraNodus (skills + MCP server) as useful as graphify for giving LLMs a structural representation of a code repo, with graphs viewable in Cursor (VSCode extension) and Obsidian, and stored locally.*
+*Drafted 2026-07-21. Goal: give LLMs a first-class InfraNodus representation of any code repo or vault — built with one command, viewable in Cursor (VSCode extension) and Obsidian, stored locally.*
+
+---
+
+## REMAINING WORK (status as of 2026-07-25)
+
+**Implemented** (in `infranodus-cli` unless noted): A1 in pivoted form (rationale miner `repo2statements.py` + vault link scan + `--include`/`--term`/`--suffix` scoping), A2 (`upload_scopes.py`: chunking, 429/413 handling, per-scope `wikilinksMode` + `maxNodes: 500`), A3 (`infranodus/` + `manifest.json` + generated/curated policy), A4 (trigger description), A5 (fast path), the AskUserQuestion scoping step, the transport fallback (native MCP → mcporter → guided setup), `install.sh`, and B1–B5 (in `skill-llm-wiki`). On the MCP server: C1 (superseded by `wikilinksMode`), `maxNodes`, `fullGraph`.
+
+**Still to do:**
+
+| # | Item | Where | Notes |
+|---|---|---|---|
+| 1 | **A6 local traversal** — `references/graph-traversal.md`: BFS/shortest-path/reverse-dependency walks over the local `<scope>-graph.json`, citing source statements | infranodus-cli | server-side query routing is done; only the offline-traversal half is missing |
+| 2 | **C2 trigger keywords** — "codebase / repository / architecture analysis" in tool descriptions + `instructions.ts` | mcp-server | benefits MCP-only clients (no skill installed) |
+| 3 | **C3 finish the statements pathway** — the server already sends `statements[]` + one derived category per statement (parent wikilinks modes, `prepareWikilinksPayload`); still missing: caller-supplied / multiple categories per statement, and a `timestamps` passthrough (app API accepts both) | mcp-server | completes relation-as-category typing (e.g. `#commit` + `[[file]]` together) and unlocks the temporal axis over commit/PR history |
+| 4 | **R2 maxnodes verification** — confirm `maxnodes > 150` flows app → engine end-to-end on the API path | infranodus-app | mostly addressed by MCP `maxNodes` (≤1000); a 30-min check |
+| 5 | **`--structure` mode** — code-structure extraction (file tree / imports / symbols), the deferred tiers below | infranodus-cli | `wikilinksMode: wikilinksOnly` is ready for it; also revisit R1 then (only needed for direct-REST callers) |
+| 6 | **Report polish** — `INFRANODUS_REPORT.md` is generated from responses per the template; consider a fixed generator script for consistency | infranodus-cli | optional |
+
+**Obsoleted** (implemented differently or worked around): B3/B4 (the skill now runs standalone in wiki projects; Phase 10 queries saved graphs live), R3 (`analyze_existing_graph_by_name` covers retrieval), R1 for MCP callers (`wikilinksOnly` avoids the TextRazor path).
+
+---
 
 Pipeline this enables, end to end (no LLM in construction):
 
@@ -38,7 +59,7 @@ Three fidelity tiers (script implements 1+2; tier 3 optional):
 |---|---|---|
 | 1. File tree | `[[src/auth]] contains [[src/auth/service.py]]` | filesystem walk (~20 lines) |
 | 2. Imports | `[[src/auth/service.py]] imports [[src/db/client.py]]` | per-language regex on import/require/use/#include lines (~100 lines) |
-| 3. Symbols + calls | `[[login]] calls [[validate_token]]` | if `graphify` CLI on PATH: `graphify extract . --code-only --no-cluster`, then convert `graphify-out/graph.json` edges → statements (tree-sitter AST, still deterministic) |
+| 3. Symbols + calls | `[[login]] calls [[validate_token]]` | if a tree-sitter-based AST extractor is available on PATH, run it and convert its JSON edge output → statements (still deterministic) |
 
 Format rules:
 - One relation per line (newline = statement boundary for the API).
@@ -88,7 +109,7 @@ Git guidance: commit `manifest.json` + all `*-ontology.md`; consider gitignoring
 
 ### A4. Frontmatter description — the trigger (most important single edit)
 
-Extend the `description:` with codebase triggers, copying graphify's pattern:
+Extend the `description:` with codebase triggers — an aggressive trigger description plus an on-disk marker is what makes an agent reach for the skill unprompted:
 
 > "…Use also for questions about a codebase, repo structure, architecture, or file relationships — especially when `infranodus/manifest.json` exists in the project root: treat the question as a graph retrieval first (`analyze_existing_graph_by_name`, `retrieve_from_knowledge_base`, `generate_content_gaps`) before reading files."
 
@@ -98,7 +119,7 @@ First instruction: check for `infranodus/manifest.json`. If present and the requ
 
 ### A6. Graph traversal when answering (goal 2 of the request list)
 
-Add a `references/graph-traversal.md` teaching Claude to **traverse the stored graph while composing a response**, instead of (or before) reading source files — graphify's `query`/`path`/`explain` equivalent. Two modes:
+Add a `references/graph-traversal.md` teaching Claude to **traverse the stored graph while composing a response**, instead of (or before) reading source files — query/path/explain-style graph navigation. Two modes:
 
 **Local traversal** (free, offline — uses `infranodus/repo-graph.json` from A3):
 1. Match question terms to node labels (exact + lemma/fuzzy match).
@@ -135,7 +156,7 @@ The wiki architecture already fits — `infranodus/` ontologies + `output/` anal
 
 1. **C1. Expose wikilink processing mode:** ~~add optional `doubleSquarebracketsProcessing` enum~~ **DONE via `wikilinksMode`** (see status above).
 2. **C2. Trigger keywords:** add "codebase / repository structure / architecture analysis" to the `create_knowledge_graph` tool description and `instructions.ts`, so MCP-only clients (no skill installed) also route repo questions here. **Still open.**
-3. **C3 (new). `statements` array input:** expose per-statement `categories` + `timestamps` (the app API already accepts them) to unlock relation-as-category typing and temporal analysis over commit/PR history. **Still open.**
+3. **C3 (new). Finish the statements pathway:** the server already converts text to `statements[]` + one derived category per statement for the parent wikilinks modes (`prepareWikilinksPayload`). Remaining: caller-supplied / multiple categories per statement, and a `timestamps` passthrough (the app API accepts both) — completes relation-as-category typing and unlocks temporal analysis over commit/PR history. **Partially done; remainder open.**
 
 ---
 
