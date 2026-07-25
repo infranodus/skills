@@ -49,14 +49,20 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
 1. **Fast path:** `infranodus/manifest.json` exists + the request is a question →
    query the existing graphs (`analyze_existing_graph_by_name`,
    `retrieve_from_knowledge_base`, `generate_content_gaps`). Do NOT re-extract.
-2. **Extract:** run `python3 scripts/repo2statements.py .` (add `--vault` for an
-   Obsidian/md vault). Deterministic, no LLM: mines md docs, docstrings,
-   WHY/NOTE/TODO comments, commit bodies, PR/issue threads into
-   `infranodus/*-ontology.md` scope files + `manifest.json`. Code-structure
-   extraction is deferred — never hand-write structural statements.
-3. **Upload:** one `create_knowledge_graph` per scope
-   (`repo-<project>-<scope>`), record `graphName` + `url` back into
-   `manifest.json`, save fetched graph JSON locally.
+2. **Extract:** run `python3 scripts/repo2statements.py .` — deterministic, no
+   LLM: mines md docs, docstrings, WHY/NOTE/TODO comments, commit bodies,
+   PR/issue threads into `infranodus/*-ontology.md` scope files +
+   `manifest.json`. In an Obsidian/md vault (auto-detected) it also maps the
+   page-link structure. Pass `--vault` to map ONLY the vault structure (no
+   content mining). Code-structure extraction is deferred — never hand-write
+   structural statements.
+3. **Upload:** run `python3 scripts/upload_scopes.py .` (long-running — use
+   run_in_background). It chunks each scope under the API's ~100 KB payload
+   limit, paces calls and retries through 429 rate limits, uploads one graph
+   per scope (`repo-<project>-<scope>`), records `graphName` + `url` back
+   into `manifest.json`, and saves the fetched graph JSON locally. Never
+   hand-roll `create_knowledge_graph` loops for scope files — large payloads
+   413 and bursts 429.
 4. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
    influential concepts, gateways, gaps) and print the graph URLs (viewable in
    browser, Cursor/VSCode extension, Obsidian plugin).

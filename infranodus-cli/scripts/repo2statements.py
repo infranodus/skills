@@ -122,19 +122,36 @@ def paragraphs_from_markdown(src: str):
         yield " ".join(buf)
 
 
-def mine_docs(root: Path) -> list[str]:
+def mine_docs(root: Path, stem_prefix: bool = False) -> list[str]:
+    """stem_prefix=True (vault case) prefixes statements with the Obsidian
+    page name ([[Page A]]) instead of the file path, so content statements
+    share node names with in-text wikilinks and the vault link scan."""
     statements = []
     for p in iter_files(root):
         if p.suffix.lower() not in DOC_EXTS:
             continue
-        rel = p.relative_to(root).as_posix()
+        prefix = p.stem if stem_prefix else p.relative_to(root).as_posix()
         for para in paragraphs_from_markdown(read_text(p)):
             para = one_line(para)
             # A lone link or a one-word line is not a statement.
             if len(para) < 30 and not WIKILINK_RE.search(para):
                 continue
-            statements.append(f"[[{rel}]]: {para}")
+            statements.append(f"[[{prefix}]]: {para}")
     return statements
+
+
+def is_vault(root: Path) -> bool:
+    """Obsidian vault, or md-dominated folder that should be treated as one."""
+    if (root / ".obsidian").is_dir():
+        return True
+    md = code = 0
+    for p in iter_files(root):
+        suffix = p.suffix.lower()
+        if suffix == ".md":
+            md += 1
+        elif suffix in CODE_EXTS:
+            code += 1
+    return md >= 5 and md > code * 2
 
 
 # ------------------------------------------------------- code-rationale pass
@@ -331,13 +348,23 @@ def main() -> int:
     written: dict[str, int] = {}
 
     if args.vault:
+        # explicit --vault: map the vault structure ONLY
         links = mine_vault_links(root)
         if write_scope(out_dir, "vault-links-ontology.md", links, "vault"):
             written["vault-links-ontology.md"] = len(links)
     else:
-        docs = mine_docs(root)
+        vault = is_vault(root)
+
+        docs = mine_docs(root, stem_prefix=vault)
         if write_scope(out_dir, "repo-docs-ontology.md", docs, "repo"):
             written["repo-docs-ontology.md"] = len(docs)
+
+        if vault:
+            # bare launch in a vault/md folder: content AND link structure
+            links = mine_vault_links(root)
+            if write_scope(out_dir, "vault-links-ontology.md", links,
+                           "vault"):
+                written["vault-links-ontology.md"] = len(links)
 
         rationale = mine_code_rationale(root)
         if write_scope(out_dir, "repo-code-rationale-ontology.md",

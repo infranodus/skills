@@ -22,22 +22,16 @@ mcporter call infranodus.generate_content_gaps --args '{"graphName": "<from mani
 Rebuild only when the user says so (`--update`, "rebuild", "refresh") or when
 the repo clearly changed since `manifest.json`'s `updated` dates.
 
-## Step 1 — Detect (deterministic, no questions)
-
-- `.obsidian/` directory present, or md files dominate → **vault**
-- code-file majority / `.git` + package manifests → **repo**
-- both → run both pipelines (separate scopes, one manifest)
-
-## Step 2 — Extract
+## Step 1 + 2 — Extract (detection is inside the script)
 
 Run the bundled script (stdlib-only Python 3, no dependencies):
 
 ```bash
-python3 <SKILL_DIR>/scripts/repo2statements.py .            # repo mode
-python3 <SKILL_DIR>/scripts/repo2statements.py . --vault    # vault mode
+python3 <SKILL_DIR>/scripts/repo2statements.py .            # bare launch: full scan
+python3 <SKILL_DIR>/scripts/repo2statements.py . --vault    # vault STRUCTURE only
 ```
 
-Repo mode mines the natural-language layer (code-structure extraction is
+**Bare launch** mines the natural-language layer (code-structure extraction is
 deferred — do not attempt it by reading source files yourself):
 - `repo-docs-ontology.md` — md/rst/txt paragraphs, prefixed `[[<filepath>]]:`
 - `repo-code-rationale-ontology.md` — docstrings + `WHY:`/`NOTE:`/`TODO:`/
@@ -45,8 +39,15 @@ deferred — do not attempt it by reading source files yourself):
 - `repo-history-ontology.md` — commit-message bodies (`#commit`), PR
   descriptions (`#pr`), issue threads (`#issue`) via `git` and `gh`
 
-Vault mode emits `vault-links-ontology.md` — `[[Page A]] links to [[Page B]]`
-per page connection.
+The script auto-detects a vault (`.obsidian/` present, or md-dominated
+folder). On a bare launch in a vault it ALSO runs the link scan
+(`vault-links-ontology.md`) and switches doc-statement prefixes to Obsidian
+page stems (`[[Page A]]:` instead of `[[notes/Page A.md]]:`) so the content
+scope and the link scope share node names and stitch into one graph.
+
+**`--vault` flag** = map the vault structure ONLY: just
+`vault-links-ontology.md` with one `[[Page A]] links to [[Page B]]` statement
+per page connection, no content mining.
 
 The script also creates/updates `infranodus/manifest.json` (the scope
 registry). Files carry `generated: true` frontmatter → they are regenerated,
@@ -55,32 +56,35 @@ lack that flag and stay append-only).
 
 ## Step 3 — Upload (one graph per scope)
 
-For each scope file the script reported, upload with a graphName of
-`repo-<project>-<scope>` or `vault-<project>-<scope>` (lowercase, dashes):
+Run the bundled uploader — do NOT hand-roll `mcporter call
+create_knowledge_graph` loops for scope files; the API rejects payloads over
+~100 KB with a 413 and rate-limits bursts with a 429, and the script handles
+both:
 
 ```bash
-ARGS=$(python3 - <<'EOF'
-import json, re
-raw = open('infranodus/repo-docs-ontology.md', encoding='utf-8').read()
-text = re.sub(r'^---.*?---\s*', '', raw, flags=re.S)   # strip frontmatter
-print(json.dumps({"graphName": "repo-myproject-docs", "text": text}))
-EOF
-)
-mcporter call infranodus.create_knowledge_graph --args "$ARGS"
+python3 <SKILL_DIR>/scripts/upload_scopes.py .                    # long-running: use run_in_background
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --prefix repo-myproject
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --force            # re-upload already-uploaded scopes
 ```
 
-- Large scope file (> ~200 KB)? Split by lines into several calls with the
-  SAME `graphName` — statements accumulate in one context.
-- Then record results in the manifest (fill `graphName` and `url` for that
-  scope from the tool response) — this is what enables Step 0 next session.
-- Fetch the full graph once for local storage and traversal:
+What it does per scope in `infranodus/manifest.json` (skipping scopes that
+already have a `graphName`, unless `--force`):
 
-```bash
-mcporter call infranodus.create_knowledge_graph --args '{"graphName": "repo-myproject-docs", "text": "", "includeGraph": true, "addNodesAndEdges": true}' 2>/dev/null \
-  || mcporter call infranodus.analyze_existing_graph_by_name --args '{"graphName": "repo-myproject-docs", "includeGraph": true}'
-```
+- strips frontmatter, splits the text into ≤80 KB line-boundary chunks, and
+  uploads them all under ONE `graphName` (`repo-<project>-<scope>` /
+  `vault-<project>-<scope>`, auto-derived; override with `--prefix`) —
+  statements accumulate in one context
+- paces calls 20 s apart; on a 429 waits 5 min and retries the same chunk
+  (up to 24 times — observed lockouts can exceed an hour); on a 413 bisects
+  the chunk and retries
+- records `graphName` + `url` back into the manifest (this is what enables
+  Step 0 next session)
+- fetches the full graph via `analyze_existing_graph_by_name`
+  (`includeGraph: true`) and saves it as `infranodus/<scope>-graph.json`
 
-Save the returned nodes/edges JSON as `infranodus/<scope>-graph.json`.
+A large vault can take many minutes (rate limits allow only a few calls per
+15-minute window on some plans) — launch it in the background and check its
+output rather than waiting inline.
 
 ## Step 4 — Report
 
