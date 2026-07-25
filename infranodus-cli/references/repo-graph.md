@@ -18,8 +18,10 @@ available, in this order:
    python3 <SKILL_DIR>/scripts/upload_scopes.py . --emit-chunks
    ```
    then per scope: call `create_knowledge_graph` natively for each chunk file
-   IN ORDER with that scope's `graphName` (statements accumulate), pacing
-   calls and backing off on rate-limit errors; finally
+   IN ORDER with that scope's `graphName`, `maxNodes`, and `wikilinksMode`
+   from the printed plan (statements accumulate; wikilinksMode/maxNodes bind
+   on the FIRST call that creates the graph), pacing calls and backing off on
+   rate-limit errors; finally
    `upload_scopes.py . --record <scopeFile> <graphName> <url>` to update the
    manifest. Delete `infranodus/.chunks/` when done.
 2. **mcporter** — no native tools but `mcporter` is on PATH and configured
@@ -143,6 +145,19 @@ already have a `graphName`, unless `--force`):
   uploads them all under ONE `graphName` (`repo-<project>-<scope>` /
   `vault-<project>-<scope>`, auto-derived; override with `--prefix`) —
   statements accumulate in one context
+- sets `maxNodes: 500` (the server default of 150 truncates repo/vault-sized
+  corpora) and a per-scope `wikilinksMode` (recorded in the manifest):
+  **link scopes** (`vault-links`) → `"wikilinksOnly"`, so only the `[[page]]`
+  wikilinks become nodes — without it the repeated words "links"/"to" would
+  form a fake hub; **prose scopes** (docs, rationale, history) →
+  `"parentAndConcepts"`, which sends the `[[Page]]: ` statement prefix as a
+  per-statement parent category (mention) instead of inline text — the page
+  node connects to its statements' concepts WITHOUT suppressing the prose
+  (an inline `[[Page]]` hashtag prefix makes the engine drop every
+  non-wikilink word of that statement). Both modes keep `[[name]]`-style
+  node names, so all scopes merge/compare cleanly. These settings bind when
+  the graph is first created; an existing graph keeps its original settings
+  (delete it in InfraNodus and re-upload with `--force` to change them)
 - paces calls 20 s apart; on a 429 waits 5 min and retries the same chunk
   (up to 24 times — observed lockouts can exceed an hour); on a 413 bisects
   the chunk and retries

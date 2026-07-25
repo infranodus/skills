@@ -131,8 +131,11 @@ The wiki architecture already fits — `infranodus/` ontologies + `output/` anal
 
 ## C. Changes to `mcp-server-infranodus` (minimal)
 
-1. **C1. Expose wikilink processing mode:** add optional `doubleSquarebracketsProcessing` enum (`PROCESS_AS_MENTIONS | PROCESS_AS_HASHTAGS | PROCESS_AS_HASHTAGS_IGNORE_THE_REST`) to `CreateGraphSchema` (`src/schemas/index.ts`) and pass through to `requestBody` in `createKnowledgeGraph.ts`. One parameter; unlocks pure structural graphs via MCP.
-2. **C2. Trigger keywords:** add "codebase / repository structure / architecture analysis" to the `create_knowledge_graph` tool description and `instructions.ts`, so MCP-only clients (no skill installed) also route repo questions here.
+> **STATUS UPDATE (2026-07-25):** the MCP server shipped `wikilinksMode` presets (`default`/`wikilinksOnly`/`obsidianStyle`/`plainText` → mapped to the backend contextSettings server-side), `maxNodes` (≤1000), and `fullGraph`. **C1 is DONE** (superseded by `wikilinksMode`, which is better than the raw enum — and it also obviates app-side R1 for MCP callers, since `wikilinksOnly` doesn't route through extractEntitiesOnly/TextRazor). The skills now use these (`upload_scopes.py`: `maxNodes: 500`, `wikilinksOnly` for vault-links scopes). **Still open:** C2 (codebase trigger keywords in tool descriptions/instructions.ts) and the `statements` array input (per-statement categories/timestamps — the temporal axis).
+
+1. **C1. Expose wikilink processing mode:** ~~add optional `doubleSquarebracketsProcessing` enum~~ **DONE via `wikilinksMode`** (see status above).
+2. **C2. Trigger keywords:** add "codebase / repository structure / architecture analysis" to the `create_knowledge_graph` tool description and `instructions.ts`, so MCP-only clients (no skill installed) also route repo questions here. **Still open.**
+3. **C3 (new). `statements` array input:** expose per-statement `categories` + `timestamps` (the app API already accepts them) to unlock relation-as-category typing and temporal analysis over commit/PR history. **Still open.**
 
 ---
 

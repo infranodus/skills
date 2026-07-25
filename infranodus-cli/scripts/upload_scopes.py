@@ -38,6 +38,8 @@ import time
 from pathlib import Path
 
 CHUNK_BYTES = 80_000      # safe payload size; API rejects ~100 KB+ with 413
+MAX_NODES = 500           # graph size cap per scope (server default 150 is
+                          # too small for repo/vault corpora; API max 1000)
 PACE_SECONDS = 20         # gap between successful calls to stay under rate cap
 BACKOFF_SECONDS = 300     # wait after a 429 before retrying the same chunk
 MAX_RETRIES = 24          # per chunk, for 429s (24 * 5 min = 2 h worst case;
@@ -104,12 +106,17 @@ def chunk_text(text, limit=CHUNK_BYTES):
     return chunks
 
 
-def upload_chunk(graph_name, chunk):
+def upload_chunk(graph_name, chunk, wikilinks_mode="default"):
     """Upload one chunk, handling 429 (backoff) and 413 (bisect). Returns
-    the last successful response text, or raises RuntimeError."""
+    the last successful response text, or raises RuntimeError.
+    wikilinksMode/maxNodes only take effect when the graph context is first
+    created, so passing them on every chunk is safe and only the first
+    matters."""
+    args = {"graphName": graph_name, "text": chunk, "maxNodes": MAX_NODES}
+    if wikilinks_mode != "default":
+        args["wikilinksMode"] = wikilinks_mode
     for attempt in range(1, MAX_RETRIES + 1):
-        status, out = call_mcporter("create_knowledge_graph",
-                                    {"graphName": graph_name, "text": chunk})
+        status, out = call_mcporter("create_knowledge_graph", args)
         if status == "ok":
             return out
         if status == "429":
@@ -124,7 +131,7 @@ def upload_chunk(graph_name, chunk):
             halves = chunk_text(chunk, len(chunk.encode("utf-8")) // 2)
             last = None
             for h in halves:
-                last = upload_chunk(graph_name, h)
+                last = upload_chunk(graph_name, h, wikilinks_mode)
                 time.sleep(PACE_SECONDS)
             return last
         raise RuntimeError(f"upload failed: {out[:500]}")
@@ -139,6 +146,23 @@ def extract_url(response_text):
 def scope_graph_name(prefix, fname):
     scope = re.sub(r"^(repo|vault)-|-ontology\.md$", "", fname)
     return scope, f"{prefix}-{scope}"
+
+
+def scope_wikilinks_mode(fname):
+    """Link-structure scopes are pure [[A]] links to [[B]] statements: only
+    the wikilinks should become nodes ('links'/'to' would otherwise form a
+    fake hub). wikilinksOnly (not obsidianStyle) keeps [[name]]-style node
+    names so link graphs merge/compare with the content scopes.
+
+    Prose scopes (docs, rationale, history) use parentAndConcepts: the
+    '[[Page]]: ' statement prefix is sent as a per-statement category
+    (mention) instead of inline text, so the page node attaches to every
+    concept of its statements WITHOUT suppressing the prose — under plain
+    hashtag processing an inline [[Page]] prefix makes the engine ignore all
+    non-wikilink words of the statement. Parent mentions are named
+    [[page]] by the engine, same namespace as inline wikilinks."""
+    return ("wikilinksOnly" if fname.startswith("vault-links")
+            else "parentAndConcepts")
 
 
 def main():
@@ -200,10 +224,12 @@ def main():
                 p.write_text(chunk, encoding="utf-8")
                 files.append(str(p.relative_to(root)))
             plan.append({"scopeFile": fname, "graphName": graph_name,
-                         "chunks": files})
+                         "wikilinksMode": scope_wikilinks_mode(fname),
+                         "maxNodes": MAX_NODES, "chunks": files})
         print(json.dumps(plan, indent=2))
         print("\nupload each chunk via create_knowledge_graph "
-              "({graphName, text: <chunk contents>}), IN ORDER, same "
+              "({graphName, text: <chunk contents>, maxNodes, and the "
+              "scope's wikilinksMode when not 'default'}), IN ORDER, same "
               "graphName per scope; pace calls and back off on rate limits; "
               "then run --record <scopeFile> <graphName> [url] per scope.",
               file=sys.stderr)
@@ -222,18 +248,22 @@ def main():
         chunks = chunk_text(text)
         print(f"{fname} -> {graph_name} ({len(chunks)} chunk(s))", flush=True)
 
+        mode = scope_wikilinks_mode(fname)
         last = None
         for i, chunk in enumerate(chunks):
             print(f"  chunk {i + 1}/{len(chunks)}", flush=True)
-            last = upload_chunk(graph_name, chunk)
+            last = upload_chunk(graph_name, chunk, mode)
             time.sleep(PACE_SECONDS)
 
         meta["graphName"] = graph_name
         meta["url"] = extract_url(last) or f"https://infranodus.com/paranyushkin/{graph_name}"
+        meta["wikilinksMode"] = mode
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
         status, out = call_mcporter("analyze_existing_graph_by_name",
-                                    {"graphName": graph_name, "includeGraph": True})
+                                    {"graphName": graph_name,
+                                     "includeGraph": True,
+                                     "maxNodes": MAX_NODES})
         if status == "ok":
             (root / "infranodus" / f"{scope}-graph.json").write_text(out, encoding="utf-8")
             print(f"  saved infranodus/{scope}-graph.json", flush=True)

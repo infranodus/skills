@@ -178,6 +178,19 @@ PDFs must be **converted to markdown before landing in `raw/papers/`** so the LL
 
 All ontology/knowledge-graph files are stored in a single `infranodus/` folder at the project root (sibling of `wiki/`, `raw/`, etc.). This folder has no subfolders — all graph files live flat in `infranodus/`. This is a core part of the wiki workflow — not optional.
 
+#### The scope registry: `infranodus/manifest.json`
+
+`infranodus/manifest.json` is the shared registry of every graph artifact in the project (used by this skill AND the `infranodus` skill's repo/vault workflow). Each entry maps a local file to its saved InfraNodus graph: `{"scopes": {"<file>": {"file", "policy", "graphName", "url", "updated", ...}}}`. Create it if missing; update the entry whenever an ontology is (re)uploaded. A future session that finds the manifest can query the saved graphs directly (`analyze_existing_graph_by_name`, `retrieve_from_knowledge_base`) instead of re-analyzing.
+
+#### Two file policies: curated vs generated
+
+Files in `infranodus/` carry a policy, declared in YAML frontmatter and mirrored in the manifest:
+
+- **Curated** (no flag, or `curated: true`) — the ontologies this skill maintains via ontology-creator. Append-only, never regenerated (see CRITICAL below).
+- **Generated** (`generated: true` + `generator:` in frontmatter) — machine-derived files written by scanners (e.g. the `infranodus` skill's `repo2statements.py` vault/repo scans). These are regenerated wholesale by their generator; do NOT append to them, hand-edit them, or apply the append-only rule to them.
+
+**Always check the frontmatter before updating any file in `infranodus/`.**
+
 #### Ontology Generation Workflow
 
 1. **When to generate**: After creating or significantly updating pages in any wiki folder (systems/, concepts/, connections/, sources/, questions/, etc.)
@@ -228,7 +241,7 @@ A full rewrite loses:
 - Entity casing and naming conventions established by the ontology-creator skill
 - Content that came from personal observations not derivable from wiki pages alone
 
-5. **InfraNodus analysis**: After generating each ontology, feed it to InfraNodus using the `generate_knowledge_graph` tool with `modifyAnalyzedText: 'none'` (since entities are already marked with `[[wikilinks]]`). This returns cluster structure, content gaps, key concepts, and diversity metrics.
+5. **InfraNodus analysis**: After generating each ontology, upload it with the `create_knowledge_graph` tool (NOT `generate_knowledge_graph` — that one is ephemeral: no saved graph, no GraphRAG retrieval, no shareable URL). Use `graphName: "wiki-<project>-<scope>"` (lowercase, dashes), `modifyAnalyzedText: 'none'` (entities are already `[[wikilinks]]`), `wikilinksMode: 'wikilinksOnly'` (only the marked entities become nodes; applies on first creation), and `maxNodes: 500` for large ontologies. Re-uploading to the same graphName APPENDS statements — after appending relations to a curated ontology, upload only the NEW lines. The response returns the same analysis (clusters, gaps, key concepts, diversity) plus the graph URL. Record `graphName` + `url` in `infranodus/manifest.json`. The saved graph is then queryable across sessions (`retrieve_from_knowledge_base` for content questions, `generate_content_gaps` for planning) and viewable in the browser, Cursor/VSCode extension, and 3D view.
 
 6. **Save analysis results**: Save the InfraNodus analysis output (clusters, gaps, key concepts, diversity score) to the `output/` folder as `<folder-name>-knowledge-graph-analysis.md`. Include:
    - Graph statistics (nodes, edges, modularity, diversity)
@@ -297,6 +310,7 @@ Write the schema document with these sections, tailored to the user's domain:
 #### 2. Directory Structure
 
 - Document the agreed structure from Phase 3. Explain what goes where.
+- Include a Knowledge Graphs note: `infranodus/` holds the graph files, `infranodus/manifest.json` maps each file to its saved InfraNodus graph (graphName + url — query these first via `analyze_existing_graph_by_name` / `retrieve_from_knowledge_base` instead of re-analyzing), and files with `generated: true` frontmatter are machine-regenerated (never append or hand-edit) while curated ontologies are append-only.
 
 #### 3. Page Templates
 
@@ -408,6 +422,8 @@ Based on the user's setup, recommend and configure tools.
 - **VS Code / other editor**: Works fine, just loses graph view and wikilink navigation.
 
 - **InfraNodus**: Content gap analysis, insight generation, and knowledge graph analysis and optimization via the InfraNodus MCP server tools or via MCPorter as described at [https://infranodus.com/mcp/deploy-mcporter](https://infranodus.com/mcp/deploy-mcporter). Ask the user to set up an API key for InfraNodus and update the environment you're using to be able to access that key when needed without saving it to the conversation or wiki.
+
+- **infranodus skill (repo/vault scanner)**: If the `infranodus` skill is installed (`~/.claude/skills/infranodus/`), its `scripts/repo2statements.py` adds two deterministic, LLM-free scans that complement the curated ontologies: `--vault` maps the wiki's page-link structure into `infranodus/vault-links-ontology.md`, and the bare scan mines any code repo among the raw sources (docs, docstrings, WHY/NOTE comments, commit/PR/issue history). Both write `generated: true` scopes into the same `infranodus/` folder + manifest. Offer this during ingest (Phase 9) when the corpus includes a repo, or whenever the user wants the vault's link topology as a graph.
 
 ### Optional: Search
 
@@ -608,9 +624,10 @@ For every unprocessed file, follow the ingest workflow defined in the schema (ty
 
 After the batch (not per-file):
 
-1. For each wiki folder touched (systems/, concepts/, connections/, sources/, questions/), **append** new relations to `infranodus/<folder>-ontology.md` using the `ontology-creator` skill. **Never regenerate from scratch** — read the existing file first, then add only lines covering genuinely new content. Match existing format exactly.
-2. Re-run `generate_knowledge_graph` on each updated ontology (`modifyAnalyzedText: 'none'`)
-3. Overwrite `output/<folder>-knowledge-graph-analysis.md` with the fresh analysis
+1. For each wiki folder touched (systems/, concepts/, connections/, sources/, questions/), **append** new relations to `infranodus/<folder>-ontology.md` using the `ontology-creator` skill. **Never regenerate from scratch** — read the existing file first, then add only lines covering genuinely new content. Match existing format exactly. (This rule applies to CURATED ontologies only — files with `generated: true` frontmatter belong to their generator script and are never appended to; see the policy section above.)
+2. Upload the NEW relation lines to the scope's saved graph via `create_knowledge_graph` (same `graphName` from `infranodus/manifest.json` — statements append; `wikilinksMode: 'wikilinksOnly'`, `modifyAnalyzedText: 'none'`). If the scope has no saved graph yet, upload the whole ontology and record `graphName` + `url` in the manifest.
+3. Overwrite `output/<folder>-knowledge-graph-analysis.md` with the fresh analysis from the response
+4. If the project also has generated scopes (vault link scan, repo rationale — check the manifest), refresh them by re-running their generator (`repo2statements.py` from the `infranodus` skill) rather than editing the files.
 
 ### Step 9.5 — Iterate on the schema (first-run only)
 
@@ -656,6 +673,7 @@ Read the wiki's structural health:
 1. **Read `wiki/index.md`** to understand what exists
 2. **Read `wiki/overview.md`** for the current synthesis
 3. **Check for existing InfraNodus analyses** in `output/*-knowledge-graph-analysis.md` — these contain identified content gaps, cluster structure, and recommendations
+   - Also check `infranodus/manifest.json` for saved graphs (curated ontology scopes AND generated repo/vault scopes): run `generate_content_gaps` on their `graphName`s for LIVE gap analysis instead of relying only on the last saved analysis file — gaps in the vault-links or repo scopes surface under-connected pages/modules the ontology analyses miss
 4. **Check `wiki/questions/`** for open research questions
 5. **Check `wiki/data/`** for personal data pages (empty = a gap worth flagging)
 6. **Check `todos/`** for existing todo files (to avoid duplicating or contradicting prior plans)

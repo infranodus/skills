@@ -71,8 +71,11 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
 4. **Upload:** run `python3 scripts/upload_scopes.py .` (long-running — use
    run_in_background). It chunks each scope under the API's ~100 KB payload
    limit, paces calls and retries through 429 rate limits, uploads one graph
-   per scope (`repo-<project>-<scope>`), records `graphName` + `url` back
-   into `manifest.json`, and saves the fetched graph JSON locally. Never
+   per scope (`repo-<project>-<scope>`) with the right `wikilinksMode`
+   (prose scopes → `parentAndConcepts`, so the `[[Page]]:` prefix becomes a
+   per-statement parent mention instead of suppressing the prose; link
+   scopes → `wikilinksOnly`), records `graphName` + `url` + mode back into
+   `manifest.json`, and saves the fetched graph JSON locally. Never
    hand-roll `create_knowledge_graph` loops for scope files — large payloads
    413 and bursts 429.
 5. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
@@ -161,7 +164,9 @@ All analysis tools accept either `text` (plain text) or `url` (web page / YouTub
 | Tool | Purpose |
 |------|---------|
 | `generate_knowledge_graph` | Full graph analysis: clusters, gaps, concepts, relations, diversity stats. Set `includeGraph: true` for full structure. |
-| `create_knowledge_graph` | Same as above but **saves** the graph to InfraNodus. Requires `graphName`. |
+| `create_knowledge_graph` | Same as above but **saves** the graph to InfraNodus. Requires `graphName`. Re-uploading to the same name APPENDS statements. |
+
+Graph-generation tools also accept: `maxNodes` (default 150, max 1000 — raise to ~500 for repo/vault-sized corpora), `wikilinksMode` (`default` \| `wikilinksOnly` — only `[[wikilinks]]` become nodes \| `obsidianStyle` \| `plainText`; binds on graph creation), and `fullGraph` (complete graph with per-edge statement provenance — token-heavy, for export/rendering only).
 | `analyze_text` | General text analysis with clusters, gaps, concepts, and statements. Focus on analysis results rather than graph structure. |
 | `analyze_existing_graph_by_name` | Analyze an already-saved InfraNodus graph by name. |
 | `generate_topical_clusters` | Compact extraction of main topical clusters only. |
