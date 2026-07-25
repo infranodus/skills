@@ -104,16 +104,25 @@ python3 <SKILL_DIR>/scripts/repo2statements.py . --vault    # vault STRUCTURE on
 
 **Bare launch** mines the natural-language layer (code-structure extraction is
 deferred — do not attempt it by reading source files yourself):
-- `repo-docs-ontology.md` — md/rst/txt paragraphs, prefixed `[[<filepath>]]:`
+- `repo-docs-ontology.md` — md/rst/txt paragraphs, grouped under
+  `## [[<filepath>]]` section headings (the parent-page contract of the
+  MCP `parentAndConcepts`/`obsidianStyle` wikilinksMode: the heading sets
+  each statement's parent page while keeping the statement text clean)
 - `repo-code-rationale-ontology.md` — docstrings + `WHY:`/`NOTE:`/`TODO:`/
-  `HACK:`/`FIXME:` comments, tagged `#docstring` / `#why` / `#note` / …
+  `HACK:`/`FIXME:` comments, tagged `#docstring` / `#why` / `#note` / …,
+  grouped under the same `## [[<filepath>]]` headings
 - `repo-history-ontology.md` — commit-message bodies (`#commit`), PR
   descriptions (`#pr`), issue threads (`#issue`) via `git` and `gh`
 
+Each generated file declares its intended processing in the frontmatter
+(`wikilinksMode: parentAndConcepts` / `wikilinksOnly`) — any consumer that
+processes a scope file separately (e.g. straight through the MCP tools)
+should honor that declared mode.
+
 The script auto-detects a vault (`.obsidian/` present, or md-dominated
 folder). On a bare launch in a vault it ALSO runs the link scan
-(`vault-links-ontology.md`) and switches doc-statement prefixes to Obsidian
-page stems (`[[Page A]]:` instead of `[[notes/Page A.md]]:`) so the content
+(`vault-links-ontology.md`) and names doc sections after the Obsidian page
+stems (`## [[Page A]]` instead of `## [[notes/Page A.md]]`) so the content
 scope and the link scope share node names and stitch into one graph.
 
 **`--vault` flag** = map the vault structure ONLY: just
@@ -150,14 +159,18 @@ already have a `graphName`, unless `--force`):
   **link scopes** (`vault-links`) → `"wikilinksOnly"`, so only the `[[page]]`
   wikilinks become nodes — without it the repeated words "links"/"to" would
   form a fake hub; **prose scopes** (docs, rationale, history) →
-  `"parentAndConcepts"`, which sends the `[[Page]]: ` statement prefix as a
-  per-statement parent category (mention) instead of inline text — the page
-  node connects to its statements' concepts WITHOUT suppressing the prose
-  (an inline `[[Page]]` hashtag prefix makes the engine drop every
-  non-wikilink word of that statement). Both modes keep `[[name]]`-style
-  node names, so all scopes merge/compare cleanly. These settings bind when
-  the graph is first created; an existing graph keeps its original settings
-  (delete it in InfraNodus and re-upload with `--force` to change them)
+  `"parentAndConcepts"`, where the `## [[page]]` section heading (or a
+  `[[Page]]: ` line prefix) travels as a per-statement parent category
+  (mention) instead of inline text — the page node connects to its
+  statements' concepts WITHOUT suppressing the prose (an inline `[[Page]]`
+  hashtag prefix makes the engine drop every non-wikilink word of that
+  statement). The mode comes from the scope file's own frontmatter
+  declaration when present. Chunking is heading-aware: a section split
+  across chunks gets its heading re-emitted so no statement loses its
+  parent. Both modes keep `[[name]]`-style node names, so all scopes
+  merge/compare cleanly. These settings bind when the graph is first
+  created; an existing graph keeps its original settings (delete it in
+  InfraNodus and re-upload with `--force` to change them)
 - paces calls 20 s apart; on a 429 waits 5 min and retries the same chunk
   (up to 24 times — observed lockouts can exceed an hour); on a 413 bisects
   the chunk and retries

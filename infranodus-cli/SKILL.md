@@ -72,8 +72,9 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
    run_in_background). It chunks each scope under the API's ~100 KB payload
    limit, paces calls and retries through 429 rate limits, uploads one graph
    per scope (`repo-<project>-<scope>`) with the right `wikilinksMode`
-   (prose scopes → `parentAndConcepts`, so the `[[Page]]:` prefix becomes a
-   per-statement parent mention instead of suppressing the prose; link
+   (declared in each scope file's frontmatter: prose scopes →
+   `parentAndConcepts`, so the `## [[page]]` section headings become
+   per-statement parent mentions instead of suppressing the prose; link
    scopes → `wikilinksOnly`), records `graphName` + `url` + mode back into
    `manifest.json`, and saves the fetched graph JSON locally. Never
    hand-roll `create_knowledge_graph` loops for scope files — large payloads

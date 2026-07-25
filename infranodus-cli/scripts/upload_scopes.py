@@ -91,14 +91,30 @@ def strip_frontmatter(path):
     return re.sub(r"^---.*?---\s*", "", raw, flags=re.S)
 
 
+HEADING_LINE_RE = re.compile(r"^\s*#{1,6}\s")
+
+
 def chunk_text(text, limit=CHUNK_BYTES):
-    """Split text into chunks of <= limit bytes on line boundaries."""
+    """Split text into chunks of <= limit bytes on line boundaries.
+
+    Heading-aware: scope files carry the parent page as `## [[page]]`
+    section headings (parentAndConcepts/obsidianStyle contract). When a
+    chunk boundary falls mid-section, the active heading is re-emitted at
+    the top of the next chunk so its statements keep their parent."""
     chunks, cur, size = [], [], 0
+    current_heading = None
+    carried_heading = None  # heading active when the current chunk started
     for ln in text.splitlines(keepends=True):
         b = len(ln.encode("utf-8"))
         if size + b > limit and cur:
             chunks.append("".join(cur))
             cur, size = [], 0
+            carried_heading = current_heading
+        if not cur and carried_heading and not HEADING_LINE_RE.match(ln):
+            cur.append(carried_heading)
+            size += len(carried_heading.encode("utf-8"))
+        if HEADING_LINE_RE.match(ln):
+            current_heading = ln if ln.endswith("\n") else ln + "\n"
         cur.append(ln)
         size += b
     if cur:
@@ -148,19 +164,25 @@ def scope_graph_name(prefix, fname):
     return scope, f"{prefix}-{scope}"
 
 
-def scope_wikilinks_mode(fname):
-    """Link-structure scopes are pure [[A]] links to [[B]] statements: only
-    the wikilinks should become nodes ('links'/'to' would otherwise form a
-    fake hub). wikilinksOnly (not obsidianStyle) keeps [[name]]-style node
-    names so link graphs merge/compare with the content scopes.
-
-    Prose scopes (docs, rationale, history) use parentAndConcepts: the
-    '[[Page]]: ' statement prefix is sent as a per-statement category
-    (mention) instead of inline text, so the page node attaches to every
-    concept of its statements WITHOUT suppressing the prose — under plain
-    hashtag processing an inline [[Page]] prefix makes the engine ignore all
-    non-wikilink words of the statement. Parent mentions are named
-    [[page]] by the engine, same namespace as inline wikilinks."""
+def scope_wikilinks_mode(fname, path=None):
+    """Processing mode for a scope file. The generated files declare it in
+    their frontmatter (`wikilinksMode: ...`) — that wins, so custom scope
+    files work too. Fallback heuristic: link-structure scopes are pure
+    [[A]] links to [[B]] statements -> wikilinksOnly (only the wikilinks
+    become nodes; 'links'/'to' would otherwise form a fake hub); prose
+    scopes (docs, rationale, history) -> parentAndConcepts (the
+    `## [[page]]` heading / `[[Page]]: ` prefix travels as a per-statement
+    parent category, so the page node attaches to its statements' concepts
+    WITHOUT suppressing the prose). Both keep [[name]]-style node naming,
+    so all scopes stay mergeable."""
+    if path is not None:
+        try:
+            head = path.read_text(encoding="utf-8")[:500]
+            m = re.search(r"^wikilinksMode:\s*(\S+)", head, re.M)
+            if m:
+                return m.group(1)
+        except OSError:
+            pass
     return ("wikilinksOnly" if fname.startswith("vault-links")
             else "parentAndConcepts")
 
@@ -224,7 +246,8 @@ def main():
                 p.write_text(chunk, encoding="utf-8")
                 files.append(str(p.relative_to(root)))
             plan.append({"scopeFile": fname, "graphName": graph_name,
-                         "wikilinksMode": scope_wikilinks_mode(fname),
+                         "wikilinksMode": scope_wikilinks_mode(
+                             fname, root / meta["file"]),
                          "maxNodes": MAX_NODES, "chunks": files})
         print(json.dumps(plan, indent=2))
         print("\nupload each chunk via create_knowledge_graph "
@@ -248,7 +271,7 @@ def main():
         chunks = chunk_text(text)
         print(f"{fname} -> {graph_name} ({len(chunks)} chunk(s))", flush=True)
 
-        mode = scope_wikilinks_mode(fname)
+        mode = scope_wikilinks_mode(fname, path)
         last = None
         for i, chunk in enumerate(chunks):
             print(f"  chunk {i + 1}/{len(chunks)}", flush=True)

@@ -137,20 +137,31 @@ def paragraphs_from_markdown(src: str):
 
 
 def mine_docs(root: Path, stem_prefix: bool = False) -> list[str]:
-    """stem_prefix=True (vault case) prefixes statements with the Obsidian
-    page name ([[Page A]]) instead of the file path, so content statements
-    share node names with in-text wikilinks and the vault link scan."""
+    """stem_prefix=True (vault case) names sections after the Obsidian page
+    ([[Page A]]) instead of the file path, so content statements share node
+    names with in-text wikilinks and the vault link scan.
+
+    Statements are grouped under `## [[<page>]]` headings — the parent-page
+    contract of the MCP parentAndConcepts/obsidianStyle wikilinksMode: the
+    heading sets the parent for the statements below it, keeping the parent
+    OUT of the statement text (an inline [[page]] prefix would suppress all
+    non-wikilink words of the statement during processing)."""
     statements = []
     for p in iter_files(root):
         if p.suffix.lower() not in DOC_EXTS:
             continue
         prefix = p.stem if stem_prefix else p.relative_to(root).as_posix()
+        page_paras = []
         for para in paragraphs_from_markdown(read_text(p)):
             para = one_line(para)
             # A lone link or a one-word line is not a statement.
             if len(para) < 30 and not WIKILINK_RE.search(para):
                 continue
-            statements.append(f"[[{prefix}]]: {para}")
+            page_paras.append(para)
+        if page_paras:
+            statements.append(f"## [[{prefix}]]")
+            statements.extend(page_paras)
+            statements.append("")
     return statements
 
 
@@ -171,6 +182,8 @@ def is_vault(root: Path) -> bool:
 # ------------------------------------------------------- code-rationale pass
 
 def mine_code_rationale(root: Path) -> list[str]:
+    """Grouped under `## [[<filepath>]]` headings — same parent-page contract
+    as mine_docs, so file provenance never suppresses the prose."""
     statements = []
     for p in iter_files(root):
         if p.suffix.lower() not in CODE_EXTS:
@@ -180,6 +193,7 @@ def mine_code_rationale(root: Path) -> list[str]:
         if not src:
             continue
 
+        file_statements = []
         docstrings = []
         if p.suffix == ".py":
             for m in PY_DOCSTRING_RE.finditer(src):
@@ -191,7 +205,7 @@ def mine_code_rationale(root: Path) -> list[str]:
         for ds in docstrings:
             ds = one_line(ds)
             if len(ds) >= MIN_DOCSTRING_CHARS:
-                statements.append(f"[[{rel}]]: {ds} #docstring")
+                file_statements.append(f"{ds} #docstring")
 
         for line in src.splitlines():
             m = TAG_RE.search(line)
@@ -200,7 +214,12 @@ def mine_code_rationale(root: Path) -> list[str]:
             tag = m.group(1).lower()
             text = one_line(re.sub(r"(\*/|-->)\s*$", "", m.group(2)))
             if len(text) >= 15:
-                statements.append(f"[[{rel}]]: {text} #{tag}")
+                file_statements.append(f"{text} #{tag}")
+
+        if file_statements:
+            statements.append(f"## [[{rel}]]")
+            statements.extend(file_statements)
+            statements.append("")
     return statements
 
 
@@ -292,6 +311,26 @@ def mine_vault_links(root: Path) -> list[str]:
 
 # ------------------------------------------------------------------- output
 
+def scope_wikilinks_mode(name: str) -> str:
+    """Processing mode a scope file should be uploaded with (declared in its
+    frontmatter so any later consumer knows without heuristics). Link scopes
+    are pure [[A]] links to [[B]] statements -> wikilinksOnly; prose scopes
+    use parentAndConcepts (## [[page]] headings carry the parent)."""
+    return ("wikilinksOnly" if name.startswith("vault-links")
+            else "parentAndConcepts")
+
+
+HEADING_LINE_RE = re.compile(r"^\s*#{1,6}\s")
+
+
+def count_statements(statements: list[str]) -> int:
+    """Real statements only — `## [[page]]` heading lines and blank
+    separators are structure, not statements ('#tag...' without a space
+    after the hashes is a statement, not a heading)."""
+    return sum(1 for s in statements
+               if s.strip() and not HEADING_LINE_RE.match(s))
+
+
 def write_scope(out_dir: Path, name: str, statements: list[str],
                 mode: str, suffix: str = "") -> Path | None:
     if not statements:
@@ -304,6 +343,7 @@ def write_scope(out_dir: Path, name: str, statements: list[str],
         "generated: true\n"
         "generator: repo2statements\n"
         f"mode: {mode}\n"
+        f"wikilinksMode: {scope_wikilinks_mode(name)}\n"
         f"updated: {date.today().isoformat()}\n"
         "---\n\n"
     )
@@ -386,7 +426,7 @@ def main() -> int:
     def keep(name: str, statements: list[str], mode: str) -> None:
         path = write_scope(out_dir, name, statements, mode, suffix=suffix)
         if path:
-            written[path.name] = len(statements)
+            written[path.name] = count_statements(statements)
 
     if args.vault:
         # explicit --vault: map the vault structure ONLY
