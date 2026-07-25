@@ -49,21 +49,28 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
 1. **Fast path:** `infranodus/manifest.json` exists + the request is a question →
    query the existing graphs (`analyze_existing_graph_by_name`,
    `retrieve_from_knowledge_base`, `generate_content_gaps`). Do NOT re-extract.
-2. **Extract:** run `python3 scripts/repo2statements.py .` — deterministic, no
+2. **Ask what to build:** on a bare launch, inventory the folder (top-level
+   dirs, file counts), then AskUserQuestion with: 1) full graph (recommended),
+   2) specific folder only (follow-up lists the folders), 3) only docs
+   containing certain terms, 4) one specific document, or Other for a
+   user-defined scope. Skip the question if the user already named the target.
+3. **Extract:** run `python3 scripts/repo2statements.py .` — deterministic, no
    LLM: mines md docs, docstrings, WHY/NOTE/TODO comments, commit bodies,
    PR/issue threads into `infranodus/*-ontology.md` scope files +
    `manifest.json`. In an Obsidian/md vault (auto-detected) it also maps the
-   page-link structure. Pass `--vault` to map ONLY the vault structure (no
-   content mining). Code-structure extraction is deferred — never hand-write
-   structural statements.
-3. **Upload:** run `python3 scripts/upload_scopes.py .` (long-running — use
+   page-link structure. Scoping flags from the question: `--include <path>`,
+   `--term <word>` (repeatable, compose; filtered scans write suffixed scopes
+   that never clobber the full scan). Pass `--vault` to map ONLY the vault
+   structure (no content mining). Code-structure extraction is deferred —
+   never hand-write structural statements.
+4. **Upload:** run `python3 scripts/upload_scopes.py .` (long-running — use
    run_in_background). It chunks each scope under the API's ~100 KB payload
    limit, paces calls and retries through 429 rate limits, uploads one graph
    per scope (`repo-<project>-<scope>`), records `graphName` + `url` back
    into `manifest.json`, and saves the fetched graph JSON locally. Never
    hand-roll `create_knowledge_graph` loops for scope files — large payloads
    413 and bursts 429.
-4. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
+5. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
    influential concepts, gateways, gaps) and print the graph URLs (viewable in
    browser, Cursor/VSCode extension, Obsidian plugin).
 

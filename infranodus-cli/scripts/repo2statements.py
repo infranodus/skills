@@ -62,6 +62,10 @@ TRAILER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Scan filters, set from CLI args in main(). Empty = no filtering.
+INCLUDE_PREFIXES: list[str] = []   # only files under these relative paths
+TERMS: list[str] = []              # only files whose content matches any term
+
 
 def one_line(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()[:MAX_STATEMENT_CHARS]
@@ -71,13 +75,23 @@ def iter_files(root: Path):
     for p in sorted(root.rglob("*")):
         if not p.is_file():
             continue
+        rel = p.relative_to(root).as_posix()
         if any(part in SKIP_DIRS for part in p.relative_to(root).parts):
+            continue
+        if INCLUDE_PREFIXES and not any(
+            rel == pref or rel.startswith(pref.rstrip("/") + "/")
+            for pref in INCLUDE_PREFIXES
+        ):
             continue
         try:
             if p.stat().st_size > MAX_FILE_BYTES:
                 continue
         except OSError:
             continue
+        if TERMS:
+            text = read_text(p).lower()
+            if not any(t.lower() in text for t in TERMS):
+                continue
         yield p
 
 
@@ -202,12 +216,13 @@ def run(cmd: list[str], cwd: Path, timeout: int = 60) -> str:
         return ""
 
 
-def mine_git(root: Path, max_commits: int) -> list[str]:
-    raw = run(
-        ["git", "log", "--no-merges", f"-{max_commits}",
-         "--format=%s%x1f%b%x1e"],
-        root,
-    )
+def mine_git(root: Path, max_commits: int,
+             paths: list[str] | None = None) -> list[str]:
+    cmd = ["git", "log", "--no-merges", f"-{max_commits}",
+           "--format=%s%x1f%b%x1e"]
+    if paths:
+        cmd += ["--"] + paths
+    raw = run(cmd, root)
     statements = []
     for record in raw.split("\x1e"):
         if "\x1f" not in record:
@@ -278,9 +293,11 @@ def mine_vault_links(root: Path) -> list[str]:
 # ------------------------------------------------------------------- output
 
 def write_scope(out_dir: Path, name: str, statements: list[str],
-                mode: str) -> Path | None:
+                mode: str, suffix: str = "") -> Path | None:
     if not statements:
         return None
+    if suffix:
+        name = name.replace("-ontology.md", f"-{suffix}-ontology.md")
     path = out_dir / name
     frontmatter = (
         "---\n"
@@ -331,6 +348,16 @@ def main() -> int:
     ap.add_argument("--max-commits", type=int, default=200)
     ap.add_argument("--max-prs", type=int, default=50)
     ap.add_argument("--max-issues", type=int, default=50)
+    ap.add_argument("--include", action="append", default=[],
+                    metavar="RELPATH",
+                    help="only scan these folders/files (relative to PATH; "
+                         "repeatable)")
+    ap.add_argument("--term", action="append", default=[], metavar="TERM",
+                    help="only scan files whose content contains TERM "
+                         "(case-insensitive; repeatable, any-of)")
+    ap.add_argument("--suffix", default="", metavar="SLUG",
+                    help="scope-filename suffix for filtered scans "
+                         "(auto-derived from --include/--term if omitted)")
     args = ap.parse_args()
 
     if args.structure:
@@ -345,40 +372,52 @@ def main() -> int:
     out_dir = root / "infranodus"
     out_dir.mkdir(exist_ok=True)
 
+    global INCLUDE_PREFIXES, TERMS
+    INCLUDE_PREFIXES = [x.strip("/").strip() for x in args.include if x.strip()]
+    TERMS = [x for x in args.term if x.strip()]
+    filtered = bool(INCLUDE_PREFIXES or TERMS)
+    suffix = args.suffix
+    if filtered and not suffix:
+        raw = (INCLUDE_PREFIXES or TERMS)[0]
+        suffix = re.sub(r"[^a-z0-9]+", "-", raw.lower()).strip("-")[:30]
+
     written: dict[str, int] = {}
+
+    def keep(name: str, statements: list[str], mode: str) -> None:
+        path = write_scope(out_dir, name, statements, mode, suffix=suffix)
+        if path:
+            written[path.name] = len(statements)
 
     if args.vault:
         # explicit --vault: map the vault structure ONLY
-        links = mine_vault_links(root)
-        if write_scope(out_dir, "vault-links-ontology.md", links, "vault"):
-            written["vault-links-ontology.md"] = len(links)
+        keep("vault-links-ontology.md", mine_vault_links(root), "vault")
     else:
         vault = is_vault(root)
 
-        docs = mine_docs(root, stem_prefix=vault)
-        if write_scope(out_dir, "repo-docs-ontology.md", docs, "repo"):
-            written["repo-docs-ontology.md"] = len(docs)
+        keep("repo-docs-ontology.md", mine_docs(root, stem_prefix=vault),
+             "repo")
 
         if vault:
             # bare launch in a vault/md folder: content AND link structure
-            links = mine_vault_links(root)
-            if write_scope(out_dir, "vault-links-ontology.md", links,
-                           "vault"):
-                written["vault-links-ontology.md"] = len(links)
+            keep("vault-links-ontology.md", mine_vault_links(root), "vault")
 
-        rationale = mine_code_rationale(root)
-        if write_scope(out_dir, "repo-code-rationale-ontology.md",
-                       rationale, "repo"):
-            written["repo-code-rationale-ontology.md"] = len(rationale)
+        keep("repo-code-rationale-ontology.md", mine_code_rationale(root),
+             "repo")
 
+        # History is not file-scoped, so a filtered scan skips it — except
+        # a pure folder filter, which git can honor via pathspec.
         history: list[str] = []
-        if not args.no_git:
-            history += mine_git(root, args.max_commits)
-        if not args.no_gh:
-            history += mine_gh(root, "pr", args.max_prs)
-            history += mine_gh(root, "issue", args.max_issues)
-        if write_scope(out_dir, "repo-history-ontology.md", history, "repo"):
-            written["repo-history-ontology.md"] = len(history)
+        if not TERMS:
+            if not args.no_git:
+                if INCLUDE_PREFIXES:
+                    history += mine_git(root, args.max_commits,
+                                        paths=INCLUDE_PREFIXES)
+                else:
+                    history += mine_git(root, args.max_commits)
+            if not args.no_gh and not INCLUDE_PREFIXES:
+                history += mine_gh(root, "pr", args.max_prs)
+                history += mine_gh(root, "issue", args.max_issues)
+        keep("repo-history-ontology.md", history, "repo")
 
     if not written:
         print("no statements extracted (empty corpus?)")
