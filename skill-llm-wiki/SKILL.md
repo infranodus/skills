@@ -187,7 +187,9 @@ All ontology/knowledge-graph files are stored in a single `infranodus/` folder a
 Files in `infranodus/` carry a policy, declared in YAML frontmatter and mirrored in the manifest:
 
 - **Curated** (no flag, or `curated: true`) — the ontologies this skill maintains via ontology-creator. Append-only, never regenerated (see CRITICAL below).
-- **Generated** (`generated: true` + `generator:` in frontmatter) — machine-derived files written by scanners (e.g. the `infranodus` skill's `repo2statements.py` vault/repo scans). These are regenerated wholesale by their generator; do NOT append to them, hand-edit them, or apply the append-only rule to them.
+- **Generated** (`generated: true` + `generator:` in frontmatter) — machine-derived files written by scanners (e.g. the `infranodus` skill's `repo2statements.py` vault/repo scans). These are regenerated wholesale by their generator; do NOT append to them, hand-edit them, or apply the append-only rule to them. Their statements are grouped under `## [[page]]` section headings (the parent-page contract of the `parentAndConcepts`/`obsidianStyle` wikilinksMode) — the headings are structure, not relations; never mistake them for ontology lines.
+
+Every file should also declare its processing mode in frontmatter — `wikilinksMode: wikilinksOnly` for curated ontologies (add it when creating a new ontology file), `parentAndConcepts`/`wikilinksOnly` in generated scopes (written by their generator). Uploaders honor this declaration, so a file processed separately through the MCP tools still gets the right mode.
 
 **Always check the frontmatter before updating any file in `infranodus/`.**
 
@@ -199,7 +201,7 @@ Files in `infranodus/` carry a policy, declared in YAML frontmatter and mirrored
 
 3. **What to feed**: Read all `.md` files in the folder, combine their content (stripping YAML frontmatter), and pass the combined text to the ontology-creator skill. The skill will extract entities and relationships in `[[wikilinks]]` format.
 
-4. **Where to save**: Save the generated ontology as `<folder-name>-ontology.md` inside the `infranodus/` folder at the project root. For example:
+4. **Where to save**: Save the generated ontology as `<folder-name>-ontology.md` inside the `infranodus/` folder at the project root, with frontmatter declaring `curated: true` and `wikilinksMode: wikilinksOnly`. For example:
    - `infranodus/systems-ontology.md`
    - `infranodus/concepts-ontology.md`
    - `infranodus/connections-ontology.md`
