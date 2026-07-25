@@ -82,6 +82,12 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
 5. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
    influential concepts, gateways, gaps) and print the graph URLs (viewable in
    browser, Cursor/VSCode extension, Obsidian plugin).
+6. **Learn:** in query mode, recall project lessons first
+   (`memory_get_relations`, `memoryContextName` = the manifest's
+   `memoryGraph`), and after answering store non-obvious outcomes sparingly
+   via `memory_add_relations` (`[[wikilinked]]` entities + `#useful` /
+   `#dead-end` / `#corrected`) — see the Learning loop in
+   references/repo-graph.md.
 
 ## Setup & Auth
 

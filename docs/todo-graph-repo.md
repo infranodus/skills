@@ -6,7 +6,7 @@
 
 ## REMAINING WORK (status as of 2026-07-25)
 
-**Implemented** (in `infranodus-cli` unless noted): A1 in pivoted form (rationale miner `repo2statements.py` + vault link scan + `--include`/`--term`/`--suffix` scoping), A2 (`upload_scopes.py`: chunking, 429/413 handling, per-scope `wikilinksMode` + `maxNodes: 500`), A3 (`infranodus/` + `manifest.json` + generated/curated policy), A4 (trigger description), A5 (fast path), the AskUserQuestion scoping step, the transport fallback (native MCP → mcporter → guided setup), `install.sh`, and B1–B5 (in `skill-llm-wiki`). On the MCP server: C1 (superseded by `wikilinksMode`), `maxNodes`, `fullGraph`.
+**Implemented** (in `infranodus-cli` unless noted): A1 in pivoted form (rationale miner `repo2statements.py` + vault link scan + `--include`/`--term`/`--suffix` scoping), A2 (`upload_scopes.py`: chunking, 429/413 handling, per-scope `wikilinksMode` + `maxNodes: 500`), A3 (`infranodus/` + `manifest.json` + generated/curated policy), A4 (trigger description), A5 (fast path), the AskUserQuestion scoping step, the transport fallback (native MCP → mcporter → guided setup), the **learning loop** (query outcomes stored/recalled as a `<prefix>-memory` graph via `memory_add_relations`/`memory_get_relations`, manifest `memoryGraph` key), `install.sh`, and B1–B5 (in `skill-llm-wiki`). On the MCP server: C1 (superseded by `wikilinksMode`), `maxNodes`, `fullGraph`.
 
 **Still to do:**
 

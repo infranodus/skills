@@ -217,6 +217,35 @@ VSCode/Cursor extension, and the 3D view.
 - Direction questions ("what's missing", "what next") →
   `generate_content_gaps`, then optionally `generate_research_questions`
 
+### Learning loop (graph memory)
+
+Past query outcomes are stored as a small InfraNodus memory graph so every
+session gets smarter about THIS project. Memory context name:
+`<prefix>-memory` (same prefix as the scopes, e.g. `repo-myproject-memory`);
+record it in `infranodus/manifest.json` under a top-level `"memoryGraph"` key
+the first time you create it.
+
+**Recall — at the START of query mode:** if the manifest has `memoryGraph`,
+call `memory_get_relations` with `memoryContextName` (add `entity:
+"[[<concept>]]"` when the question names one) and fold any returned lessons
+into how you answer — e.g. which scope answered this topic before, or a
+correction the user made.
+
+**Store — AFTER answering, sparingly.** Save a lesson only when it is
+non-obvious and reusable: which scope/graph turned out to answer a topic, a
+user correction, a dead end ("X is not covered by any scope"). Do NOT log
+routine successful answers. Call `memory_add_relations` with one statement
+per lesson, entities in `[[wikilinks]]`, outcome as a hashtag:
+
+```
+[[caching]] questions answered best by [[repo-myproject-history]] scope #useful
+[[auth flow]] not covered by any scope — docs gap #dead-end
+user corrected: [[session tokens]] rotate weekly not daily #corrected
+```
+
+These statements form a graph themselves — recurring `#dead-end` entities
+cluster into visible documentation gaps over time.
+
 ## Conventions
 
 - **Shared wikilink namespace:** file paths appear verbatim as
