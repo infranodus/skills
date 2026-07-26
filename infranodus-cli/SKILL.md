@@ -54,7 +54,14 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
    available: use `mcporter call` as documented below. If mcporter itself is
    missing or unconfigured, follow Setup & Auth to install and configure it.
 
-Never install or configure mcporter when native tools exist.
+HARD RULE: when native tools exist, mcporter must not be USED at all — not
+installed, not configured, and not called even if a working, authenticated
+mcporter setup is already on the machine. An existing mcporter installation
+is never a reason to route through it. In particular, upload size is not a
+reason: `--emit-chunks` produces chunks sized to pass through the agent
+context one full Read at a time (see references/repo-graph.md); if a chunk
+is still too large to read whole, re-emit with a smaller `--chunk-bytes` —
+do not switch transport.
 
 ## Repo / Vault Graphs (invoked inside a project folder)
 
@@ -65,7 +72,8 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
    them directly (uploads via `upload_scopes.py --emit-chunks` + native calls
    + `--record`); else mcporter; else install mcporter (`npm install -g
    mcporter`) and, if `INFRANODUS_API_KEY` is missing, AskUserQuestion to get
-   a key / OAuth / skip upload. Never install mcporter when native tools exist.
+   a key / OAuth / skip upload. Never install, configure, or CALL mcporter
+   when native tools exist — even one already set up on the machine.
 1. **Fast path:** `infranodus/manifest.json` exists + the request is a question →
    query the existing graphs (`analyze_existing_graph_by_name`,
    `retrieve_from_knowledge_base`, `generate_content_gaps`). Do NOT re-extract.

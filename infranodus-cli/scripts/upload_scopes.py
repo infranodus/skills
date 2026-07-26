@@ -19,13 +19,19 @@ create_knowledge_graph natively per chunk, then --record the results.
 Usage:
   python3 upload_scopes.py [project_dir] [--prefix NAME] [--force]
   python3 upload_scopes.py [project_dir] --emit-chunks [--prefix NAME]
+                                         [--chunk-bytes N]
   python3 upload_scopes.py [project_dir] --record SCOPE_FILE GRAPH_NAME [URL]
 
   --prefix       graph name prefix (default: <vault|repo>-<project dir slug>)
   --force        re-upload scopes that already have a graphName
   --emit-chunks  no upload: write ready-to-send chunks to
                  infranodus/.chunks/<graphName>/NNN.txt and print the plan
-                 (for agents with native MCP tools)
+                 (for agents with native MCP tools). Chunks are
+                 EMIT_CHUNK_BYTES each — smaller than upload mode's, so an
+                 agent can Read one whole chunk per call and re-emit it
+                 verbatim as the native tool's `text` argument.
+  --chunk-bytes  override the emit-mode chunk size (e.g. 30000 if the
+                 agent's Read still truncates)
   --record       no upload: write graphName (+ optional url) for one scope
                  into the manifest after a native-tool upload
 """
@@ -38,6 +44,11 @@ import time
 from pathlib import Path
 
 CHUNK_BYTES = 80_000      # safe payload size; API rejects ~100 KB+ with 413
+EMIT_CHUNK_BYTES = 45_000 # --emit-chunks only: native-MCP uploads pass each
+                          # chunk through the agent's context (full Read +
+                          # verbatim re-emit), so chunks must fit ONE agent
+                          # read (~25k tokens) with headroom, not just the
+                          # API payload limit
 MAX_NODES = 500           # graph size cap per scope (server default 150 is
                           # too small for repo/vault corpora; API max 1000)
 PACE_SECONDS = 20         # gap between successful calls to stay under rate cap
@@ -204,6 +215,11 @@ def main():
         i = argv.index("--prefix")
         prefix = argv[i + 1]
         del argv[i:i + 2]
+    emit_chunk_bytes = EMIT_CHUNK_BYTES
+    if "--chunk-bytes" in argv:
+        i = argv.index("--chunk-bytes")
+        emit_chunk_bytes = int(argv[i + 1])
+        del argv[i:i + 2]
     root = Path(argv[0] if argv else ".").resolve()
 
     manifest_path = root / "infranodus" / "manifest.json"
@@ -241,7 +257,7 @@ def main():
             out_dir = chunks_root / graph_name
             out_dir.mkdir(parents=True, exist_ok=True)
             files = []
-            for i, chunk in enumerate(chunk_text(text)):
+            for i, chunk in enumerate(chunk_text(text, emit_chunk_bytes)):
                 p = out_dir / f"{i:03d}.txt"
                 p.write_text(chunk, encoding="utf-8")
                 files.append(str(p.relative_to(root)))
@@ -250,11 +266,15 @@ def main():
                              fname, root / meta["file"]),
                          "maxNodes": MAX_NODES, "chunks": files})
         print(json.dumps(plan, indent=2))
-        print("\nupload each chunk via create_knowledge_graph "
-              "({graphName, text: <chunk contents>, maxNodes, and the "
+        print("\nupload each chunk via the NATIVE create_knowledge_graph "
+              "tool ({graphName, text: <chunk contents>, maxNodes, and the "
               "scope's wikilinksMode when not 'default'}), IN ORDER, same "
-              "graphName per scope; pace calls and back off on rate limits; "
-              "then run --record <scopeFile> <graphName> [url] per scope.",
+              "graphName per scope. Read each chunk file COMPLETELY and "
+              "pass its exact contents as text — if a Read truncates, "
+              "re-run --emit-chunks with a smaller --chunk-bytes instead "
+              "of switching transport (never mcporter while native tools "
+              "exist). Pace calls and back off on rate limits; then run "
+              "--record <scopeFile> <graphName> [url] per scope.",
               file=sys.stderr)
         return
 

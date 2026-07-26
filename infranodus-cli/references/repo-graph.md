@@ -12,21 +12,33 @@ available, in this order:
 1. **Native MCP tools** — if InfraNodus tools are already visible in this
    session (tool names like `mcp__infranodus__create_knowledge_graph` or an
    InfraNodus connector), **use them directly** for every query AND for
-   uploads. Do not install or configure anything. For uploads, do NOT run
-   `upload_scopes.py`'s upload mode — instead:
+   uploads. Do not install, configure, or call mcporter — a working mcporter
+   already on the machine changes nothing; while native tools exist it is
+   dead to this workflow. For uploads, do NOT run `upload_scopes.py`'s
+   upload mode — instead:
    ```bash
    python3 <SKILL_DIR>/scripts/upload_scopes.py . --emit-chunks
    ```
-   then per scope: call `create_knowledge_graph` natively for each chunk file
-   IN ORDER with that scope's `graphName`, `maxNodes`, and `wikilinksMode`
-   from the printed plan (statements accumulate; wikilinksMode/maxNodes bind
-   on the FIRST call that creates the graph), pacing calls and backing off on
-   rate-limit errors; finally
-   `upload_scopes.py . --record <scopeFile> <graphName> <url>` to update the
-   manifest. Delete `infranodus/.chunks/` when done.
-2. **mcporter** — no native tools but `mcporter` is on PATH and configured
-   (`mcporter list infranodus` healthy): use the `mcporter call` commands as
-   written below; `upload_scopes.py` upload mode uses it automatically.
+   Emit mode writes chunks of ≤45 KB — deliberately smaller than the API's
+   payload limit so each chunk fits through the agent context in ONE full
+   Read. Then per scope, for each chunk file IN ORDER:
+   - Read the chunk file COMPLETELY (one Read; no offset/limit slicing).
+     If the Read comes back truncated, do not upload the partial text and
+     do not switch transport — re-run with a smaller size, e.g.
+     `--emit-chunks --chunk-bytes 30000`, and start that scope over.
+   - Call `create_knowledge_graph` natively with the chunk's exact contents
+     as `text` (byte-exact — strip only the Read tool's line-number
+     prefixes, change nothing else) plus that scope's `graphName`,
+     `maxNodes`, and `wikilinksMode` from the printed plan (statements
+     accumulate; wikilinksMode/maxNodes bind on the FIRST call that creates
+     the graph). Pace calls ~20 s apart and back off minutes, not seconds,
+     on rate-limit errors.
+   Finally `upload_scopes.py . --record <scopeFile> <graphName> <url>` per
+   scope to update the manifest. Delete `infranodus/.chunks/` when done.
+2. **mcporter** — ONLY when no native tools are in the session, and
+   `mcporter` is on PATH and configured (`mcporter list infranodus`
+   healthy): use the `mcporter call` commands as written below;
+   `upload_scopes.py` upload mode uses it automatically.
 3. **Neither** — extraction still works (local scope files are always built);
    for upload/queries, attempt setup:
    - `npm install -g mcporter` (needs Node; if npm is missing, stop and tell
@@ -140,7 +152,10 @@ lack that flag and stay append-only).
 
 ## Step 3 — Upload (one graph per scope)
 
-Run the bundled uploader — do NOT hand-roll `mcporter call
+On transport 1 (native tools in session) SKIP this section's upload mode —
+use the `--emit-chunks` native procedure from the Transport section above;
+running the uploader here would route through mcporter. On transport 2, run
+the bundled uploader — do NOT hand-roll `mcporter call
 create_knowledge_graph` loops for scope files; the API rejects payloads over
 ~100 KB with a 413 and rate-limits bursts with a 429, and the script handles
 both:
