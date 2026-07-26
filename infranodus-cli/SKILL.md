@@ -2,7 +2,8 @@
 name: infranodus
 description: >
   Text network analysis, knowledge graphs, content gap detection, SEO/GEO optimization,
-  structured memory, and text comparison via the InfraNodus MCP server (mcporter).
+  structured memory, and text comparison via the InfraNodus MCP server (native MCP
+  tools when the server is connected, mcporter CLI as fallback).
   Use when asked to: analyze text structure, generate knowledge graphs, find content gaps,
   generate research questions or ideas, compare texts, optimize text/content for SEO,
   analyze Google search results/queries, retrieve from a knowledge base (GraphRAG),
@@ -40,6 +41,20 @@ metadata:
 # InfraNodus
 
 Text network analysis and knowledge graph tools via the InfraNodus MCP server.
+
+## Transport — check FIRST, applies to every tool call in this skill
+
+1. **Native MCP tools (preferred).** If the InfraNodus MCP server is connected
+   to this session — tool names like `mcp__infranodus__analyze_text` are
+   visible or loadable via ToolSearch — call the tools directly. Skip all
+   mcporter setup, auth, and `mcporter call` commands entirely; every
+   `mcporter call infranodus.<tool>` example below maps 1:1 to the native
+   tool of the same name with the same JSON arguments.
+2. **mcporter (fallback).** Only when NO native InfraNodus tools are
+   available: use `mcporter call` as documented below. If mcporter itself is
+   missing or unconfigured, follow Setup & Auth to install and configure it.
+
+Never install or configure mcporter when native tools exist.
 
 ## Repo / Vault Graphs (invoked inside a project folder)
 
@@ -89,7 +104,9 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
    `#dead-end` / `#corrected`) — see the Learning loop in
    references/repo-graph.md.
 
-## Setup & Auth
+## Setup & Auth (mcporter fallback only)
+
+Skip this entire section when native MCP tools are available (Transport 1).
 
 ### Option 1: API Key (recommended for headless/automated setups)
 
@@ -155,6 +172,11 @@ mcporter list infranodus
 Users need an InfraNodus account at https://infranodus.com.
 
 ## Calling Tools
+
+**Native MCP (preferred):** call `mcp__infranodus__<tool_name>` directly with
+the same arguments shown in the catalog below.
+
+**mcporter (fallback):**
 
 ```bash
 mcporter call infranodus.<tool_name> key=value

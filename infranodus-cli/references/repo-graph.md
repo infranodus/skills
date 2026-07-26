@@ -53,6 +53,10 @@ mcporter call infranodus.retrieve_from_knowledge_base --args '{"graphName": "<fr
 mcporter call infranodus.generate_content_gaps --args '{"graphName": "<from manifest>"}'
 ```
 
+(As everywhere in this skill: with native MCP tools available, call
+`mcp__infranodus__<tool>` directly with the same arguments instead of these
+`mcporter call` commands.)
+
 Rebuild only when the user says so (`--update`, "rebuild", "refresh") or when
 the repo clearly changed since `manifest.json`'s `updated` dates.
 
