@@ -676,6 +676,7 @@ Read the wiki's structural health:
 2. **Read `wiki/overview.md`** for the current synthesis
 3. **Check for existing InfraNodus analyses** in `output/*-knowledge-graph-analysis.md` — these contain identified content gaps, cluster structure, and recommendations
    - Also check `infranodus/manifest.json` for saved graphs (curated ontology scopes AND generated repo/vault scopes): run `generate_content_gaps` on their `graphName`s for LIVE gap analysis instead of relying only on the last saved analysis file — gaps in the vault-links or repo scopes surface under-connected pages/modules the ontology analyses miss
+   - If the manifest has a `memoryGraph`, check it via `memory_get_relations` for recurring `#dead-end` and `#corrected` lessons — these are query-driven evidence of wiki gaps (a human actually asked and the wiki couldn't answer), often stronger signals than structural gap detection
 4. **Check `wiki/questions/`** for open research questions
 5. **Check `wiki/data/`** for personal data pages (empty = a gap worth flagging)
 6. **Check `todos/`** for existing todo files (to avoid duplicating or contradicting prior plans)
