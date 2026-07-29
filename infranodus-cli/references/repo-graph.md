@@ -220,8 +220,10 @@ output rather than waiting inline.
 
 ## Step 4 — Report
 
-Write `INFRANODUS_REPORT.md` in the project root from the upload responses —
-no extra analysis calls; the response already contains everything:
+Write `infranodus/INFRANODUS_REPORT.md` — alongside the manifest, scope files,
+and graph JSON, so every artifact this workflow produces lives in one folder —
+from the upload responses. No extra analysis calls; the response already
+contains everything:
 
 ```markdown
 # InfraNodus Report — <project>

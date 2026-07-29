@@ -109,9 +109,10 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
    true` per scope and Write the response to the `graphJson` path in the
    emitted plan. A scope with a manifest entry but no graph JSON is
    half-finished.
-5. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
-   influential concepts, gateways, gaps) and print the graph URLs (viewable in
-   browser, Cursor/VSCode extension, Obsidian plugin).
+5. **Report:** write `infranodus/INFRANODUS_REPORT.md` from the responses
+   (topics, influential concepts, gateways, gaps) and print the graph URLs
+   (viewable in browser, Cursor/VSCode extension, Obsidian plugin). It goes in
+   `infranodus/` with the other artifacts, not the project root.
 6. **Learn:** in query mode, recall project lessons first
    (`memory_get_relations`, `memoryContextName` = the manifest's
    `memoryGraph`), and after answering store non-obvious outcomes sparingly
