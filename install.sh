@@ -55,6 +55,60 @@ for pair in "${SKILLS[@]}"; do
   echo "  ${pair%%:*} -> $dst"
 done
 
+# --- Register the trigger in CLAUDE.md -------------------------------------
+# Two separate registrations exist, with distinct markers so they never
+# clobber each other:
+#   infranodus-skill:*  (here) - the always-loaded pointer that makes
+#                        /infranodus discoverable, in .claude/CLAUDE.md
+#   infranodus:*        (upload_scopes.py --register-project) - the
+#                        per-project rules block in <project>/CLAUDE.md,
+#                        written only once a project actually has graphs
+if [ "$TARGET_BASE" = "$HOME/.claude/skills" ]; then
+  CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+  SKILL_PATH="~/.claude/skills/infranodus/SKILL.md"
+else
+  CLAUDE_MD="$(pwd)/.claude/CLAUDE.md"
+  SKILL_PATH=".claude/skills/infranodus/SKILL.md"
+fi
+
+echo
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$CLAUDE_MD" "$SKILL_PATH" <<'PY'
+import pathlib, sys
+
+path, skill = pathlib.Path(sys.argv[1]), sys.argv[2]
+BEGIN, END = "<!-- infranodus-skill:begin -->", "<!-- infranodus-skill:end -->"
+block = f"""{BEGIN}
+# infranodus
+- **infranodus** (`{skill}`) - any text, repo, or vault to a knowledge graph; topics, content gaps, GraphRAG retrieval. Trigger: `/infranodus`
+When the user types `/infranodus`, use the installed infranodus skill before doing anything else.
+When a project root has `infranodus/manifest.json`, answer questions about its themes, concepts, rationale, or gaps by querying those graphs first (see that project's CLAUDE.md for the rules).
+{END}
+"""
+
+if not path.exists():
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(block, encoding="utf-8")
+    action = "created"
+else:
+    content = path.read_text(encoding="utf-8")
+    if BEGIN in content and END in content:
+        start, end = content.index(BEGIN), content.index(END) + len(END)
+        updated = content[:start] + block.rstrip("\n") + content[end:]
+        action = "unchanged" if updated == content else "updated"
+        if action == "updated":
+            path.write_text(updated, encoding="utf-8")
+    else:
+        path.write_text(content.rstrip("\n") + "\n\n" + block, encoding="utf-8")
+        action = "registered"
+print(f"CLAUDE.md {action}: {path}")
+PY
+else
+  echo "  [--] python3 not found — skipped CLAUDE.md registration."
+  echo "       Add a pointer to $SKILL_PATH manually if you want /infranodus"
+  echo "       surfaced automatically."
+fi
+
 echo
 echo "Transport preflight (runtime fallback order: native MCP > mcporter > install):"
 

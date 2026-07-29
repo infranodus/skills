@@ -8,8 +8,12 @@ Stdlib-only. Handles the two API failure modes deterministically:
     sleeps BACKOFF_SECONDS and retries the same chunk (up to MAX_RETRIES).
 
 Reads infranodus/manifest.json, uploads every scope whose graphName is null
-(all scopes with --force), records graphName + url back into the manifest,
-and saves the full graph JSON as infranodus/<scope>-graph.json.
+(all scopes with --force) and records graphName + url back into the manifest.
+
+The graphs live on the server and are queried there (analyze_existing_graph_
+by_name, retrieve_from_knowledge_base), so no local graph copy is written by
+default. Pass --save-graph when an offline/renderable export is actually
+wanted; it writes infranodus/<scope>-graph.json.
 
 Transport: shells out to `mcporter`. When the calling agent has native
 InfraNodus MCP tools in its session, it should NOT use the upload mode of
@@ -34,6 +38,31 @@ Usage:
                  agent's Read still truncates)
   --record       no upload: write graphName (+ optional url) for one scope
                  into the manifest after a native-tool upload
+  --save-graph   also fetch each uploaded graph and save it as
+                 infranodus/<scope>-graph.json (opt-in; the server is the
+                 source of truth, a local copy is only for offline
+                 rendering/diffing). On the native path this flag does not
+                 apply — fetch and Write the file yourself.
+  --register-project
+                 no upload: write the "## infranodus" always-on block into
+                 <project_dir>/CLAUDE.md so the agent queries these graphs
+                 for questions instead of grepping files. Idempotent — the
+                 block is delimited by infranodus:begin/end markers and is
+                 replaced in place on re-run. Run once, after the scopes
+                 are recorded.
+  --register-global
+                 no upload, no project needed: write the trigger block into
+                 ~/.claude/CLAUDE.md so the skill is surfaced in every
+                 session. Derives the skill path and slash command from this
+                 file's own location, so it matches wherever the skill is
+                 actually installed. Safe to run from inside the skill: it
+                 edits one markdown file and never touches skill
+                 directories (unlike install.sh, which rm -rf's them).
+                 The skill runs this itself on activation when the block is
+                 absent — see SKILL.md.
+
+Both registration modes preserve everything outside their markers; neither
+rewrites a CLAUDE.md.
 """
 import json
 import re
@@ -175,6 +204,97 @@ def scope_graph_name(prefix, fname):
     return scope, f"{prefix}-{scope}"
 
 
+CLAUDE_MD_BEGIN = "<!-- infranodus:begin -->"
+CLAUDE_MD_END = "<!-- infranodus:end -->"
+
+# Static on purpose: graph names are read from manifest.json at query time,
+# so re-scoping or renaming a graph never leaves this block stale.
+CLAUDE_MD_BLOCK = f"""{CLAUDE_MD_BEGIN}
+## infranodus
+
+This project's content is indexed as InfraNodus knowledge graphs.
+`infranodus/manifest.json` lists each scope's `graphName`.
+
+Rules:
+- For questions about themes, concepts, rationale, or what is missing or
+  under-developed, query the graphs BEFORE reading or grepping files:
+  `analyze_existing_graph_by_name` (topics, clusters, gaps),
+  `retrieve_from_knowledge_base` (GraphRAG answer over the statements),
+  `generate_content_gaps` (under-connected areas worth developing).
+- Read graph names from `infranodus/manifest.json` — do not guess them.
+- `infranodus/INFRANODUS_REPORT.md` has the prose overview: topics,
+  influential concepts, gateways, gaps.
+- These graphs cover meaning and discourse structure, NOT code structure.
+  For files, symbols, and call paths use the code-graph tool if one is
+  installed (e.g. graphify) — the two are complementary, not competing.
+- After adding or substantially editing content, re-run `/infranodus` to
+  refresh the affected scope.
+{CLAUDE_MD_END}
+"""
+
+
+SKILL_MD_BEGIN = "<!-- infranodus-skill:begin -->"
+SKILL_MD_END = "<!-- infranodus-skill:end -->"
+
+
+def _write_marker_block(path, block, begin, end):
+    """Insert or replace a marker-delimited block in a markdown file.
+
+    Never rewrites the file: content outside the markers is preserved
+    byte-for-byte. Markers (rather than a substring check) are what let a
+    re-run REPLACE a stale block instead of skipping it forever.
+    """
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(block, encoding="utf-8")
+        return "created"
+    content = path.read_text(encoding="utf-8")
+    if begin in content and end in content:
+        start, stop = content.index(begin), content.index(end) + len(end)
+        updated = content[:start] + block.rstrip("\n") + content[stop:]
+        if updated == content:
+            return "unchanged"
+        path.write_text(updated, encoding="utf-8")
+        return "updated"
+    path.write_text(content.rstrip("\n") + "\n\n" + block, encoding="utf-8")
+    return "appended"
+
+
+def write_claude_md_block(root):
+    """Insert/replace the per-project rules block in <root>/CLAUDE.md."""
+    path = root / "CLAUDE.md"
+    return _write_marker_block(path, CLAUDE_MD_BLOCK,
+                               CLAUDE_MD_BEGIN, CLAUDE_MD_END), path
+
+
+def register_global_skill():
+    """Insert/replace the trigger block in ~/.claude/CLAUDE.md.
+
+    Self-contained on purpose: it derives the skill path and the slash
+    command from THIS file's own location, so it works from an installed
+    copy with no source repo present, and can never disagree with where the
+    skill actually lives. It touches one markdown file and nothing else —
+    it does not copy, delete, or re-install any skill directory (this code
+    runs from inside the skill it would be overwriting).
+    """
+    skill_dir = Path(__file__).resolve().parents[1]
+    home = Path.home()
+    try:
+        shown = "~/" + str(skill_dir.relative_to(home))
+    except ValueError:
+        shown = str(skill_dir)
+    command = skill_dir.name
+    block = f"""{SKILL_MD_BEGIN}
+# infranodus
+- **infranodus** (`{shown}/SKILL.md`) - any text, repo, or vault to a knowledge graph; topics, content gaps, GraphRAG retrieval. Trigger: `/{command}`
+When the user types `/{command}`, use the installed infranodus skill before doing anything else.
+When a project root has `infranodus/manifest.json`, answer questions about its themes, concepts, rationale, or gaps by querying those graphs first (see that project's CLAUDE.md for the rules).
+{SKILL_MD_END}
+"""
+    path = home / ".claude" / "CLAUDE.md"
+    return _write_marker_block(path, block, SKILL_MD_BEGIN, SKILL_MD_END), path
+
+
 def scope_wikilinks_mode(fname, path=None):
     """Processing mode for a scope file. The generated files declare it in
     their frontmatter (`wikilinksMode: ...`) — that wins, so custom scope
@@ -202,7 +322,19 @@ def main():
     argv = sys.argv[1:]
     force = "--force" in argv
     emit_chunks = "--emit-chunks" in argv
-    argv = [a for a in argv if a not in ("--force", "--emit-chunks")]
+    save_graph = "--save-graph" in argv
+    register_project = "--register-project" in argv
+    register_global = "--register-global" in argv
+    argv = [a for a in argv if a not in ("--force", "--emit-chunks",
+                                         "--save-graph", "--register-project",
+                                         "--register-global")]
+
+    # Global registration is project-independent — handle it before the
+    # manifest check so it works from any directory, graphs or not.
+    if register_global:
+        action, path = register_global_skill()
+        print(f"CLAUDE.md {action}: {path}")
+        return
     record = None
     if "--record" in argv:
         i = argv.index("--record")
@@ -228,6 +360,14 @@ def main():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     scopes = manifest.get("scopes", {})
 
+    if register_project:
+        action, path = write_claude_md_block(root)
+        print(f"CLAUDE.md {action}: {path}")
+        if action in ("created", "appended", "updated"):
+            print("  the agent will now query these graphs for questions "
+                  "about themes, concepts, rationale, and gaps")
+        return
+
     if prefix is None:
         project = re.sub(r"[^a-z0-9]+", "-", root.name.lower()).strip("-")
         kind = "vault" if any(k.startswith("vault-") for k in scopes) else "repo"
@@ -244,13 +384,11 @@ def main():
         manifest_path.write_text(json.dumps(manifest, indent=2),
                                  encoding="utf-8")
         print(f"recorded {fname} -> {graph_name}")
-        scope, _ = scope_graph_name(prefix, fname)
-        graph_json = root / "infranodus" / f"{scope}-graph.json"
-        if not graph_json.exists():
-            print(f"  STILL MISSING: infranodus/{scope}-graph.json — --record "
-                  f"only writes the manifest. Fetch the graph "
-                  f"(analyze_existing_graph_by_name with includeGraph: true "
-                  f"AND addNodesAndEdges: true) and Write the response there.",
+        if not (root / "CLAUDE.md").exists() or CLAUDE_MD_BEGIN not in (
+                root / "CLAUDE.md").read_text(encoding="utf-8"):
+            print("  NEXT: run --register-project once (after all scopes are "
+                  "recorded) to add the always-on block to CLAUDE.md — "
+                  "without it nothing routes questions to these graphs.",
                   file=sys.stderr)
         return
 
@@ -283,20 +421,24 @@ def main():
               "re-run --emit-chunks with a smaller --chunk-bytes instead "
               "of switching transport (never mcporter while native tools "
               "exist). Pace calls and back off on rate limits.\n\n"
-              "THEN, per scope, BOTH of these — the scope is not done "
-              "until both exist:\n"
-              "  1. --record <scopeFile> <graphName> [url]  (manifest only; "
-              "it does NOT fetch anything)\n"
-              "  2. call analyze_existing_graph_by_name natively with "
-              "{graphName, includeGraph: true, addNodesAndEdges: true} and "
-              "Write the response verbatim to that scope's \"graphJson\" "
-              "path above. addNodesAndEdges is what puts the node and edge "
-              "lists in knowledgeGraph.{nodes,edges} — includeGraph alone "
-              "returns only attributes/top_clusters, which is not a usable "
-              "export. Upload mode does this for you; the native path does "
-              "not, so skipping it leaves the workflow's local graph JSON "
-              "missing.\n\n"
-              "Delete infranodus/.chunks/ once every scope has both.",
+              "THEN, to finish:\n"
+              "  1. per scope: --record <scopeFile> <graphName> [url]\n"
+              "  2. ONCE, after all scopes are recorded: --register-project "
+              "— writes the always-on block into CLAUDE.md so questions "
+              "about themes/concepts/gaps route to these graphs instead of "
+              "grepping files. Skipping it means the graphs exist but "
+              "nothing ever consults them.\n"
+              "  3. delete infranodus/.chunks/\n\n"
+              "No local graph JSON is written by default — the graphs are "
+              "queried on the server (analyze_existing_graph_by_name, "
+              "retrieve_from_knowledge_base). Only if an offline/renderable "
+              "export is explicitly wanted: call "
+              "analyze_existing_graph_by_name with {graphName, includeGraph: "
+              "true, addNodesAndEdges: true, fullGraph: true} and Write the "
+              "response to that scope's \"graphJson\" path above (drop "
+              "fullGraph if the running server does not expose it; "
+              "includeGraph alone returns only attributes/top_clusters, "
+              "which is not a usable export).",
               file=sys.stderr)
         return
 
@@ -325,21 +467,27 @@ def main():
         meta["wikilinksMode"] = mode
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
-        # addNodesAndEdges puts the actual node list and edge list into
-        # knowledgeGraph.{nodes,edges}; includeGraph alone returns only
-        # attributes/top_clusters, which is not a usable graph export.
-        # (analyze_existing_graph_by_name has no maxNodes param — the node
-        # cap is bound at creation time by create_knowledge_graph.)
-        status, out = call_mcporter("analyze_existing_graph_by_name",
-                                    {"graphName": graph_name,
-                                     "includeGraph": True,
-                                     "addNodesAndEdges": True})
-        if status == "ok":
-            (root / "infranodus" / f"{scope}-graph.json").write_text(out, encoding="utf-8")
-            print(f"  saved infranodus/{scope}-graph.json", flush=True)
-        else:
-            print(f"  WARNING: could not fetch graph JSON: {out[:200]}", flush=True)
-        time.sleep(PACE_SECONDS)
+        if save_graph:
+            # fullGraph returns the complete non-compacted graph (node
+            # community/degree/coordinates, edge context_matrix, the
+            # nodes-to-statements map) where the server build supports it;
+            # addNodesAndEdges is the fallback that at least fills
+            # knowledgeGraph.{nodes,edges}. includeGraph ALONE returns only
+            # attributes/top_clusters — not a usable export.
+            # (No maxNodes param here: the node cap binds at creation time.)
+            status, out = call_mcporter("analyze_existing_graph_by_name",
+                                        {"graphName": graph_name,
+                                         "includeGraph": True,
+                                         "addNodesAndEdges": True,
+                                         "fullGraph": True})
+            if status == "ok":
+                (root / "infranodus" / f"{scope}-graph.json").write_text(
+                    out, encoding="utf-8")
+                print(f"  saved infranodus/{scope}-graph.json", flush=True)
+            else:
+                print(f"  WARNING: could not fetch graph JSON: {out[:200]}",
+                      flush=True)
+            time.sleep(PACE_SECONDS)
 
     print("all scopes uploaded; manifest updated")
 

@@ -33,41 +33,40 @@ available, in this order:
      accumulate; wikilinksMode/maxNodes bind on the FIRST call that creates
      the graph). Pace calls ~20 s apart and back off minutes, not seconds,
      on rate-limit errors.
-   Then, once a scope's chunks are all uploaded, finish it with BOTH of
-   these — a scope is not done until both exist:
-   - `upload_scopes.py . --record <scopeFile> <graphName> <url>` to write
-     `graphName` + `url` into the manifest.
-   - Call `analyze_existing_graph_by_name` natively with `includeGraph:
-     true` **and `addNodesAndEdges: true`**, and Write the response verbatim
-     to that scope's `graphJson` path from the emitted plan
-     (`infranodus/<scope>-graph.json`, where `<scope>` is the scope file
-     name minus the `repo-`/`vault-` prefix and the `-ontology.md` suffix —
-     `repo-docs-projects-ontology.md` → `infranodus/docs-projects-graph.json`).
+   Then finish:
+   - per scope: `upload_scopes.py . --record <scopeFile> <graphName> <url>`
+     to write `graphName` + `url` into the manifest.
+   - ONCE, after every scope is recorded:
+     `upload_scopes.py . --register-project` — writes the always-on
+     `## infranodus` block into `<project>/CLAUDE.md` so questions about
+     themes, concepts, rationale, and gaps get answered from these graphs
+     instead of by grepping files. **Do not skip this**: without it the
+     graphs exist but nothing ever consults them, which is the whole point
+     of building them.
+   - delete `infranodus/.chunks/`.
 
-   `addNodesAndEdges` is what fills `knowledgeGraph.nodes[]` and
-   `knowledgeGraph.edges[]`. Without it, `includeGraph` returns only
-   `knowledgeGraph.attributes` (modularity, top_clusters, gaps) — useful as
-   a summary, but not a graph you can render or traverse offline.
+   No local graph JSON is written by default. The graphs live on the server
+   and are queried there, so a local copy is a stale duplicate for most
+   uses. Write one ONLY when an offline or renderable export is explicitly
+   wanted — then call `analyze_existing_graph_by_name` with `includeGraph:
+   true`, `addNodesAndEdges: true`, `fullGraph: true` and Write the response
+   to that scope's `graphJson` path from the emitted plan
+   (`infranodus/<scope>-graph.json`).
 
-   A full graph response runs to hundreds of KB. If the harness spills it
-   verbatim to a tool-results file, COPY that file byte-for-byte to the
-   destination instead of retyping the JSON — retyping a 200 KB response
-   risks silent truncation. Verify either way:
-   `python3 -c "import json;kg=json.load(open(P))['knowledgeGraph'];print(len(kg['nodes']),len(kg['edges']))"`
-
-   Node count note: retrieval compacts to the server default (~150 nodes)
-   and `analyze_existing_graph_by_name` has NO `maxNodes` parameter, so a
-   graph created with `maxNodes: 500` still exports ~150. The `fullGraph:
-   true` flag overrides compaction where the server build supports it —
-   check the running server's schema rather than assuming.
-
-   `--record` updates the manifest and nothing else; it does NOT fetch. The
-   fetch-and-save lives inside upload mode (transport 2), so on the native
-   path it only happens if you do it explicitly — and skipping it leaves
-   the local graph JSON this workflow promises silently missing, with a
-   manifest that looks complete.
-
-   Delete `infranodus/.chunks/` once every scope has both.
+   Export notes, when you do take one:
+   - `includeGraph` ALONE returns only `knowledgeGraph.attributes`
+     (modularity, top_clusters, gaps) — a summary, not a graph.
+     `addNodesAndEdges` fills `knowledgeGraph.nodes[]`/`.edges[]`.
+     `fullGraph` additionally returns node community/degree/coordinates,
+     edge `context_matrix`, and the nodes-to-statements map — drop it if the
+     running server build does not expose it (check the tool schema).
+   - Retrieval compacts to ~150 nodes and there is NO `maxNodes` parameter
+     on this endpoint, so a graph built with `maxNodes: 500` still exports
+     ~150 unless `fullGraph` overrides compaction.
+   - A full response runs to hundreds of KB. If the harness spills it to a
+     tool-results file, COPY that file byte-for-byte rather than retyping
+     the JSON — retyping at that size risks silent truncation. Verify:
+     `python3 -c "import json;kg=json.load(open(P))['knowledgeGraph'];print(len(kg['nodes']),len(kg['edges']))"`
 2. **mcporter** — ONLY when no native tools are in the session, and
    `mcporter` is on PATH and configured (`mcporter list infranodus`
    healthy): use the `mcporter call` commands as written below;
@@ -197,6 +196,8 @@ both:
 python3 <SKILL_DIR>/scripts/upload_scopes.py .                    # long-running: use run_in_background
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --prefix repo-myproject
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --force            # re-upload already-uploaded scopes
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --save-graph       # also export infranodus/<scope>-graph.json (opt-in)
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --register-project # REQUIRED once: adds the ## infranodus block to CLAUDE.md
 ```
 
 What it does per scope in `infranodus/manifest.json` (skipping scopes that
@@ -228,12 +229,48 @@ already have a `graphName`, unless `--force`):
   the chunk and retries
 - records `graphName` + `url` back into the manifest (this is what enables
   Step 0 next session)
-- fetches the full graph via `analyze_existing_graph_by_name`
-  (`includeGraph: true`) and saves it as `infranodus/<scope>-graph.json`
+- with `--save-graph` only: fetches each graph via
+  `analyze_existing_graph_by_name` (`includeGraph` + `addNodesAndEdges` +
+  `fullGraph`) and saves it as `infranodus/<scope>-graph.json`. Off by
+  default — the server is the source of truth and every query goes there, so
+  a local copy is a stale duplicate unless you specifically want an offline
+  or renderable export
 
 A large vault can take many minutes (rate limits allow only a few calls per
 15-minute window on some plans) — launch it in the background and check its
 output rather than waiting inline.
+
+## Step 4.5 — Register the project (REQUIRED, both transports)
+
+```bash
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --register-project
+```
+
+Writes the always-on `## infranodus` block into `<project>/CLAUDE.md`,
+delimited by `<!-- infranodus:begin/end -->` markers, so the agent queries
+these graphs for questions about themes, concepts, rationale, and gaps
+instead of grepping files. Idempotent: a re-run REPLACES a stale block
+rather than skipping or duplicating, and content outside the markers is
+untouched.
+
+This is the step that makes the graphs get used. A project can have perfect
+graphs and a complete manifest and still never consult them, because nothing
+tells the agent they exist. Run it once, after all scopes are recorded.
+
+**Build path only.** Never run this while answering a question via the Step 0
+fast path — editing someone's `CLAUDE.md` as a side effect of answering is
+not what they asked for. It belongs to a run that actually built or rebuilt
+graphs.
+
+**Say that you did it.** `CLAUDE.md` is a file the user owns and reads, and
+this change persists across every future session, so it must not be silent.
+One line in the report: "added the `## infranodus` block to `CLAUDE.md` so
+questions route to these graphs — delete the marked block to opt out."
+
+If the project also uses a code-graph tool (graphify and similar), the block
+defers to it for files/symbols/call paths and claims only meaning and
+discourse structure. Keep that boundary — two blocks both claiming "query me
+first" produce conflicting mandates on every question.
 
 ## Step 4 — Report
 
