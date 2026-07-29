@@ -244,6 +244,14 @@ def main():
         manifest_path.write_text(json.dumps(manifest, indent=2),
                                  encoding="utf-8")
         print(f"recorded {fname} -> {graph_name}")
+        scope, _ = scope_graph_name(prefix, fname)
+        graph_json = root / "infranodus" / f"{scope}-graph.json"
+        if not graph_json.exists():
+            print(f"  STILL MISSING: infranodus/{scope}-graph.json — --record "
+                  f"only writes the manifest. Fetch the graph "
+                  f"(analyze_existing_graph_by_name with includeGraph: true, "
+                  f"maxNodes {MAX_NODES}) and Write the response there.",
+                  file=sys.stderr)
         return
 
     if emit_chunks:
@@ -264,7 +272,8 @@ def main():
             plan.append({"scopeFile": fname, "graphName": graph_name,
                          "wikilinksMode": scope_wikilinks_mode(
                              fname, root / meta["file"]),
-                         "maxNodes": MAX_NODES, "chunks": files})
+                         "maxNodes": MAX_NODES, "chunks": files,
+                         "graphJson": f"infranodus/{scope}-graph.json"})
         print(json.dumps(plan, indent=2))
         print("\nupload each chunk via the NATIVE create_knowledge_graph "
               "tool ({graphName, text: <chunk contents>, maxNodes, and the "
@@ -273,8 +282,17 @@ def main():
               "pass its exact contents as text — if a Read truncates, "
               "re-run --emit-chunks with a smaller --chunk-bytes instead "
               "of switching transport (never mcporter while native tools "
-              "exist). Pace calls and back off on rate limits; then run "
-              "--record <scopeFile> <graphName> [url] per scope.",
+              "exist). Pace calls and back off on rate limits.\n\n"
+              "THEN, per scope, BOTH of these — the scope is not done "
+              "until both exist:\n"
+              "  1. --record <scopeFile> <graphName> [url]  (manifest only; "
+              "it does NOT fetch anything)\n"
+              "  2. call analyze_existing_graph_by_name natively with "
+              "{graphName, includeGraph: true, maxNodes} and Write the "
+              "response verbatim to that scope's \"graphJson\" path above. "
+              "Upload mode does this for you; the native path does not, so "
+              "skipping it leaves the workflow's local graph JSON missing.\n\n"
+              "Delete infranodus/.chunks/ once every scope has both.",
               file=sys.stderr)
         return
 

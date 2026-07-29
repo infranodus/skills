@@ -70,7 +70,8 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
 
 0. **Transport:** native InfraNodus MCP tools visible in the session → use
    them directly (uploads via `upload_scopes.py --emit-chunks` + native calls
-   + `--record`); else mcporter; else install mcporter (`npm install -g
+   + `--record` + saving each graph JSON yourself — `--record` writes the
+   manifest only, it does NOT fetch); else mcporter; else install mcporter (`npm install -g
    mcporter`) and, if `INFRANODUS_API_KEY` is missing, AskUserQuestion to get
    a key / OAuth / skip upload. Never install, configure, or CALL mcporter
    when native tools exist — even one already set up on the machine.
@@ -99,9 +100,15 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
    `parentAndConcepts`, so the `## [[page]]` section headings become
    per-statement parent mentions instead of suppressing the prose; link
    scopes → `wikilinksOnly`), records `graphName` + `url` + mode back into
-   `manifest.json`, and saves the fetched graph JSON locally. Never
-   hand-roll `create_knowledge_graph` loops for scope files — large payloads
-   413 and bursts 429.
+   `manifest.json`, and saves the fetched graph JSON as
+   `infranodus/<scope>-graph.json`. Never hand-roll
+   `create_knowledge_graph` loops for scope files — large payloads
+   413 and bursts 429. **On the native path (transport 0) this script's
+   upload mode never runs, so the fetch-and-save is on you** — after
+   `--record`, call `analyze_existing_graph_by_name` with `includeGraph:
+   true` per scope and Write the response to the `graphJson` path in the
+   emitted plan. A scope with a manifest entry but no graph JSON is
+   half-finished.
 5. **Report:** write `INFRANODUS_REPORT.md` from the responses (topics,
    influential concepts, gateways, gaps) and print the graph URLs (viewable in
    browser, Cursor/VSCode extension, Obsidian plugin).

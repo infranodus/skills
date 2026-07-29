@@ -33,8 +33,24 @@ available, in this order:
      accumulate; wikilinksMode/maxNodes bind on the FIRST call that creates
      the graph). Pace calls ~20 s apart and back off minutes, not seconds,
      on rate-limit errors.
-   Finally `upload_scopes.py . --record <scopeFile> <graphName> <url>` per
-   scope to update the manifest. Delete `infranodus/.chunks/` when done.
+   Then, once a scope's chunks are all uploaded, finish it with BOTH of
+   these — a scope is not done until both exist:
+   - `upload_scopes.py . --record <scopeFile> <graphName> <url>` to write
+     `graphName` + `url` into the manifest.
+   - Call `analyze_existing_graph_by_name` natively with `includeGraph:
+     true` and the scope's `maxNodes`, and Write the response verbatim to
+     that scope's `graphJson` path from the emitted plan
+     (`infranodus/<scope>-graph.json`, where `<scope>` is the scope file
+     name minus the `repo-`/`vault-` prefix and the `-ontology.md` suffix —
+     `repo-docs-projects-ontology.md` → `infranodus/docs-projects-graph.json`).
+
+   `--record` updates the manifest and nothing else; it does NOT fetch. The
+   fetch-and-save lives inside upload mode (transport 2), so on the native
+   path it only happens if you do it explicitly — and skipping it leaves
+   the local graph JSON this workflow promises silently missing, with a
+   manifest that looks complete.
+
+   Delete `infranodus/.chunks/` once every scope has both.
 2. **mcporter** — ONLY when no native tools are in the session, and
    `mcporter` is on PATH and configured (`mcporter list infranodus`
    healthy): use the `mcporter call` commands as written below;
