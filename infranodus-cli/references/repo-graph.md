@@ -38,11 +38,28 @@ available, in this order:
    - `upload_scopes.py . --record <scopeFile> <graphName> <url>` to write
      `graphName` + `url` into the manifest.
    - Call `analyze_existing_graph_by_name` natively with `includeGraph:
-     true` and the scope's `maxNodes`, and Write the response verbatim to
-     that scope's `graphJson` path from the emitted plan
+     true` **and `addNodesAndEdges: true`**, and Write the response verbatim
+     to that scope's `graphJson` path from the emitted plan
      (`infranodus/<scope>-graph.json`, where `<scope>` is the scope file
      name minus the `repo-`/`vault-` prefix and the `-ontology.md` suffix —
      `repo-docs-projects-ontology.md` → `infranodus/docs-projects-graph.json`).
+
+   `addNodesAndEdges` is what fills `knowledgeGraph.nodes[]` and
+   `knowledgeGraph.edges[]`. Without it, `includeGraph` returns only
+   `knowledgeGraph.attributes` (modularity, top_clusters, gaps) — useful as
+   a summary, but not a graph you can render or traverse offline.
+
+   A full graph response runs to hundreds of KB. If the harness spills it
+   verbatim to a tool-results file, COPY that file byte-for-byte to the
+   destination instead of retyping the JSON — retyping a 200 KB response
+   risks silent truncation. Verify either way:
+   `python3 -c "import json;kg=json.load(open(P))['knowledgeGraph'];print(len(kg['nodes']),len(kg['edges']))"`
+
+   Node count note: retrieval compacts to the server default (~150 nodes)
+   and `analyze_existing_graph_by_name` has NO `maxNodes` parameter, so a
+   graph created with `maxNodes: 500` still exports ~150. The `fullGraph:
+   true` flag overrides compaction where the server build supports it —
+   check the running server's schema rather than assuming.
 
    `--record` updates the manifest and nothing else; it does NOT fetch. The
    fetch-and-save lives inside upload mode (transport 2), so on the native

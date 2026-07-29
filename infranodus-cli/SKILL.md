@@ -106,8 +106,10 @@ vault, follow [references/repo-graph.md](references/repo-graph.md). Summary:
    413 and bursts 429. **On the native path (transport 0) this script's
    upload mode never runs, so the fetch-and-save is on you** — after
    `--record`, call `analyze_existing_graph_by_name` with `includeGraph:
-   true` per scope and Write the response to the `graphJson` path in the
-   emitted plan. A scope with a manifest entry but no graph JSON is
+   true` AND `addNodesAndEdges: true` per scope and Write the response to
+   the `graphJson` path in the emitted plan (`addNodesAndEdges` is what
+   fills `knowledgeGraph.nodes`/`.edges`; `includeGraph` alone returns only
+   cluster attributes). A scope with a manifest entry but no graph JSON is
    half-finished.
 5. **Report:** write `infranodus/INFRANODUS_REPORT.md` from the responses
    (topics, influential concepts, gateways, gaps) and print the graph URLs

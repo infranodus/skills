@@ -249,8 +249,8 @@ def main():
         if not graph_json.exists():
             print(f"  STILL MISSING: infranodus/{scope}-graph.json — --record "
                   f"only writes the manifest. Fetch the graph "
-                  f"(analyze_existing_graph_by_name with includeGraph: true, "
-                  f"maxNodes {MAX_NODES}) and Write the response there.",
+                  f"(analyze_existing_graph_by_name with includeGraph: true "
+                  f"AND addNodesAndEdges: true) and Write the response there.",
                   file=sys.stderr)
         return
 
@@ -288,10 +288,14 @@ def main():
               "  1. --record <scopeFile> <graphName> [url]  (manifest only; "
               "it does NOT fetch anything)\n"
               "  2. call analyze_existing_graph_by_name natively with "
-              "{graphName, includeGraph: true, maxNodes} and Write the "
-              "response verbatim to that scope's \"graphJson\" path above. "
-              "Upload mode does this for you; the native path does not, so "
-              "skipping it leaves the workflow's local graph JSON missing.\n\n"
+              "{graphName, includeGraph: true, addNodesAndEdges: true} and "
+              "Write the response verbatim to that scope's \"graphJson\" "
+              "path above. addNodesAndEdges is what puts the node and edge "
+              "lists in knowledgeGraph.{nodes,edges} — includeGraph alone "
+              "returns only attributes/top_clusters, which is not a usable "
+              "export. Upload mode does this for you; the native path does "
+              "not, so skipping it leaves the workflow's local graph JSON "
+              "missing.\n\n"
               "Delete infranodus/.chunks/ once every scope has both.",
               file=sys.stderr)
         return
@@ -321,10 +325,15 @@ def main():
         meta["wikilinksMode"] = mode
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
+        # addNodesAndEdges puts the actual node list and edge list into
+        # knowledgeGraph.{nodes,edges}; includeGraph alone returns only
+        # attributes/top_clusters, which is not a usable graph export.
+        # (analyze_existing_graph_by_name has no maxNodes param — the node
+        # cap is bound at creation time by create_knowledge_graph.)
         status, out = call_mcporter("analyze_existing_graph_by_name",
                                     {"graphName": graph_name,
                                      "includeGraph": True,
-                                     "maxNodes": MAX_NODES})
+                                     "addNodesAndEdges": True})
         if status == "ok":
             (root / "infranodus" / f"{scope}-graph.json").write_text(out, encoding="utf-8")
             print(f"  saved infranodus/{scope}-graph.json", flush=True)
