@@ -15,7 +15,13 @@ Handles the two API failure modes deterministically:
     sleeps BACKOFF_SECONDS and retries the same chunk (up to MAX_RETRIES).
 
 Reads infranodus/manifest.json, uploads every scope whose graphName is null
-(all scopes with --force) and records graphName + url back into the manifest.
+(all scopes with --force), and per scope: records the routing metadata into
+the manifest (graphName, url, purpose, topics, gaps — so the agent can pick
+the right graph per question), appends a dated build section to the
+append-only infranodus/INFRANODUS_REPORT.md log, and deletes the scope
+file — scope files are build intermediates (kept on failure/skip, with
+--keep-scopes, or when not marked policy "generated"); the content's home
+is the graphs.
 
 NOTE: uploads to an existing graphName APPEND statements server-side. A
 clean rebuild of an already-uploaded scope requires deleting the graph in
@@ -37,6 +43,8 @@ Usage:
                      (APPENDS to the existing graph — see NOTE above)
   --save-graph       also fetch each uploaded graph and save it as
                      infranodus/<scope>-graph.json (opt-in)
+  --keep-scopes      keep the scope .md files after a successful upload
+                     (e.g. for Obsidian rendering)
   --register-project no upload: write the "## infranodus" always-on block
                      into <project_dir>/CLAUDE.md so the agent queries these
                      graphs for questions instead of grepping files.
@@ -64,6 +72,7 @@ import os
 import re
 import sys
 import time
+from datetime import date
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -382,33 +391,125 @@ def scope_graph_name(prefix, fname):
     return scope, f"{prefix}-{scope}"
 
 
+# --------------------------------------------- routing metadata + insight log
+
+# What each graph is FOR — recorded in the manifest so the agent can route a
+# question to the right graph without any local content files.
+SCOPE_PURPOSES = {
+    "docs": "documentation prose — what the project is, how things work, "
+            "design decisions",
+    "code-rationale": "docstrings and WHY/NOTE/TODO/HACK/FIXME comments — "
+                      "why the code is the way it is",
+    "history": "commit messages, PR descriptions, issue threads — what "
+               "changed, when, and the discussion around it",
+    "vault-links": "the vault's page-link structure — how notes reference "
+                   "each other",
+}
+
+
+def scope_purpose(scope):
+    """Longest-prefix match so filtered scopes (docs-auth) inherit their
+    base purpose with the filter noted."""
+    for base in sorted(SCOPE_PURPOSES, key=len, reverse=True):
+        if scope == base:
+            return SCOPE_PURPOSES[base]
+        if scope.startswith(base + "-"):
+            return (f"{SCOPE_PURPOSES[base]} (filtered scan: "
+                    f"{scope[len(base) + 1:]})")
+    return "project content"
+
+
+def harvest_summary(response_text):
+    """Pull routing metadata out of a create_knowledge_graph response (its
+    text content is a JSON object with mainTopicalClusters / contentGaps /
+    graphUrl). Returns {} when unparseable — metadata is best-effort."""
+    try:
+        data = json.loads(response_text)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out = {}
+    topics = data.get("mainTopicalClusters") or data.get("topicalClusters")
+    if isinstance(topics, list) and topics:
+        out["topics"] = [str(t) for t in topics[:10]]
+    gaps = data.get("contentGaps")
+    if isinstance(gaps, list) and gaps:
+        out["gaps"] = [str(g) for g in gaps[:6]]
+    if isinstance(data.get("graphUrl"), str):
+        out["graphUrl"] = data["graphUrl"]
+    return out
+
+
+REPORT_HEADER = """# InfraNodus log — {project}
+
+Append-only. Builds append a dated section below; query sessions append
+dated insights when something non-obvious is learned. Never rewrite or
+delete existing entries — the history IS the value.
+"""
+
+
+def append_build_log(root, project, entries):
+    """Append one dated build section to infranodus/INFRANODUS_REPORT.md."""
+    if not entries:
+        return
+    path = root / "infranodus" / "INFRANODUS_REPORT.md"
+    lines = [f"\n## Build {date.today().isoformat()}\n"]
+    for e in entries:
+        lines.append(f"### {e['graphName']}" +
+                     (f" — {e['url']}" if e.get("url") else ""))
+        lines.append(f"- purpose: {e['purpose']}")
+        if e.get("topics"):
+            lines.append(f"- topics: {'; '.join(e['topics'])}")
+        if e.get("gaps"):
+            lines.append(f"- gaps: {'; '.join(e['gaps'])}")
+        lines.append("")
+    body = "\n".join(lines)
+    if path.exists():
+        with path.open("a", encoding="utf-8") as f:
+            f.write(body)
+    else:
+        path.write_text(REPORT_HEADER.format(project=project) + body,
+                        encoding="utf-8")
+    print(f"appended build section to {path.relative_to(root)}")
+
+
 # ------------------------------------------------------------- registration
 
 CLAUDE_MD_BEGIN = "<!-- infranodus:begin -->"
 CLAUDE_MD_END = "<!-- infranodus:end -->"
 
-# Static on purpose: graph names are read from manifest.json at query time,
-# so re-scoping or renaming a graph never leaves this block stale.
+# Static on purpose: everything graph-specific (names, purposes, topics)
+# is read from manifest.json at query time, so re-scoping or renaming a
+# graph never leaves this block stale.
 CLAUDE_MD_BLOCK = f"""{CLAUDE_MD_BEGIN}
 ## infranodus
 
-This project's content is indexed as InfraNodus knowledge graphs.
-`infranodus/manifest.json` lists each scope's `graphName`.
+This project's content is indexed as InfraNodus knowledge graphs. The
+content lives ONLY in the graphs — there are no local copies of it.
+`infranodus/manifest.json` is the routing table: per graph it records
+`graphName`, `purpose` (what the graph is for), `topics`, and `gaps`.
 
 Rules:
 - For questions about themes, concepts, rationale, or what is missing or
-  under-developed, query the graphs BEFORE reading or grepping files:
-  `analyze_existing_graph_by_name` (topics, clusters, gaps),
-  `retrieve_from_knowledge_base` (GraphRAG answer over the statements),
-  `generate_content_gaps` (under-connected areas worth developing).
+  under-developed, query the graphs BEFORE reading or grepping files.
+  Route via the manifest: match the question against each graph's
+  `purpose` and `topics`, then call
+  `analyze_existing_graph_by_name` (structure: topics, clusters, gaps),
+  `retrieve_from_knowledge_base` (content: GraphRAG over the statements),
+  `generate_content_gaps` (direction: what to develop next).
 - Read graph names from `infranodus/manifest.json` — do not guess them.
-- `infranodus/INFRANODUS_REPORT.md` has the prose overview: topics,
-  influential concepts, gateways, gaps.
+- `infranodus/INFRANODUS_REPORT.md` is an APPEND-ONLY log: dated build
+  sections plus insights from past sessions. Consult it for prior
+  findings. After answering, append a dated one-line insight ONLY when
+  something non-obvious and reusable was learned (a confirmed gap, a
+  correction, a dead end) — never rewrite or delete existing entries.
 - These graphs cover meaning and discourse structure, NOT code structure.
   For files, symbols, and call paths use the code-graph tool if one is
   installed (e.g. graphify) — the two are complementary, not competing.
 - After adding or substantially editing content, re-run `/infranodus` to
-  refresh the affected scope.
+  refresh the affected scope (delete the old graph in InfraNodus first —
+  uploads to an existing graphName append).
 {CLAUDE_MD_END}
 """
 
@@ -529,6 +630,10 @@ def main():
                          "(APPENDS to the existing graph)")
     ap.add_argument("--save-graph", action="store_true",
                     help="also save infranodus/<scope>-graph.json per scope")
+    ap.add_argument("--keep-scopes", action="store_true",
+                    help="keep the scope .md files after a successful upload "
+                         "(default: they are build intermediates, deleted "
+                         "once their statements live in the graph)")
     ap.add_argument("--register-project", action="store_true",
                     help="write the ## infranodus block into CLAUDE.md")
     ap.add_argument("--register-global", action="store_true",
@@ -575,6 +680,7 @@ def main():
         kind = "vault" if any(k.startswith("vault-") for k in scopes) else "repo"
         prefix = f"{kind}-{project}"
 
+    log_entries = []
     for fname, meta in scopes.items():
         if meta.get("graphName") and not args.force:
             print(f"skip {fname} (already uploaded: {meta['graphName']})")
@@ -585,6 +691,9 @@ def main():
                   f"rebuild delete the graph in InfraNodus first.")
         scope, graph_name = scope_graph_name(prefix, fname)
         path = root / meta["file"]
+        if not path.exists():
+            sys.exit(f"scope file missing: {meta['file']} — scope files are "
+                     "build intermediates; re-run repo2statements.py first")
         text = strip_frontmatter(path)
         chunks = chunk_text(text)
         print(f"{fname} -> {graph_name} ({len(chunks)} chunk(s))", flush=True)
@@ -596,11 +705,29 @@ def main():
             last = upload_chunk(client, graph_name, chunk, mode)
             time.sleep(PACE_SECONDS)
 
+        summary = harvest_summary(last or "")
         meta["graphName"] = graph_name
-        meta["url"] = extract_url(last or "")
+        meta["url"] = summary.get("graphUrl") or extract_url(last or "")
         meta["wikilinksMode"] = mode
+        meta["purpose"] = scope_purpose(scope)
+        if summary.get("topics"):
+            meta["topics"] = summary["topics"]
+        if summary.get("gaps"):
+            meta["gaps"] = summary["gaps"]
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
                                  encoding="utf-8")
+        log_entries.append({"graphName": graph_name, "url": meta["url"],
+                            "purpose": meta["purpose"],
+                            "topics": summary.get("topics"),
+                            "gaps": summary.get("gaps")})
+
+        # Only generated intermediates are deleted — curated scope files
+        # (llm-wiki ontologies etc. sharing this manifest) are human-owned
+        # and must survive every upload.
+        if not args.keep_scopes and meta.get("policy") == "generated":
+            path.unlink()
+            print(f"  removed {meta['file']} (statements now live in "
+                  f"{graph_name}; --keep-scopes retains them)", flush=True)
 
         if args.save_graph:
             status, out = client.call_tool("analyze_existing_graph_by_name",
@@ -617,6 +744,7 @@ def main():
                       flush=True)
             time.sleep(PACE_SECONDS)
 
+    append_build_log(root, root.name, log_entries)
     print("all scopes uploaded; manifest updated")
     if not (root / "CLAUDE.md").exists() or CLAUDE_MD_BEGIN not in (
             root / "CLAUDE.md").read_text(encoding="utf-8"):

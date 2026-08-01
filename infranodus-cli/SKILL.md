@@ -78,8 +78,12 @@ When asked to graph, analyze, or ask questions about a repo, project, or
 Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
 — it is the single authoritative runbook. In short:
 
-1. `infranodus/manifest.json` exists + the request is a question → query
-   the existing graphs; do NOT re-extract.
+1. `infranodus/manifest.json` exists + the request is a question → route
+   via the manifest (each graph records its `purpose` and `topics`) and
+   query the graphs; do NOT re-extract. The content lives only in the
+   graphs — there are no local content files.
 2. Build: `python3 scripts/repo2statements.py .` (deterministic extraction)
-   → `python3 scripts/upload_scopes.py .` (upload, run in background)
-   → `upload_scopes.py . --register-project` (once) → write the report.
+   → `python3 scripts/upload_scopes.py .` (upload, run in background —
+   records routing metadata into the manifest, appends a dated section to
+   the append-only `INFRANODUS_REPORT.md` log, deletes the intermediate
+   scope files) → `upload_scopes.py . --register-project` (once).

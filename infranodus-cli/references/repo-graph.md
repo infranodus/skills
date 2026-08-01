@@ -76,11 +76,15 @@ node names. `--vault` maps ONLY the structure, no content mining.
 Each scope file declares its upload mode in frontmatter (`wikilinksMode:
 parentAndConcepts` for prose — the `## [[page]]` heading travels as a
 per-statement parent without suppressing the prose; `wikilinksOnly` for
-link scopes — only `[[page]]` wikilinks become nodes). Files carry
-`generated: true` → they are regenerated, never hand-edited (curated
-ontologies from the llm-wiki skill lack that flag and stay append-only).
+link scopes — only `[[page]]` wikilinks become nodes).
 Likely-secret files (`.env*`, keys, anything named credential/secret/apikey)
 are never mined. The script also creates/updates `infranodus/manifest.json`.
+
+**Scope files are build intermediates, not artifacts.** The uploader
+deletes each one after its statements are safely in the graph (they stay
+if the upload fails or is skipped, and `--keep-scopes` retains them — e.g.
+to render in Obsidian). The persistent local record is the manifest + the
+insight log; the content lives in the graphs.
 
 ## Step 3 — Upload (one graph per scope)
 
@@ -96,8 +100,14 @@ script chunks on heading-aware line boundaries, paces calls 20 s apart,
 backs off 5 min on 429s, bisects on 413s, uploads all chunks of a scope
 under ONE `graphName` (`repo-<project>-<scope>` / `vault-<project>-<scope>`),
 sets `maxNodes: 500` and the scope's declared `wikilinksMode` (these bind
-when the graph is FIRST created), and records `graphName` + `url` back into
-the manifest — which is what enables the Step 0 fast path next session.
+when the graph is FIRST created), and then, per scope:
+
+- records the **routing metadata** into the manifest: `graphName`, `url`,
+  `purpose` (what the graph is for), `topics` and `gaps` (harvested from
+  the upload response) — this is what enables the Step 0 fast path and
+  question routing next session;
+- appends a dated build section to `infranodus/INFRANODUS_REPORT.md`;
+- deletes the scope file (see Step 2; `--keep-scopes` retains it).
 
 **Append rule:** uploads to an existing `graphName` APPEND statements
 server-side. A clean rebuild of an already-uploaded scope = delete the
@@ -134,29 +144,22 @@ they exist and nothing ever consults them.
   block defers to it for files/symbols/call paths and claims only meaning
   and discourse structure. Keep that boundary.
 
-## Step 5 — Report
+## Step 5 — The insight log (append-only)
 
-Write `infranodus/INFRANODUS_REPORT.md` (alongside the manifest and scope
-files, not the project root) from the upload responses — no extra analysis
-calls; the response already contains everything:
+`infranodus/INFRANODUS_REPORT.md` is a LOG, not a snapshot. The uploader
+already appended this build's dated section (per graph: purpose, topics,
+gaps, URL). Do not rewrite it into a report — at most append one short
+dated paragraph of your own reading of the results (e.g. "docs and history
+scopes barely overlap — decisions are discussed in PRs but never
+documented") if it adds something the raw sections don't say.
 
-```markdown
-# InfraNodus Report — <project>
-Graphs: <scope>: <graphName> (<url>) …  |  Built: <date>
-
-## Structure             <- modularity + diversity_stats in plain language
-## Main topics           <- mainTopicalClusters
-## Most influential      <- topInfluentialNodes (betweenness)
-## Gateways              <- conceptualGateways (bridges between clusters)
-## Gaps / what's missing <- contentGaps — for a repo: rationale clusters
-                            that never touch; candidate docs/refactors
-## Per-cluster graphs    <- knowledgeGraphByCluster (DOT, in <details>)
-```
-
-Print the graph URL(s) at the end — they open in the browser, the
-InfraNodus VSCode/Cursor extension, and the Obsidian plugin.
+Finish the build by printing the graph URL(s) — they open in the browser,
+the InfraNodus VSCode/Cursor extension, and the Obsidian plugin.
 
 ## Query mode (after a graph exists)
+
+Route via the manifest: match the question against each graph's `purpose`
+and `topics`, then:
 
 - Structure questions ("main themes", "how organized") →
   `analyze_existing_graph_by_name`
@@ -165,6 +168,12 @@ InfraNodus VSCode/Cursor extension, and the Obsidian plugin.
 - Direction questions ("what's missing", "what next") →
   `generate_content_gaps`, then optionally `generate_research_questions`
 
+Consult the insight log's past entries before answering; after answering,
+APPEND a dated one-line insight ONLY when something non-obvious and
+reusable was learned — a confirmed gap, a user correction, a dead end
+("[[X]] not covered by any scope"). Routine successful answers are not
+logged. Never rewrite or delete existing entries.
+
 ## Conventions
 
 - **Shared wikilink namespace:** file paths appear verbatim as
@@ -172,12 +181,12 @@ InfraNodus VSCode/Cursor extension, and the Obsidian plugin.
   keys that let merged and difference views stitch scopes together. Never
   paraphrase a path.
 - **Separate graphs per scope** by default; merged view on demand via
-  `merged_graph_from_texts` over the scope files; cross-scope comparison
-  via `difference_between_texts` (e.g. docs vs history = "discussed but
-  never documented").
-- **Obsidian:** the scope files are plain md with wikilinks — copied into a
-  vault, the InfraNodus Obsidian plugin renders them in "[[Wiki Links]] and
-  Concepts" mode.
+  `merged_graph_from_texts` with `{graphName}` contexts; cross-scope
+  comparison via `difference_between_texts` the same way (e.g. docs vs
+  history = "discussed but never documented"). No local files needed.
+- **Obsidian:** upload with `--keep-scopes` to retain the scope files —
+  plain md with wikilinks; copied into a vault, the InfraNodus Obsidian
+  plugin renders them in "[[Wiki Links]] and Concepts" mode.
 - In an llm-wiki project (wiki CLAUDE.md schema present), this workflow
   complements the curated ontologies: same `infranodus/` folder, same
   manifest; only `generated: true` files are ever overwritten.
