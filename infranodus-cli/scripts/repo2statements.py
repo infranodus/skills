@@ -49,6 +49,17 @@ MAX_FILE_BYTES = 1_000_000
 MAX_STATEMENT_CHARS = 1000
 MIN_DOCSTRING_CHARS = 40
 
+# Never mine (or upload) likely-secret material. Matched against the file
+# NAME, case-insensitive. Scope files feed a cloud service — err on the
+# side of skipping.
+SENSITIVE_NAME_RE = re.compile(
+    r"^\.env(\..+)?$|^\.?(npmrc|netrc|pgpass|htpasswd)$"
+    r"|^id_(rsa|dsa|ecdsa|ed25519)(\..*)?$"
+    r"|\.(pem|key|p12|pfx|keystore|jks)$"
+    r"|credential|secret|api[_-]?key",
+    re.IGNORECASE,
+)
+
 TAG_RE = re.compile(
     r"(?:#|//|/\*+|\*|<!--|--|;)\s*(WHY|NOTE|TODO|HACK|FIXME)\b[:\s-]\s*(.+)",
     re.IGNORECASE,
@@ -77,6 +88,8 @@ def iter_files(root: Path):
             continue
         rel = p.relative_to(root).as_posix()
         if any(part in SKIP_DIRS for part in p.relative_to(root).parts):
+            continue
+        if SENSITIVE_NAME_RE.search(p.name):
             continue
         if INCLUDE_PREFIXES and not any(
             rel == pref or rel.startswith(pref.rstrip("/") + "/")
@@ -466,8 +479,8 @@ def main() -> int:
     update_manifest(out_dir, written)
     for fname, count in written.items():
         print(f"infranodus/{fname}: {count} statements")
-    print("next: upload each scope via create_knowledge_graph, then record "
-          "graphName + url in infranodus/manifest.json")
+    print("next: python3 upload_scopes.py <path>  (uploads each scope and "
+          "records graphName + url in infranodus/manifest.json)")
     return 0
 
 

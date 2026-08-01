@@ -1,355 +1,183 @@
 # Repo / Vault Graphs — the /infranodus folder workflow
 
 Build a knowledge graph of the current repo or Obsidian vault, save it to
-InfraNodus, store everything locally, and write a report. Deterministic
-collection (no LLM), server-side graph computation.
+InfraNodus, and write a report. Deterministic collection (no LLM),
+server-side graph computation. Division of labor:
 
-## Transport — pick ONCE, before anything else
+- **Uploads** (bulk writes): `scripts/upload_scopes.py` talks to the MCP
+  server itself over HTTP. It discovers its credential on its own —
+  `INFRANODUS_API_KEY` env var, else the key of an already-configured local
+  `infranodus` MCP server entry (`.mcp.json`, `~/.claude.json`, …) — so a
+  locally-installed MCP server needs no extra setup. The agent never
+  carries scope-file contents through its own context.
+- **Queries** (reads): the session's native InfraNodus MCP tools
+  (`mcp__infranodus__<tool>` or the connector's equivalents).
 
-All InfraNodus calls in this workflow go through whichever transport is
-available, in this order:
-
-1. **Native MCP tools** — if InfraNodus tools are already visible in this
-   session (tool names like `mcp__infranodus__create_knowledge_graph` or an
-   InfraNodus connector), **use them directly** for every query AND for
-   uploads. Do not install, configure, or call mcporter — a working mcporter
-   already on the machine changes nothing; while native tools exist it is
-   dead to this workflow. For uploads, do NOT run `upload_scopes.py`'s
-   upload mode — instead:
-   ```bash
-   python3 <SKILL_DIR>/scripts/upload_scopes.py . --emit-chunks
-   ```
-   Emit mode writes chunks of ≤45 KB — deliberately smaller than the API's
-   payload limit so each chunk fits through the agent context in ONE full
-   Read. Then per scope, for each chunk file IN ORDER:
-   - Read the chunk file COMPLETELY (one Read; no offset/limit slicing).
-     If the Read comes back truncated, do not upload the partial text and
-     do not switch transport — re-run with a smaller size, e.g.
-     `--emit-chunks --chunk-bytes 30000`, and start that scope over.
-   - Call `create_knowledge_graph` natively with the chunk's exact contents
-     as `text` (byte-exact — strip only the Read tool's line-number
-     prefixes, change nothing else) plus that scope's `graphName`,
-     `maxNodes`, and `wikilinksMode` from the printed plan (statements
-     accumulate; wikilinksMode/maxNodes bind on the FIRST call that creates
-     the graph). Pace calls ~20 s apart and back off minutes, not seconds,
-     on rate-limit errors.
-   Then finish:
-   - per scope: `upload_scopes.py . --record <scopeFile> <graphName> <url>`
-     to write `graphName` + `url` into the manifest.
-   - ONCE, after every scope is recorded:
-     `upload_scopes.py . --register-project` — writes the always-on
-     `## infranodus` block into `<project>/CLAUDE.md` so questions about
-     themes, concepts, rationale, and gaps get answered from these graphs
-     instead of by grepping files. **Do not skip this**: without it the
-     graphs exist but nothing ever consults them, which is the whole point
-     of building them.
-   - delete `infranodus/.chunks/`.
-
-   No local graph JSON is written by default. The graphs live on the server
-   and are queried there, so a local copy is a stale duplicate for most
-   uses. Write one ONLY when an offline or renderable export is explicitly
-   wanted — then call `analyze_existing_graph_by_name` with `includeGraph:
-   true`, `addNodesAndEdges: true`, `fullGraph: true` and Write the response
-   to that scope's `graphJson` path from the emitted plan
-   (`infranodus/<scope>-graph.json`).
-
-   Export notes, when you do take one:
-   - `includeGraph` ALONE returns only `knowledgeGraph.attributes`
-     (modularity, top_clusters, gaps) — a summary, not a graph.
-     `addNodesAndEdges` fills `knowledgeGraph.nodes[]`/`.edges[]`.
-     `fullGraph` additionally returns node community/degree/coordinates,
-     edge `context_matrix`, and the nodes-to-statements map — drop it if the
-     running server build does not expose it (check the tool schema).
-   - Retrieval compacts to ~150 nodes and there is NO `maxNodes` parameter
-     on this endpoint, so a graph built with `maxNodes: 500` still exports
-     ~150 unless `fullGraph` overrides compaction.
-   - A full response runs to hundreds of KB. If the harness spills it to a
-     tool-results file, COPY that file byte-for-byte rather than retyping
-     the JSON — retyping at that size risks silent truncation. Verify:
-     `python3 -c "import json;kg=json.load(open(P))['knowledgeGraph'];print(len(kg['nodes']),len(kg['edges']))"`
-2. **mcporter** — ONLY when no native tools are in the session, and
-   `mcporter` is on PATH and configured (`mcporter list infranodus`
-   healthy): use the `mcporter call` commands as written below;
-   `upload_scopes.py` upload mode uses it automatically.
-3. **Neither** — extraction still works (local scope files are always built);
-   for upload/queries, attempt setup:
-   - `npm install -g mcporter` (needs Node; if npm is missing, stop and tell
-     the user what to install).
-   - If `INFRANODUS_API_KEY` is not set, AskUserQuestion: **A)** paste an API
-     key now (from infranodus.com → settings → API access — recommended),
-     **B)** OAuth browser login (`mcporter auth infranodus`), **C)** skip
-     upload — keep local files only (they still render in Obsidian).
-   - Then `mcporter config add infranodus ...` (see SKILL.md Setup & Auth)
-     and continue as transport 2.
+Before an upload, `upload_scopes.py --check-auth` verifies a credential
+exists and works. If it finds none (env unset and no local MCP entry — a
+cloud OAuth connector holds its token remotely), AskUserQuestion once:
+**A)** paste an API key (infranodus.com → settings → API access —
+recommended), **B)** skip upload — keep the local scope files only (they
+still render in Obsidian).
 
 ## Step 0 — Fast path (ALWAYS check first)
 
-If `infranodus/manifest.json` exists in the project root AND the user is asking
-a question (not requesting a build/update): **do not re-extract**. Answer from
-the existing graphs:
+If `infranodus/manifest.json` exists in the project root AND the user is
+asking a question (not requesting a build/update): **do not re-extract**.
+Answer from the existing graphs (graph names from the manifest — never
+guess them):
+
+- structure / clusters / influence / gaps → `analyze_existing_graph_by_name`
+- specific question, GraphRAG over the statements →
+  `retrieve_from_knowledge_base` with the question as `prompt`
+- "what is missing / what should we work on" → `generate_content_gaps`,
+  then optionally `generate_research_questions`
+
+Rebuild only when the user says so ("rebuild", "refresh", "--update") or
+when the repo clearly changed since `manifest.json`'s `updated` dates.
+
+## Step 1 — Scope (default: full scan, no questions)
+
+If the user named a target ("graph the docs folder", "analyze notes
+mentioning trading"), map it straight to flags: `--include <path>`
+(repeatable), `--term <word>` (repeatable, any-of), `--vault` (link
+structure only). Filtered scans write suffixed scope files and graphs that
+never clobber the full scan.
+
+Otherwise run the full scan without asking. Only when a quick inventory
+shows the corpus is very large (roughly >500 candidate files or >2 MB of
+docs/md) ask ONE AskUserQuestion: full scan anyway, or narrow to one of the
+3–4 biggest top-level folders (listed as options, plus Other for a path or
+terms).
+
+## Step 2 — Extract
 
 ```bash
-# structure / clusters / influence / gaps of the whole project:
-mcporter call infranodus.analyze_existing_graph_by_name --args '{"graphName": "<from manifest>"}'
-# specific question, GraphRAG over the statements:
-mcporter call infranodus.retrieve_from_knowledge_base --args '{"graphName": "<from manifest>", "prompt": "<user question>"}'
-# "what is missing / what should we work on":
-mcporter call infranodus.generate_content_gaps --args '{"graphName": "<from manifest>"}'
-```
-
-(As everywhere in this skill: with native MCP tools available, call
-`mcp__infranodus__<tool>` directly with the same arguments instead of these
-`mcporter call` commands.)
-
-Rebuild only when the user says so (`--update`, "rebuild", "refresh") or when
-the repo clearly changed since `manifest.json`'s `updated` dates.
-
-## Step 1 — Understand the corpus, then ASK what to build
-
-On a bare launch (user asked to graph/analyze the project without naming a
-target), do a quick inventory first — top-level folders, md/code file counts,
-biggest docs — e.g.:
-
-```bash
-ls -d */ | head -20; find . -name "*.md" -not -path "./node_modules/*" | wc -l
-```
-
-Then use **AskUserQuestion** (single question, not multiSelect) following this
-structure: one sentence re-grounding (what folder, what you detected — "this
-is an Obsidian vault with 480 notes in 7 folders"), then the options:
-
-1. **Full graph (Recommended)** — everything the bare scan covers: all
-   docs/notes + link structure (vault) or docs + code rationale + git/PR
-   history (repo). → `repo2statements.py .`
-2. **A specific folder only** — follow-up AskUserQuestion listing the
-   top-level folders from the inventory as options (+ Other for a path).
-   → `repo2statements.py . --include <folder>`
-3. **Only documents containing certain terms** — follow-up question for the
-   terms (seed options with 2-3 themes evident from folder/file names; Other
-   for custom; multiple terms = any-of match).
-   → `repo2statements.py . --term "<term1>" --term "<term2>"`
-4. **A specific document only** — follow-up listing 3 notable candidates
-   (largest / most-linked md files) + Other for a path.
-   → `repo2statements.py . --include <path/to/doc.md>`
-5. Handled by AskUserQuestion's built-in **Other**: a user-defined scope in
-   free text — map it to the closest flag combination (`--include` and/or
-   `--term`; both compose, `--vault` for structure-only).
-
-Skip the question entirely when the user already named the target ("graph the
-docs folder", "analyze notes mentioning trading") — map straight to the flags.
-Filtered scans get their own suffixed scope files and graphs
-(`repo-docs-<slug>-ontology.md`), so they never clobber the full scan — a
-later full run can coexist with them in the same manifest.
-
-## Step 2 — Extract (detection is inside the script)
-
-Run the bundled script (stdlib-only Python 3, no dependencies):
-
-```bash
-python3 <SKILL_DIR>/scripts/repo2statements.py .            # bare launch: full scan
+python3 <SKILL_DIR>/scripts/repo2statements.py .            # full scan
 python3 <SKILL_DIR>/scripts/repo2statements.py . --vault    # vault STRUCTURE only
 ```
 
-**Bare launch** mines the natural-language layer (code-structure extraction is
-deferred — do not attempt it by reading source files yourself):
+Stdlib-only, deterministic, no LLM. A bare launch mines the
+natural-language layer (code-structure extraction is deferred — do not
+attempt it by reading source files yourself):
+
 - `repo-docs-ontology.md` — md/rst/txt paragraphs, grouped under
-  `## [[<filepath>]]` section headings (the parent-page contract of the
-  MCP `parentAndConcepts`/`obsidianStyle` wikilinksMode: the heading sets
-  each statement's parent page while keeping the statement text clean)
+  `## [[<filepath>]]` section headings
 - `repo-code-rationale-ontology.md` — docstrings + `WHY:`/`NOTE:`/`TODO:`/
-  `HACK:`/`FIXME:` comments, tagged `#docstring` / `#why` / `#note` / …,
-  grouped under the same `## [[<filepath>]]` headings
-- `repo-history-ontology.md` — commit-message bodies (`#commit`), PR
-  descriptions (`#pr`), issue threads (`#issue`) via `git` and `gh`
+  `HACK:`/`FIXME:` comments, tagged `#docstring` / `#why` / …, same headings
+- `repo-history-ontology.md` — commit bodies (`#commit`), PR descriptions
+  (`#pr`), issue threads (`#issue`) via `git` and `gh`
 
-Each generated file declares its intended processing in the frontmatter
-(`wikilinksMode: parentAndConcepts` / `wikilinksOnly`) — any consumer that
-processes a scope file separately (e.g. straight through the MCP tools)
-should honor that declared mode.
+In an Obsidian/md vault (auto-detected: `.obsidian/` or md-dominated) it
+ALSO maps the page-link structure (`vault-links-ontology.md`) and names doc
+sections after page stems (`## [[Page A]]`) so content and link scopes share
+node names. `--vault` maps ONLY the structure, no content mining.
 
-The script auto-detects a vault (`.obsidian/` present, or md-dominated
-folder). On a bare launch in a vault it ALSO runs the link scan
-(`vault-links-ontology.md`) and names doc sections after the Obsidian page
-stems (`## [[Page A]]` instead of `## [[notes/Page A.md]]`) so the content
-scope and the link scope share node names and stitch into one graph.
-
-**`--vault` flag** = map the vault structure ONLY: just
-`vault-links-ontology.md` with one `[[Page A]] links to [[Page B]]` statement
-per page connection, no content mining.
-
-The script also creates/updates `infranodus/manifest.json` (the scope
-registry). Files carry `generated: true` frontmatter → they are regenerated,
-never hand-edited or appended to (curated ontologies from the llm-wiki skill
-lack that flag and stay append-only).
+Each scope file declares its upload mode in frontmatter (`wikilinksMode:
+parentAndConcepts` for prose — the `## [[page]]` heading travels as a
+per-statement parent without suppressing the prose; `wikilinksOnly` for
+link scopes — only `[[page]]` wikilinks become nodes). Files carry
+`generated: true` → they are regenerated, never hand-edited (curated
+ontologies from the llm-wiki skill lack that flag and stay append-only).
+Likely-secret files (`.env*`, keys, anything named credential/secret/apikey)
+are never mined. The script also creates/updates `infranodus/manifest.json`.
 
 ## Step 3 — Upload (one graph per scope)
 
-On transport 1 (native tools in session) SKIP this section's upload mode —
-use the `--emit-chunks` native procedure from the Transport section above;
-running the uploader here would route through mcporter. On transport 2, run
-the bundled uploader — do NOT hand-roll `mcporter call
-create_knowledge_graph` loops for scope files; the API rejects payloads over
-~100 KB with a 413 and rate-limits bursts with a 429, and the script handles
-both:
-
 ```bash
-python3 <SKILL_DIR>/scripts/upload_scopes.py .                    # long-running: use run_in_background
+python3 <SKILL_DIR>/scripts/upload_scopes.py .            # long-running: use run_in_background
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --prefix repo-myproject
-python3 <SKILL_DIR>/scripts/upload_scopes.py . --force            # re-upload already-uploaded scopes
-python3 <SKILL_DIR>/scripts/upload_scopes.py . --save-graph       # also export infranodus/<scope>-graph.json (opt-in)
-python3 <SKILL_DIR>/scripts/upload_scopes.py . --register-project # REQUIRED once: adds the ## infranodus block to CLAUDE.md
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --force    # re-upload (APPENDS — see below)
 ```
 
-What it does per scope in `infranodus/manifest.json` (skipping scopes that
-already have a `graphName`, unless `--force`):
+Do NOT hand-roll `create_knowledge_graph` loops over scope files — the API
+rejects payloads over ~100 KB (413) and rate-limits bursts (429); the
+script chunks on heading-aware line boundaries, paces calls 20 s apart,
+backs off 5 min on 429s, bisects on 413s, uploads all chunks of a scope
+under ONE `graphName` (`repo-<project>-<scope>` / `vault-<project>-<scope>`),
+sets `maxNodes: 500` and the scope's declared `wikilinksMode` (these bind
+when the graph is FIRST created), and records `graphName` + `url` back into
+the manifest — which is what enables the Step 0 fast path next session.
 
-- strips frontmatter, splits the text into ≤80 KB line-boundary chunks, and
-  uploads them all under ONE `graphName` (`repo-<project>-<scope>` /
-  `vault-<project>-<scope>`, auto-derived; override with `--prefix`) —
-  statements accumulate in one context
-- sets `maxNodes: 500` (the server default of 150 truncates repo/vault-sized
-  corpora) and a per-scope `wikilinksMode` (recorded in the manifest):
-  **link scopes** (`vault-links`) → `"wikilinksOnly"`, so only the `[[page]]`
-  wikilinks become nodes — without it the repeated words "links"/"to" would
-  form a fake hub; **prose scopes** (docs, rationale, history) →
-  `"parentAndConcepts"`, where the `## [[page]]` section heading (or a
-  `[[Page]]: ` line prefix) travels as a per-statement parent category
-  (mention) instead of inline text — the page node connects to its
-  statements' concepts WITHOUT suppressing the prose (an inline `[[Page]]`
-  hashtag prefix makes the engine drop every non-wikilink word of that
-  statement). The mode comes from the scope file's own frontmatter
-  declaration when present. Chunking is heading-aware: a section split
-  across chunks gets its heading re-emitted so no statement loses its
-  parent. Both modes keep `[[name]]`-style node names, so all scopes
-  merge/compare cleanly. These settings bind when the graph is first
-  created; an existing graph keeps its original settings (delete it in
-  InfraNodus and re-upload with `--force` to change them)
-- paces calls 20 s apart; on a 429 waits 5 min and retries the same chunk
-  (up to 24 times — observed lockouts can exceed an hour); on a 413 bisects
-  the chunk and retries
-- records `graphName` + `url` back into the manifest (this is what enables
-  Step 0 next session)
-- with `--save-graph` only: fetches each graph via
-  `analyze_existing_graph_by_name` (`includeGraph` + `addNodesAndEdges` +
-  `fullGraph`) and saves it as `infranodus/<scope>-graph.json`. Off by
-  default — the server is the source of truth and every query goes there, so
-  a local copy is a stale duplicate unless you specifically want an offline
-  or renderable export
+**Append rule:** uploads to an existing `graphName` APPEND statements
+server-side. A clean rebuild of an already-uploaded scope = delete the
+graph in InfraNodus first, then `--force`. `--force` without deleting
+duplicates every statement.
 
-A large vault can take many minutes (rate limits allow only a few calls per
-15-minute window on some plans) — launch it in the background and check its
-output rather than waiting inline.
+`--save-graph` additionally exports `infranodus/<scope>-graph.json` per
+scope — opt-in only, for offline/renderable copies; the server is the
+source of truth and every query goes there.
 
-## Step 4.5 — Register the project (REQUIRED, both transports)
+A large corpus can take many minutes (rate limits allow only a few calls
+per window on some plans) — launch in the background and check its output
+rather than waiting inline.
+
+## Step 4 — Register the project (REQUIRED, once)
 
 ```bash
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --register-project
 ```
 
-Writes the always-on `## infranodus` block into `<project>/CLAUDE.md`,
-delimited by `<!-- infranodus:begin/end -->` markers, so the agent queries
-these graphs for questions about themes, concepts, rationale, and gaps
-instead of grepping files. Idempotent: a re-run REPLACES a stale block
-rather than skipping or duplicating, and content outside the markers is
-untouched.
+Writes the always-on `## infranodus` block into `<project>/CLAUDE.md`
+(marker-delimited, idempotent: a re-run replaces a stale block; content
+outside the markers is untouched) so future sessions query these graphs for
+questions about themes, concepts, rationale, and gaps instead of grepping
+files. **This is the step that makes the graphs get used** — without it
+they exist and nothing ever consults them.
 
-This is the step that makes the graphs get used. A project can have perfect
-graphs and a complete manifest and still never consult them, because nothing
-tells the agent they exist. Run it once, after all scopes are recorded.
+- **Build path only.** Never run it while answering a question via the
+  Step 0 fast path — editing CLAUDE.md is not what a question asked for.
+- **Say that you did it.** One line in the report: "added the
+  `## infranodus` block to `CLAUDE.md` so questions route to these graphs —
+  delete the marked block to opt out."
+- If the project also uses a code-graph tool (graphify and similar), the
+  block defers to it for files/symbols/call paths and claims only meaning
+  and discourse structure. Keep that boundary.
 
-**Build path only.** Never run this while answering a question via the Step 0
-fast path — editing someone's `CLAUDE.md` as a side effect of answering is
-not what they asked for. It belongs to a run that actually built or rebuilt
-graphs.
+## Step 5 — Report
 
-**Say that you did it.** `CLAUDE.md` is a file the user owns and reads, and
-this change persists across every future session, so it must not be silent.
-One line in the report: "added the `## infranodus` block to `CLAUDE.md` so
-questions route to these graphs — delete the marked block to opt out."
-
-If the project also uses a code-graph tool (graphify and similar), the block
-defers to it for files/symbols/call paths and claims only meaning and
-discourse structure. Keep that boundary — two blocks both claiming "query me
-first" produce conflicting mandates on every question.
-
-## Step 4 — Report
-
-Write `infranodus/INFRANODUS_REPORT.md` — alongside the manifest, scope files,
-and graph JSON, so every artifact this workflow produces lives in one folder —
-from the upload responses. No extra analysis calls; the response already
-contains everything:
+Write `infranodus/INFRANODUS_REPORT.md` (alongside the manifest and scope
+files, not the project root) from the upload responses — no extra analysis
+calls; the response already contains everything:
 
 ```markdown
 # InfraNodus Report — <project>
 Graphs: <scope>: <graphName> (<url>) …  |  Built: <date>
 
-## Structure
-<modularity + diversity_stats in plain language: "focused — most discussion
-concentrates in N of M clusters">
-
-## Main topics            <- mainTopicalClusters
-## Most influential       <- topInfluentialNodes (betweenness)
-## Gateways               <- conceptualGateways (bridges between clusters)
-## Gaps / what's missing  <- contentGaps — for a repo: rationale clusters that
-                             never touch (e.g. caching decisions vs deploy
-                             discussions); candidate docs/refactor targets
-## Per-cluster graphs     <- knowledgeGraphByCluster (DOT, in <details> blocks)
+## Structure             <- modularity + diversity_stats in plain language
+## Main topics           <- mainTopicalClusters
+## Most influential      <- topInfluentialNodes (betweenness)
+## Gateways              <- conceptualGateways (bridges between clusters)
+## Gaps / what's missing <- contentGaps — for a repo: rationale clusters
+                            that never touch; candidate docs/refactors
+## Per-cluster graphs    <- knowledgeGraphByCluster (DOT, in <details>)
 ```
 
-Print the graph URL(s) at the end — they open in the browser, the InfraNodus
-VSCode/Cursor extension, and the 3D view.
+Print the graph URL(s) at the end — they open in the browser, the
+InfraNodus VSCode/Cursor extension, and the Obsidian plugin.
 
 ## Query mode (after a graph exists)
 
-- Structure questions ("what are the main themes", "how organized") →
+- Structure questions ("main themes", "how organized") →
   `analyze_existing_graph_by_name`
 - Content questions ("how does X work", "what was decided about Y") →
   `retrieve_from_knowledge_base` with the question as `prompt`
 - Direction questions ("what's missing", "what next") →
   `generate_content_gaps`, then optionally `generate_research_questions`
 
-### Learning loop (graph memory)
-
-Past query outcomes are stored as a small InfraNodus memory graph so every
-session gets smarter about THIS project. Memory context name:
-`<prefix>-memory` (same prefix as the scopes, e.g. `repo-myproject-memory`);
-record it in `infranodus/manifest.json` under a top-level `"memoryGraph"` key
-the first time you create it.
-
-**Recall — at the START of query mode:** if the manifest has `memoryGraph`,
-call `memory_get_relations` with `memoryContextName` (add `entity:
-"[[<concept>]]"` when the question names one) and fold any returned lessons
-into how you answer — e.g. which scope answered this topic before, or a
-correction the user made.
-
-**Store — AFTER answering, sparingly.** Save a lesson only when it is
-non-obvious and reusable: which scope/graph turned out to answer a topic, a
-user correction, a dead end ("X is not covered by any scope"). Do NOT log
-routine successful answers. Call `memory_add_relations` with one statement
-per lesson, entities in `[[wikilinks]]`, outcome as a hashtag:
-
-```
-[[caching]] questions answered best by [[repo-myproject-history]] scope #useful
-[[auth flow]] not covered by any scope — docs gap #dead-end
-user corrected: [[session tokens]] rotate weekly not daily #corrected
-```
-
-These statements form a graph themselves — recurring `#dead-end` entities
-cluster into visible documentation gaps over time.
-
 ## Conventions
 
 - **Shared wikilink namespace:** file paths appear verbatim as
   `[[src/auth/service.py]]` in every scope — identical strings are the join
-  keys that let multi-context and merged views stitch scopes together. Never
+  keys that let merged and difference views stitch scopes together. Never
   paraphrase a path.
 - **Separate graphs per scope** by default; merged view on demand via
-  `merged_graph_from_texts` over the scope files, cross-scope comparison via
-  `generate_difference_graph_from_text` (e.g. docs scope vs history scope =
-  "what's discussed but never documented").
-- **Obsidian:** the scope files are plain md with wikilinks — copy (or
-  generate) them into a vault and the InfraNodus Obsidian plugin renders them
-  in "[[Wiki Links]] and Concepts" mode.
+  `merged_graph_from_texts` over the scope files; cross-scope comparison
+  via `difference_between_texts` (e.g. docs vs history = "discussed but
+  never documented").
+- **Obsidian:** the scope files are plain md with wikilinks — copied into a
+  vault, the InfraNodus Obsidian plugin renders them in "[[Wiki Links]] and
+  Concepts" mode.
 - In an llm-wiki project (wiki CLAUDE.md schema present), this workflow
   complements the curated ontologies: same `infranodus/` folder, same
   manifest; only `generated: true` files are ever overwritten.

@@ -110,35 +110,30 @@ else
 fi
 
 echo
-echo "Transport preflight (runtime fallback order: native MCP > mcporter > install):"
+echo "Preflight:"
 
 if grep -rqs '"infranodus"' "$HOME/.claude.json" "$HOME/.claude/settings.json" \
      "$(pwd)/.mcp.json" 2>/dev/null; then
   echo "  [ok] an 'infranodus' MCP server appears in your agent config —"
-  echo "       native tools will be used directly; nothing else needed."
-elif command -v mcporter >/dev/null 2>&1; then
-  echo "  [ok] mcporter found: $(command -v mcporter)"
-  if mcporter list 2>/dev/null | grep -q infranodus; then
-    echo "       'infranodus' server is configured."
-  else
-    echo "       'infranodus' server NOT configured yet — see Setup & Auth in"
-    echo "       the skill (mcporter config add infranodus ...)."
-  fi
+  echo "       queries will use the native tools directly."
 else
-  echo "  [--] no native MCP config detected and mcporter not installed."
-  echo "       The skill will offer to set this up on first use, or run now:"
-  echo "         npm install -g mcporter"
-  echo "         # then, with your key from infranodus.com -> settings -> API:"
-  echo "         mcporter config add infranodus --url https://mcp.infranodus.com/ \\"
-  echo "           --transport http --header \"accept=application/json, text/event-stream\" \\"
-  echo "           --header \"Authorization=Bearer \$INFRANODUS_API_KEY\" --scope home"
+  echo "  [--] no 'infranodus' MCP server in your agent config. Connect it"
+  echo "       for graph queries, e.g.:"
+  echo "         claude mcp add --transport http infranodus https://mcp.infranodus.com/ \\"
+  echo "           --header \"Authorization: Bearer \$INFRANODUS_API_KEY\""
 fi
 
 if [ -z "${INFRANODUS_API_KEY:-}" ]; then
-  echo "  [--] INFRANODUS_API_KEY is not set (needed for mcporter transport only)."
+  echo "  [--] INFRANODUS_API_KEY is not set. Repo/vault uploads will reuse"
+  echo "       the key from a locally-configured 'infranodus' MCP server"
+  echo "       entry if one exists; otherwise set it explicitly"
+  echo "       (infranodus.com -> settings -> API access):"
+  echo "         export INFRANODUS_API_KEY=your_key"
+  echo "       Verify anytime with:"
+  echo "         python3 <skill>/scripts/upload_scopes.py --check-auth"
 fi
 
 echo
 echo "Done. In Claude Code, /infranodus is now available (restart the session"
-echo "if it was already open). Extraction works offline; upload/queries use"
-echo "whichever transport the preflight found."
+echo "if it was already open). Extraction works offline; uploads use"
+echo "INFRANODUS_API_KEY; queries use the connected MCP server."

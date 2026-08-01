@@ -4,15 +4,17 @@
 
 ---
 
-## REMAINING WORK (status as of 2026-07-25)
+## REMAINING WORK (status as of 2026-08-01)
 
-**Implemented** (in `infranodus-cli` unless noted): A1 in pivoted form (rationale miner `repo2statements.py` + vault link scan + `--include`/`--term`/`--suffix` scoping), A2 (`upload_scopes.py`: chunking, 429/413 handling, per-scope `wikilinksMode` + `maxNodes: 500`), A3 (`infranodus/` + `manifest.json` + generated/curated policy), A4 (trigger description), A5 (fast path), the AskUserQuestion scoping step, the transport fallback (native MCP → mcporter → guided setup), the **learning loop** (query outcomes stored/recalled as a `<prefix>-memory` graph via `memory_add_relations`/`memory_get_relations`, manifest `memoryGraph` key), `install.sh`, and B1–B5 (in `skill-llm-wiki`). On the MCP server: C1 (superseded by `wikilinksMode`), `maxNodes`, `fullGraph`.
+**Implemented** (in `infranodus-cli` unless noted): A1 in pivoted form (rationale miner `repo2statements.py` + vault link scan + `--include`/`--term`/`--suffix` scoping), A2 (`upload_scopes.py`: chunking, 429/413 handling, per-scope `wikilinksMode` + `maxNodes: 500`), A3 (`infranodus/` + `manifest.json` + generated/curated policy), A4 (trigger description), A5 (fast path), `install.sh`, and B1–B5 (in `skill-llm-wiki`). On the MCP server: C1 (superseded by `wikilinksMode`), `maxNodes`, `fullGraph`.
+
+**Trimmed 2026-08-01** (post-review simplification): the transport fallback ladder (native MCP → mcporter → guided setup) is gone — `upload_scopes.py` now talks to the MCP server directly over streamable HTTP with `INFRANODUS_API_KEY` (no mcporter, no `--emit-chunks`/`--record` agent-assisted upload), and queries use the session's native MCP tools. The **learning loop** (`<prefix>-memory` graph, manifest `memoryGraph` key) is cut from v1 — reintroduce deliberately later if wanted (note: the server caps memory `graphName` at 28 chars, so `repo-<project>-memory` needs a shorter scheme). The AskUserQuestion scoping wizard is replaced by a size-gated default full scan. **A6 local traversal is dropped, not deferred** — it duplicates `retrieve_from_knowledge_base`/`analyze_existing_graph_by_name`, and the local `<scope>-graph.json` export (`--save-graph`) is opt-in precisely because the server is the source of truth.
 
 **Still to do:**
 
 | # | Item | Where | Notes |
 |---|---|---|---|
-| 1 | **A6 local traversal** — `references/graph-traversal.md`: BFS/shortest-path/reverse-dependency walks over the local `<scope>-graph.json`, citing source statements | infranodus-cli | server-side query routing is done; only the offline-traversal half is missing |
+| 1 | ~~**A6 local traversal**~~ — **DROPPED** (see trim note above) | — | — |
 | 2 | **C2 trigger keywords** — "codebase / repository / architecture analysis" in tool descriptions + `instructions.ts` | mcp-server | benefits MCP-only clients (no skill installed) |
 | 3 | **C3 finish the statements pathway** — the server already sends `statements[]` + one derived category per statement (parent wikilinks modes, `prepareWikilinksPayload`); still missing: caller-supplied / multiple categories per statement, and a `timestamps` passthrough (app API accepts both) | mcp-server | completes relation-as-category typing (e.g. `#commit` + `[[file]]` together) and unlocks the temporal axis over commit/PR history |
 | 4 | **R2 maxnodes verification** — confirm `maxnodes > 150` flows app → engine end-to-end on the API path | infranodus-app | mostly addressed by MCP `maxNodes` (≤1000); a 30-min check |
