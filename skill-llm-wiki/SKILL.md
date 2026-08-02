@@ -2,14 +2,18 @@
 name: llm-wiki
 description: >
   Guide users through setting up a personal LLM-maintained wiki — a persistent, compounding knowledge base where the LLM incrementally builds and maintains interlinked markdown pages from raw sources. Use this skill when the user wants to: set up a personal knowledge base, create a research wiki, organize notes with LLM help, build a "second brain", set up an Obsidian + LLM workflow, create a persistent knowledge graph from documents, plan research priorities and next steps, or mentions "LLM wiki". This skill asks questions to understand the user's domain and goals, then scaffolds the entire wiki structure, schema, and workflows tailored to their needs. It also helps plan ongoing research by analyzing knowledge gaps and creating actionable todo lists.
+  For a one-shot structural map of an existing repo or vault without authoring new content, prefer the infranodus skill.
 allowed-tools:
   - Read
   - Write
+  - Edit
   - Grep
   - Glob
   - AskUserQuestion
   - Bash
-  - MCPorter
+  - WebFetch
+  - WebSearch
+  - Skill
 ---
 
 # LLM Wiki Setup Assistant
@@ -187,7 +191,7 @@ All ontology/knowledge-graph files are stored in a single `infranodus/` folder a
 Files in `infranodus/` carry a policy, declared in YAML frontmatter and mirrored in the manifest:
 
 - **Curated** (no flag, or `curated: true`) — the ontologies this skill maintains via ontology-creator. Append-only, never regenerated (see CRITICAL below).
-- **Generated** (`generated: true` + `generator:` in frontmatter) — machine-derived files written by scanners (e.g. the `infranodus` skill's `repo2statements.py` vault/repo scans). These are regenerated wholesale by their generator; do NOT append to them, hand-edit them, or apply the append-only rule to them. Their statements are grouped under `## [[page]]` section headings (the parent-page contract of the `parentAndConcepts`/`obsidianStyle` wikilinksMode) — the headings are structure, not relations; never mistake them for ontology lines.
+- **Generated** (`generated: true` + `generator:` in frontmatter) — machine-derived files written by their generator (e.g. the `infranodus` skill's repo/vault scans). These are regenerated wholesale by their generator; do NOT append to them, hand-edit them, or apply the append-only rule to them. Their statements are grouped under `## [[page]]` section headings (the parent-page contract of the `parentAndConcepts`/`obsidianStyle` wikilinksMode) — the headings are structure, not relations; never mistake them for ontology lines.
 
 Every file should also declare its processing mode in frontmatter — `wikilinksMode: wikilinksOnly` for curated ontologies (add it when creating a new ontology file), `parentAndConcepts`/`wikilinksOnly` in generated scopes (written by their generator). Uploaders honor this declaration, so a file processed separately through the MCP tools still gets the right mode.
 
@@ -243,9 +247,18 @@ A full rewrite loses:
 - Entity casing and naming conventions established by the ontology-creator skill
 - Content that came from personal observations not derivable from wiki pages alone
 
-5. **InfraNodus analysis**: After generating each ontology, upload it with the `create_knowledge_graph` tool (NOT `generate_knowledge_graph` — that one is ephemeral: no saved graph, no GraphRAG retrieval, no shareable URL). Use `graphName: "wiki-<project>-<scope>"` (lowercase, dashes), `modifyAnalyzedText: 'none'` (entities are already `[[wikilinks]]`), `wikilinksMode: 'wikilinksOnly'` (only the marked entities become nodes; applies on first creation), and `maxNodes: 500` for large ontologies. Re-uploading to the same graphName APPENDS statements — after appending relations to a curated ontology, upload only the NEW lines. The response returns the same analysis (clusters, gaps, key concepts, diversity) plus the graph URL. Record `graphName` + `url` in `infranodus/manifest.json`. The saved graph is then queryable across sessions (`retrieve_from_knowledge_base` for content questions, `generate_content_gaps` for planning) and viewable in the browser, Cursor/VSCode extension, and 3D view.
+5. **Upload to InfraNodus**: After generating or appending to an ontology, upload it with the bundled uploader — never by passing file contents through `create_knowledge_graph` calls in the agent context (the API rejects payloads over ~100 KB with 413 and rate-limits bursts with 429; the script chunks, paces, backs off, and bisects):
 
-6. **Save analysis results**: Save the InfraNodus analysis output (clusters, gaps, key concepts, diversity score) to the `output/` folder as `<folder-name>-knowledge-graph-analysis.md`. Include:
+   ```bash
+   # first-time upload of a new ontology file (registers it in the manifest):
+   python3 <this skill's dir>/scripts/upload_wiki_ontology.py . --file infranodus/<folder-name>-ontology.md
+   # after appending relations — syncs ONLY the new lines of every curated scope:
+   python3 <this skill's dir>/scripts/upload_wiki_ontology.py .
+   ```
+
+   The script is stdlib-only and ships with this skill. It names graphs `wiki-<project>-<scope>` (the `wiki-*` namespace belongs to this skill; `repo-*`/`vault-*` belong to the `infranodus` skill's scanner), honors the file's frontmatter `wikilinksMode` (default `wikilinksOnly`), records `graphName` + `url` + `updated` in `infranodus/manifest.json`, and tracks how much of each file has been uploaded so re-runs append only the new lines (server-side uploads to an existing graphName APPEND — exactly right for append-only ontologies). It only ever touches `policy: "curated"` scopes. If already-uploaded lines were edited or removed (a deliberate editorial change), it refuses to append: delete the graph in InfraNodus first, then re-run with `--rebuild`. Verify credentials once with `--check-auth` (uses `INFRANODUS_API_KEY` or a local `infranodus` MCP server entry). The saved graph is then queryable across sessions (`retrieve_from_knowledge_base` for content questions, `generate_content_gaps` for planning) and viewable in the browser, Cursor/VSCode extension, and 3D view.
+
+6. **Save analysis results**: After the upload, run the analysis on the saved graph (`analyze_existing_graph_by_name` with the `graphName` from the manifest; `generate_content_gaps` for the gaps) and save the output to the `output/` folder as `<folder-name>-knowledge-graph-analysis.md`. Include:
    - Graph statistics (nodes, edges, modularity, diversity)
    - Topical clusters with their influence percentages
    - Content gaps between clusters
@@ -425,7 +438,7 @@ Based on the user's setup, recommend and configure tools.
 
 - **InfraNodus**: Content gap analysis, insight generation, and knowledge graph analysis and optimization via the InfraNodus MCP server tools or via MCPorter as described at [https://infranodus.com/mcp/deploy-mcporter](https://infranodus.com/mcp/deploy-mcporter). Ask the user to set up an API key for InfraNodus and update the environment you're using to be able to access that key when needed without saving it to the conversation or wiki.
 
-- **infranodus skill (repo/vault scanner)**: If the `infranodus` skill is installed (`~/.claude/skills/infranodus/`), its `scripts/repo2statements.py` adds two deterministic, LLM-free scans that complement the curated ontologies: `--vault` maps the wiki's page-link structure into `infranodus/vault-links-ontology.md`, and the bare scan mines any code repo among the raw sources (docs, docstrings, WHY/NOTE comments, commit/PR/issue history). Both write `generated: true` scopes into the same `infranodus/` folder + manifest. Offer this during ingest (Phase 9) when the corpus includes a repo, or whenever the user wants the vault's link topology as a graph.
+- **infranodus skill (repo/vault scanner)**: If the `infranodus` skill is listed among the available skills, invoke it (via `/infranodus` or the Skill tool) for two deterministic, LLM-free scans that complement the curated ontologies: mapping the wiki's page-link structure as a graph, and mining any code repo among the raw sources (docs, docstrings, WHY/NOTE comments, commit/PR/issue history). It writes `generated: true` scopes into the same `infranodus/` folder + manifest. Refresh generated scopes by re-invoking the skill, never by editing the files — and a clean rebuild of an already-uploaded scope requires deleting its graph in InfraNodus first (uploads append). Offer this during ingest (Phase 9) when the corpus includes a repo, or whenever the user wants the vault's link topology as a graph.
 
 ### Optional: Search
 
@@ -627,9 +640,9 @@ For every unprocessed file, follow the ingest workflow defined in the schema (ty
 After the batch (not per-file):
 
 1. For each wiki folder touched (systems/, concepts/, connections/, sources/, questions/), **append** new relations to `infranodus/<folder>-ontology.md` using the `ontology-creator` skill. **Never regenerate from scratch** — read the existing file first, then add only lines covering genuinely new content. Match existing format exactly. (This rule applies to CURATED ontologies only — files with `generated: true` frontmatter belong to their generator script and are never appended to; see the policy section above.)
-2. Upload the NEW relation lines to the scope's saved graph via `create_knowledge_graph` (same `graphName` from `infranodus/manifest.json` — statements append; `wikilinksMode: 'wikilinksOnly'`, `modifyAnalyzedText: 'none'`). If the scope has no saved graph yet, upload the whole ontology and record `graphName` + `url` in the manifest.
-3. Overwrite `output/<folder>-knowledge-graph-analysis.md` with the fresh analysis from the response
-4. If the project also has generated scopes (vault link scan, repo rationale — check the manifest), refresh them by re-running their generator (`repo2statements.py` from the `infranodus` skill) rather than editing the files.
+2. Sync the appends to the saved graphs: `python3 <this skill's dir>/scripts/upload_wiki_ontology.py .` — uploads ONLY the new lines of every curated scope (statements append server-side), and fully uploads + registers any ontology that has no saved graph yet, recording `graphName` + `url` in the manifest.
+3. Overwrite `output/<folder>-knowledge-graph-analysis.md` with a fresh analysis of the saved graph (`analyze_existing_graph_by_name` + `generate_content_gaps` on its `graphName`)
+4. If the project also has generated scopes (vault link scan, repo rationale — check the manifest), refresh them by re-invoking the `infranodus` skill (Skill tool) rather than editing the files.
 
 ### Step 9.5 — Iterate on the schema (first-run only)
 

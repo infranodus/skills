@@ -23,7 +23,7 @@ jobs:
           mkdir -p skill-packages
 
           # Find all skill directories and create zip files
-          for dir in skill-*/ infranodus-cli/; do
+          for dir in skill-*/ infranodus/; do
             if [ -d "$dir" ]; then
               skill_name=$(basename "$dir")
               echo "Creating package for $skill_name..."

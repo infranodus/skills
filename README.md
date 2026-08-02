@@ -92,7 +92,7 @@ ChatGPT doesn't support automatic skill installation, but you can use either of 
 **Install via OpenClaw chat (recommended):**
 
 ```bash
-install this skill: https://github.com/infranodus/skills/releases/download/v1.0.8/infranodus-cli.zip
+install this skill: https://github.com/infranodus/skills/releases/download/v1.0.8/infranodus.zip
 ```
 
 Replace `v1.0.8` with the [latest release version](https://github.com/infranodus/skills/releases).
@@ -100,8 +100,8 @@ Replace `v1.0.8` with the [latest release version](https://github.com/infranodus
 **Manual installation:**
 
 ```bash
-cp infranodus-cli.zip ~/.openclaw/skills/infranodus-cli.zip
-unzip ~/.openclaw/skills/infranodus-cli.zip -d ~/.openclaw/skills/infranodus-cli
+cp infranodus.zip ~/.openclaw/skills/infranodus.zip
+unzip ~/.openclaw/skills/infranodus.zip -d ~/.openclaw/skills/infranodus
 ```
 
 To scope the skill to a specific project, copy it to that project's skills folder instead.

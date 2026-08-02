@@ -1,20 +1,19 @@
 ---
 name: infranodus
 description: >
-  Text network analysis, knowledge graphs, content gap detection, SEO/GEO optimization,
-  structured memory, and text comparison via the InfraNodus MCP server.
-  Use when asked to: analyze text structure, generate knowledge graphs, find content gaps,
-  generate research questions or ideas, compare texts, optimize text/content for SEO,
-  analyze Google search results/queries, retrieve from a knowledge base (GraphRAG),
-  save/retrieve structured memories, develop latent topics, or bridge conceptual gaps.
-  Also builds knowledge graphs of code repos and Obsidian vaults: invoked in any project
-  folder ("graph this repo", "analyze this project/vault", "/infranodus") it mines docs,
-  docstrings, WHY/NOTE comments, commit messages, and PR/issue threads into saved
-  InfraNodus graphs with a report. For questions about a project's themes, decisions,
-  rationale, or knowledge gaps — especially when infranodus/manifest.json exists in the
-  project root — query the existing graphs FIRST (analyze_existing_graph_by_name,
-  retrieve_from_knowledge_base) before reading files.
-  Supports plain text, URLs (including YouTube video transcription), and existing InfraNodus graphs.
+  Text network analysis and knowledge graphs via the InfraNodus MCP server:
+  analyze text structure, find content gaps, generate research questions and
+  ideas, compare texts, optimize content for SEO/GEO, analyze Google search
+  results, GraphRAG retrieval, structured memory. Accepts text, URLs (YouTube
+  transcription included), and saved graphs. Also builds knowledge graphs of
+  code repos and Obsidian vaults: invoked in a project folder ("graph this
+  repo", "analyze this vault", "/infranodus") it mines docs, docstrings,
+  WHY/NOTE comments, and commit/PR/issue history into saved graphs with a
+  report. When infranodus/manifest.json exists in the project root, answer
+  questions about themes, decisions, rationale, or gaps by querying the
+  existing graphs FIRST, before reading files. For building and maintaining
+  an LLM-authored knowledge base from sources (wiki pages, curated
+  ontologies), prefer the llm-wiki skill.
 homepage: https://infranodus.com
 metadata:
   {

@@ -15,7 +15,10 @@ Handles the two API failure modes deterministically:
     sleeps BACKOFF_SECONDS and retries the same chunk (up to MAX_RETRIES).
 
 Reads infranodus/manifest.json, uploads every scope whose graphName is null
-(all scopes with --force), and per scope: records the routing metadata into
+(all such scopes with --force). Scopes whose manifest entry says
+policy "curated" (llm-wiki ontologies etc.) are NEVER uploaded, named, or
+metadata-rewritten here — they belong to their authoring skill, which ships
+its own uploader. Per uploaded scope: records the routing metadata into
 the manifest (graphName, url, purpose, topics, gaps — so the agent can pick
 the right graph per question), appends a dated build section to the
 append-only infranodus/INFRANODUS_REPORT.md log, and deletes the scope
@@ -767,6 +770,13 @@ def main():
 
     log_entries = []
     for fname, meta in scopes.items():
+        # Curated scopes (llm-wiki ontologies etc. sharing this manifest)
+        # are owned by their authoring skill: never claim them by uploading
+        # under this run's prefix or rewriting their graphName/url — even
+        # with --force. The delete guard below is the other half of this.
+        if meta.get("policy") == "curated":
+            print(f"skip {fname} (curated — owned by its authoring skill)")
+            continue
         if meta.get("graphName") and not args.force:
             print(f"skip {fname} (already uploaded: {meta['graphName']})")
             continue

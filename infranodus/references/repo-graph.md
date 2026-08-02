@@ -40,11 +40,21 @@ when the repo clearly changed since `manifest.json`'s `updated` dates.
 
 On a bare launch (user asked to graph/analyze the project without naming a
 target), do a quick inventory first — top-level folders, md/code file
-counts, biggest docs — e.g.:
+counts, biggest docs, and non-minable documents — e.g.:
 
 ```bash
-ls -d */ | head -20; find . -name "*.md" -not -path "./node_modules/*" | wc -l
+ls -d */ | head -20
+find . -name "*.md" -not -path "./node_modules/*" | wc -l
+find . \( -name "*.pdf" -o -name "*.docx" -o -name "*.epub" \) \
+  -not -path "./node_modules/*" | wc -l
 ```
+
+**Routing check:** the scanner mines md/code/git only — it cannot read
+PDFs, docx, or epub. If the corpus is dominated by those, say so instead
+of running a scan that would come back empty, and point at the llm-wiki
+skill ("this corpus needs LLM-authored summarization — the llm-wiki skill
+builds and maintains that kind of knowledge base"); if it is listed among
+the available skills, offer to invoke it.
 
 Then use **AskUserQuestion** (single question, not multiSelect) following
 this structure: one sentence re-grounding (what folder, what you detected —
@@ -172,6 +182,9 @@ they exist and nothing ever consults them.
 - If the project also uses a code-graph tool (graphify and similar), the
   block defers to it for files/symbols/call paths and claims only meaning
   and discourse structure. Keep that boundary.
+- In an llm-wiki project the CLAUDE.md is the user's co-authored wiki
+  schema: the marker block appends alongside it — never replace or
+  reorganize anything outside the markers.
 
 ## Step 5 — The insight log (append-only)
 
@@ -186,6 +199,11 @@ Finish the build by printing the graph URL(s) — they open in the browser,
 the InfraNodus VSCode/Cursor extension, and the Obsidian plugin.
 
 ## Query mode (after a graph exists)
+
+ALL manifest scopes are queryable regardless of their `policy` — including
+curated `wiki-*` graphs that llm-wiki created. Policy governs who WRITES
+the files (never edit a file whose manifest entry says `curated`); reading
+the graphs is open to everyone.
 
 Route via the manifest: match the question against each graph's `purpose`
 and `topics`, then:

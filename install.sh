@@ -3,8 +3,8 @@
 #
 # Copies (or symlinks) the skills from this repo into ~/.claude/skills/ so
 # they load in Claude Code (and any agent reading the same layout). The
-# installed directory name determines the slash command, so infranodus-cli
-# is installed as "infranodus" -> /infranodus.
+# installed directory name determines the slash command; the core skill's
+# repo folder is already canonical: "infranodus" -> /infranodus.
 #
 # Usage:
 #   ./install.sh                 # copy into ~/.claude/skills/
@@ -24,13 +24,13 @@ for arg in "$@"; do
     --project)   TARGET_BASE="$(pwd)/.claude/skills" ;;
     --symlink)   MODE="symlink" ;;
     --core-only) CORE_ONLY=1 ;;
-    -h|--help)   sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help)   sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg (see --help)"; exit 1 ;;
   esac
 done
 
 # repo folder -> installed name (= slash command / registry name)
-SKILLS=("infranodus-cli:infranodus")
+SKILLS=("infranodus:infranodus")
 if [ "$CORE_ONLY" -eq 0 ]; then
   SKILLS+=("skill-ontology-creator:ontology-generator" "skill-llm-wiki:llm-wiki")
 fi
@@ -55,24 +55,38 @@ for pair in "${SKILLS[@]}"; do
   echo "  ${pair%%:*} -> $dst"
 done
 
+# The core skill used to live in a repo folder named "infranodus-cli" and
+# was installed under either name depending on the install route. Remove a
+# leftover legacy copy so two skills never compete for selection.
+if [ -e "$TARGET_BASE/infranodus-cli" ] || [ -L "$TARGET_BASE/infranodus-cli" ]; then
+  rm -rf "$TARGET_BASE/infranodus-cli"
+  echo "  removed legacy install: $TARGET_BASE/infranodus-cli"
+fi
+
 # --- Register the trigger in CLAUDE.md -------------------------------------
 # Two separate registrations exist, with distinct markers so they never
 # clobber each other:
-#   infranodus-skill:*  (here) - the always-loaded pointer that makes
-#                        /infranodus discoverable, in .claude/CLAUDE.md
+#   infranodus-skill:*  - the always-loaded pointer that makes /infranodus
+#                        discoverable. For a GLOBAL install this block is
+#                        owned by upload_scopes.py --register-global, which
+#                        derives the path and slash command from where the
+#                        skill actually lives — so install.sh can never
+#                        disagree with it. For a --project install the
+#                        equivalent block is written inline below (the
+#                        uploader's registrar only targets ~/.claude).
 #   infranodus:*        (upload_scopes.py --register-project) - the
 #                        per-project rules block in <project>/CLAUDE.md,
 #                        written only once a project actually has graphs
-if [ "$TARGET_BASE" = "$HOME/.claude/skills" ]; then
-  CLAUDE_MD="$HOME/.claude/CLAUDE.md"
-  SKILL_PATH="~/.claude/skills/infranodus/SKILL.md"
+echo
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "  [--] python3 not found — skipped CLAUDE.md registration."
+  echo "       Add a pointer to the installed SKILL.md manually if you want"
+  echo "       /infranodus surfaced automatically."
+elif [ "$TARGET_BASE" = "$HOME/.claude/skills" ]; then
+  python3 "$TARGET_BASE/infranodus/scripts/upload_scopes.py" --register-global
 else
   CLAUDE_MD="$(pwd)/.claude/CLAUDE.md"
   SKILL_PATH=".claude/skills/infranodus/SKILL.md"
-fi
-
-echo
-if command -v python3 >/dev/null 2>&1; then
   python3 - "$CLAUDE_MD" "$SKILL_PATH" <<'PY'
 import pathlib, sys
 
@@ -103,10 +117,6 @@ else:
         action = "registered"
 print(f"CLAUDE.md {action}: {path}")
 PY
-else
-  echo "  [--] python3 not found — skipped CLAUDE.md registration."
-  echo "       Add a pointer to $SKILL_PATH manually if you want /infranodus"
-  echo "       surfaced automatically."
 fi
 
 echo
