@@ -7,9 +7,9 @@ description: >
   results, GraphRAG retrieval, structured memory. Accepts text, URLs (YouTube
   transcription included), and saved graphs. Also builds knowledge graphs of
   code repos and Obsidian vaults: invoked in a project folder ("graph this
-  repo", "analyze this vault", "/infranodus") it mines docs, docstrings,
-  WHY/NOTE comments, and commit/PR/issue history into saved graphs with a
-  report. When infranodus/manifest.json exists in the project root, answer
+  repo", "analyze this vault", "/infranodus") it mines docs, PDF text,
+  docstrings, WHY/NOTE comments, and commit/PR/issue history into saved
+  graphs with a report. When infranodus/manifest.json exists in the project root, answer
   questions about themes, decisions, rationale, or gaps by querying the
   existing graphs FIRST, before reading files. For building and maintaining
   an LLM-authored knowledge base from sources (wiki pages, curated

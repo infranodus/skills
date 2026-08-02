@@ -403,6 +403,8 @@ SCOPE_PURPOSES = {
             "design decisions",
     "code-rationale": "docstrings and WHY/NOTE/TODO/HACK/FIXME comments — "
                       "why the code is the way it is",
+    "pdfs": "text extracted from PDF documents (deterministic text-layer "
+            "extraction — what the PDFs literally say, no summarization)",
     "history": "commit messages, PR descriptions, issue threads — what "
                "changed, when, and the discussion around it",
     "vault-links": "the vault's page-link structure — how notes reference "

@@ -49,12 +49,28 @@ find . \( -name "*.pdf" -o -name "*.docx" -o -name "*.epub" \) \
   -not -path "./node_modules/*" | wc -l
 ```
 
-**Routing check:** the scanner mines md/code/git only — it cannot read
-PDFs, docx, or epub. If the corpus is dominated by those, say so instead
-of running a scan that would come back empty, and point at the llm-wiki
-skill ("this corpus needs LLM-authored summarization — the llm-wiki skill
-builds and maintains that kind of knowledge base"); if it is listed among
-the available skills, offer to invoke it.
+**Routing check:** the scanner mines md/code/git, and PDFs *when a
+text-layer converter is installed* (pdftotext from poppler, mutool, or
+markitdown — checked with `command -v pdftotext mutool markitdown`).
+It cannot read docx/epub, and it never OCRs. Route accordingly:
+
+- PDFs present + a converter installed → the scan covers them
+  (deterministic extraction of what the PDFs literally say, into their
+  own scope) — mention that in the question below.
+- PDFs present, no converter → say so and offer both paths: install
+  poppler (`brew install poppler`) for the structural scan, or the
+  llm-wiki skill for an LLM-authored knowledge base.
+- Corpus dominated by scanned PDFs (extraction comes back empty),
+  docx/epub, or other non-minable documents → don't run a scan that
+  will come back empty; point at the llm-wiki skill ("this corpus needs
+  LLM-authored summarization — the llm-wiki skill builds and maintains
+  that kind of knowledge base") and, if it is listed among the available
+  skills, offer to invoke it.
+
+The two products differ, and both can be useful on the same corpus: this
+scan = a reproducible structural map of what the documents literally say
+(clusters, gaps, cross-document differences); llm-wiki = a curated,
+compounding knowledge base about them.
 
 Then use **AskUserQuestion** (single question, not multiSelect) following
 this structure: one sentence re-grounding (what folder, what you detected —
@@ -96,6 +112,11 @@ attempt it by reading source files yourself):
 
 - `repo-docs-ontology.md` — md/rst/txt paragraphs, grouped under
   `## [[<filepath>]]` section headings
+- `repo-pdfs-ontology.md` — the text layer of `*.pdf` files (only when
+  pdftotext/mutool/markitdown is installed; deterministic cleanup: no
+  headers/footers/page numbers, prose paragraphs only), same headings.
+  Scanned PDFs without a text layer are reported and skipped — no OCR.
+  Extracted text stays in memory; no converted files land in the project.
 - `repo-code-rationale-ontology.md` — docstrings + `WHY:`/`NOTE:`/`TODO:`/
   `HACK:`/`FIXME:` comments, tagged `#docstring` / `#why` / …, same headings
 - `repo-history-ontology.md` — commit bodies (`#commit`), PR descriptions

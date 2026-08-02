@@ -11,6 +11,7 @@ is deferred by design (see docs/todo-graph-repo.md in InfraNodus-Skills).
 
 Sources (repo mode, default):
   - *.md / *.rst / *.txt docs         -> repo-docs-ontology.md
+  - *.pdf text layer (see below)      -> repo-pdfs-ontology.md
   - docstrings + WHY:/NOTE:/TODO:/... -> repo-code-rationale-ontology.md
   - git commit bodies, gh PRs/issues  -> repo-history-ontology.md
 
@@ -18,6 +19,16 @@ Vault mode (--vault):
   - [[wikilink]] / [md](links) between pages -> vault-links-ontology.md
 
 Stdlib only. No LLM. Same input -> same output (modulo git/gh history).
+
+PDFs: extraction is DETERMINISTIC text-layer extraction (what the PDF
+literally says), not summarization — summarizing a PDF corpus into a
+knowledge base is the llm-wiki skill's job. The Python stays stdlib-only
+by shelling out to the first installed converter (pdftotext from poppler,
+mutool from mupdf, or markitdown); with none installed, PDFs are reported
+as skipped with install guidance. Scanned PDFs without a text layer are
+reported as non-minable (OCR is out of scope — route those to llm-wiki).
+Extracted text is an in-memory intermediate: no converted files are ever
+written into the project.
 
 Usage:
   repo2statements.py [PATH] [--vault] [--max-commits N] [--max-prs N]
@@ -28,8 +39,10 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
@@ -46,6 +59,7 @@ CODE_EXTS = {
     ".scala", ".sh", ".bash", ".zsh", ".lua", ".ex", ".exs", ".sql",
 }
 MAX_FILE_BYTES = 1_000_000
+MAX_PDF_BYTES = 30_000_000   # PDFs are large containers for small text
 MAX_STATEMENT_CHARS = 1000
 MIN_DOCSTRING_CHARS = 40
 
@@ -176,6 +190,118 @@ def mine_docs(root: Path, stem_prefix: bool = False) -> list[str]:
             statements.extend(page_paras)
             statements.append("")
     return statements
+
+
+# ---------------------------------------------------------------- pdfs pass
+
+def iter_pdfs(root: Path):
+    """Same skip/sensitive/--include rules as iter_files, but with the PDF
+    size cap and no --term pre-filter (terms match the EXTRACTED text —
+    matching them against raw PDF bytes would be meaningless)."""
+    for p in sorted(root.rglob("*")):
+        if not p.is_file() or p.suffix.lower() != ".pdf":
+            continue
+        rel = p.relative_to(root).as_posix()
+        if any(part in SKIP_DIRS for part in p.relative_to(root).parts):
+            continue
+        if SENSITIVE_NAME_RE.search(p.name):
+            continue
+        if INCLUDE_PREFIXES and not any(
+            rel == pref or rel.startswith(pref.rstrip("/") + "/")
+            for pref in INCLUDE_PREFIXES
+        ):
+            continue
+        try:
+            if p.stat().st_size > MAX_PDF_BYTES:
+                continue
+        except OSError:
+            continue
+        yield p
+
+
+def find_pdf_converter():
+    """(name, extract_fn) of the first installed PDF->text converter, or
+    None. All three are deterministic text-layer extractors — no OCR, no
+    LLM. Tried in order of fidelity/ubiquity."""
+    if shutil.which("pdftotext"):     # poppler
+        return "pdftotext", lambda p: run(
+            ["pdftotext", "-enc", "UTF-8", str(p), "-"], p.parent,
+            timeout=120)
+    if shutil.which("mutool"):        # mupdf
+        return "mutool", lambda p: run(
+            ["mutool", "draw", "-F", "text", "-o", "-", str(p)], p.parent,
+            timeout=120)
+    if shutil.which("markitdown"):
+        return "markitdown", lambda p: run(
+            ["markitdown", str(p)], p.parent, timeout=120)
+    return None
+
+
+NON_PROSE_LINE_RE = re.compile(r"^[\d\s.\-–—/|:()\[\]]+$")
+PAGE_FOOTER_RE = re.compile(r"^page\s+\d+(\s*(of|/)\s*\d+)?$", re.I)
+
+
+def pdf_paragraphs(raw: str):
+    """Deterministic cleanup of converter output, yielding prose paragraphs.
+
+    Rules (pure string operations, reproducible scan-to-scan):
+    - re-join words hyphenated across line breaks;
+    - drop running headers/footers: short lines whose exact text repeats
+      across many pages;
+    - drop lines that are only digits/punctuation (page numbers, rules);
+    - split paragraphs on blank lines and form-feeds (page breaks);
+    - drop paragraphs that are mostly non-letters (tables, figures, math
+      debris) — the graph wants prose, not layout."""
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", raw)
+    lines = text.replace("\f", "\n\n").splitlines()
+    seen = Counter(l.strip() for l in lines if l.strip())
+
+    def is_noise(s: str) -> bool:
+        return (NON_PROSE_LINE_RE.match(s) is not None
+                or PAGE_FOOTER_RE.match(s) is not None
+                or (seen[s] >= 4 and len(s) < 80))
+
+    buf: list[str] = []
+    for line in lines:
+        s = line.strip()
+        if not s or is_noise(s):
+            if buf:
+                yield " ".join(buf)
+                buf = []
+            continue
+        buf.append(s)
+    if buf:
+        yield " ".join(buf)
+
+
+def letters_ratio(s: str) -> float:
+    return sum(c.isalpha() or c.isspace() for c in s) / max(len(s), 1)
+
+
+def mine_pdfs(root: Path, extract, vault: bool) -> tuple[list[str], list[str]]:
+    """(statements, no_text_layer_files). Grouped under `## [[<path>]]`
+    headings — same parent-page contract as mine_docs. Section names follow
+    the docs pass: page stem in a vault, relative path otherwise."""
+    statements: list[str] = []
+    no_text: list[str] = []
+    for p in iter_pdfs(root):
+        rel = p.relative_to(root).as_posix()
+        raw = extract(p)
+        if TERMS and not any(t.lower() in raw.lower() for t in TERMS):
+            continue
+        paras = []
+        for para in pdf_paragraphs(raw):
+            para = one_line(para)
+            if len(para) < 40 or letters_ratio(para) < 0.6:
+                continue
+            paras.append(para)
+        if not paras:
+            no_text.append(rel)
+            continue
+        statements.append(f"## [[{p.stem if vault else rel}]]")
+        statements.extend(paras)
+        statements.append("")
+    return statements, no_text
 
 
 def is_vault(root: Path) -> bool:
@@ -449,6 +575,27 @@ def main() -> int:
 
         keep("repo-docs-ontology.md", mine_docs(root, stem_prefix=vault),
              "repo")
+
+        pdfs = list(iter_pdfs(root))
+        if pdfs:
+            conv = find_pdf_converter()
+            if conv is None:
+                print(f"NOTE: {len(pdfs)} PDF(s) found but no converter "
+                      "installed — skipped. Install poppler for "
+                      "deterministic PDF mining (`brew install poppler` / "
+                      "`apt install poppler-utils`), or use the llm-wiki "
+                      "skill for LLM-authored summarization.")
+            else:
+                conv_name, extract = conv
+                pdf_statements, no_text = mine_pdfs(root, extract, vault)
+                if no_text:
+                    shown = ", ".join(no_text[:5])
+                    more = " …" if len(no_text) > 5 else ""
+                    print(f"NOTE: {len(no_text)} PDF(s) with no extractable "
+                          f"text layer (scanned images?) — OCR is out of "
+                          f"scope here; the llm-wiki skill can handle "
+                          f"those: {shown}{more}")
+                keep("repo-pdfs-ontology.md", pdf_statements, "repo")
 
         if vault:
             # bare launch in a vault/md folder: content AND link structure
