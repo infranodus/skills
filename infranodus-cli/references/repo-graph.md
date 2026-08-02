@@ -36,19 +36,42 @@ guess them):
 Rebuild only when the user says so ("rebuild", "refresh", "--update") or
 when the repo clearly changed since `manifest.json`'s `updated` dates.
 
-## Step 1 — Scope (default: full scan, no questions)
+## Step 1 — Understand the corpus, then ASK what to build
 
-If the user named a target ("graph the docs folder", "analyze notes
-mentioning trading"), map it straight to flags: `--include <path>`
-(repeatable), `--term <word>` (repeatable, any-of), `--vault` (link
-structure only). Filtered scans write suffixed scope files and graphs that
-never clobber the full scan.
+On a bare launch (user asked to graph/analyze the project without naming a
+target), do a quick inventory first — top-level folders, md/code file
+counts, biggest docs — e.g.:
 
-Otherwise run the full scan without asking. Only when a quick inventory
-shows the corpus is very large (roughly >500 candidate files or >2 MB of
-docs/md) ask ONE AskUserQuestion: full scan anyway, or narrow to one of the
-3–4 biggest top-level folders (listed as options, plus Other for a path or
-terms).
+```bash
+ls -d */ | head -20; find . -name "*.md" -not -path "./node_modules/*" | wc -l
+```
+
+Then use **AskUserQuestion** (single question, not multiSelect) following
+this structure: one sentence re-grounding (what folder, what you detected —
+"this is an Obsidian vault with 480 notes in 7 folders"), then the options:
+
+1. **Full graph (Recommended)** — everything the bare scan covers: all
+   docs/notes + link structure (vault) or docs + code rationale + git/PR
+   history (repo). → `repo2statements.py .`
+2. **A specific folder only** — follow-up AskUserQuestion listing the
+   top-level folders from the inventory as options (+ Other for a path).
+   → `repo2statements.py . --include <folder>`
+3. **Only documents containing certain terms** — follow-up question for the
+   terms (seed options with 2-3 themes evident from folder/file names;
+   Other for custom; multiple terms = any-of match).
+   → `repo2statements.py . --term "<term1>" --term "<term2>"`
+4. **A specific document only** — follow-up listing 3 notable candidates
+   (largest / most-linked md files) + Other for a path.
+   → `repo2statements.py . --include <path/to/doc.md>`
+5. Handled by AskUserQuestion's built-in **Other**: a user-defined scope in
+   free text — map it to the closest flag combination (`--include` and/or
+   `--term`; both compose, `--vault` for structure-only).
+
+Skip the question entirely when the user already named the target ("graph
+the docs folder", "analyze notes mentioning trading") — map straight to the
+flags. Filtered scans get their own suffixed scope files and graphs
+(`repo-docs-<slug>-ontology.md`), so they never clobber the full scan — a
+later full run can coexist with them in the same manifest.
 
 ## Step 2 — Extract
 

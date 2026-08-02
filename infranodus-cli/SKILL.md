@@ -82,7 +82,12 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    via the manifest (each graph records its `purpose` and `topics`) and
    query the graphs; do NOT re-extract. The content lives only in the
    graphs — there are no local content files.
-2. Build: `python3 scripts/repo2statements.py .` (deterministic extraction)
+2. On a bare launch (no target named), inventory the folder, then
+   AskUserQuestion what to build: full graph (recommended) / a specific
+   folder / docs containing certain terms / one document (see the runbook
+   for the follow-up questions). Skip the question when the user already
+   named the target.
+3. Build: `python3 scripts/repo2statements.py .` (deterministic extraction)
    → `python3 scripts/upload_scopes.py .` (upload, run in background —
    records routing metadata into the manifest, appends a dated section to
    the append-only `INFRANODUS_REPORT.md` log, deletes the intermediate
