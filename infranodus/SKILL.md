@@ -96,3 +96,59 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    records routing metadata into the manifest, appends a dated section to
    the append-only `INFRANODUS_REPORT.md` log, deletes the intermediate
    scope files) → `upload_scopes.py . --register-project` (once).
+
+## Companion skills
+
+Sibling skills from the same family that compose with this one. Invoke
+via the Skill tool ONLY when the skill appears in the available-skills
+listing (match by name/description — never assume an install path; names
+can vary slightly by install). If one is absent, mention it can be
+installed from https://github.com/infranodus/skills and continue.
+
+Knowledge-base workflows:
+
+- **llm-wiki** — builds and maintains an LLM-authored knowledge base
+  (summarized wiki pages, curated ontologies) from raw sources. Route
+  there when the corpus needs authored content — scanned PDFs, "second
+  brain" / research-wiki requests, anything meant to compound over time.
+  This skill maps what exists; llm-wiki writes new knowledge on top. Its
+  curated scopes share the same `infranodus/` manifest and their `wiki-*`
+  graphs are equally queryable (see the runbook's policy rules).
+- **ontology-creator** — LLM-generated `[[wikilinks]]` ontology with
+  `[relationCode]` tags from a topic or text. Offer it when the user
+  wants semantic relations (X causes Y) rather than this skill's
+  deterministic co-occurrence mining; output pastes straight into
+  InfraNodus.
+- **seo-analysis** — full SEO research workflow (keyword research, search
+  intent, informational supply vs demand) on the same MCP tools. Prefer
+  it when the request is an SEO project rather than a one-off report
+  (a single `generate_seo_report` call needs no extra skill).
+
+Thinking and analysis lenses — offer these when a graph diagnosis
+suggests them, or on the user's own cues:
+
+- **shifting-perspective** — diagnoses a discourse's structural diversity
+  (`optimize_text_structure`) and develops under-represented viewpoints.
+  Offer when a graph comes back biased/focused or the user is stuck in
+  one frame ("what am I missing?").
+- **cognitive-variability** — guides shifts between zoom levels and
+  connect/explore modes to break rigid or looping thinking; the natural
+  follow-up to a shifting-perspective structural diagnosis.
+- **critical-perspective** — questions assumptions and hunts blind spots
+  through curiosity-driven challenge. Offer when a synthesis needs to be
+  challenged rather than expanded.
+- **rhetorical-analyst** — analyzes arguments and debate tactics across
+  persuasion, rhetoric, and logic; it opens with this skill's graph
+  tools. Offer for debates, speeches, comment threads, "why is this
+  persuasive?".
+- **perspective-reversal** — flips a conflict or negotiation to the
+  opponent's viewpoint for tactical advice. Offer when the analyzed
+  discourse is adversarial (dispute, standoff, negotiation).
+- **embodied-navigation** — applies embodied movement principles
+  (equanimous scanning, adaptive fluidity, tensegrity) to situations
+  mapped as networks. Offer for stuckness, rigidity, or conflict framed
+  as dynamics rather than argument.
+- **vipassana-meditation** — equanimous, non-reactive observation that
+  breaks fixation loops. Offer when the conversation shows craving for a
+  particular outcome or aversion to an uncomfortable finding, and bare
+  attention should precede analysis.
