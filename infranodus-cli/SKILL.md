@@ -63,7 +63,12 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   `develop_text_tool` for the combined pipeline.
 - Retrieval: `retrieve_from_knowledge_base` (GraphRAG over a saved graph),
   `analyze_existing_graph_by_name` (structure of a saved graph),
+  `generate_contextual_hint` (lightweight structural overview — good
+  context injection before answering broad questions),
   `list_graphs` / `search` / `fetch` for discovery.
+- Reasoning check: `optimize_reasoning` on a draft synthesis — diagnoses
+  biased/focused/diversified/dispersed and suggests which topics or gaps
+  to develop further.
 - Comparison: `overlap_between_texts`, `difference_between_texts`,
   `merged_graph_from_texts` (each takes a `contexts` array).
 - SEO/GEO: `generate_seo_report` (90s+ timeout) or the individual

@@ -127,9 +127,15 @@ when the graph is FIRST created), and then, per scope:
 
 - records the **routing metadata** into the manifest: `graphName`, `url`,
   `purpose` (what the graph is for), `topics` and `gaps` (harvested from
-  the upload response) — this is what enables the Step 0 fast path and
+  the upload response), plus two best-effort enrichment calls per graph —
+  `hint` (`generate_contextual_hint`: structural overview — concepts,
+  gateways, relations, diversity) and `diversity` + `develop`
+  (`optimize_text_structure`: bias/focus diagnosis + condensed suggestions
+  for further development). This is what enables the Step 0 fast path and
   question routing next session;
-- appends a dated build section to `infranodus/INFRANODUS_REPORT.md`;
+- appends a dated build section to `infranodus/INFRANODUS_REPORT.md` with
+  the same metadata in full (complete hint and untruncated development
+  suggestions, in collapsible blocks);
 - deletes the scope file (see Step 2; `--keep-scopes` retains it).
 
 **Append rule:** uploads to an existing `graphName` APPEND statements
@@ -186,10 +192,19 @@ and `topics`, then:
 
 - Structure questions ("main themes", "how organized") →
   `analyze_existing_graph_by_name`
+- Broad/overview questions ("what is this project about", "give me the
+  lay of the land") → `generate_contextual_hint` first — a lightweight
+  structural summary (concepts, topics, gaps, gateways, diversity) to
+  ground the answer — then `retrieve_from_knowledge_base` for specifics
 - Content questions ("how does X work", "what was decided about Y") →
   `retrieve_from_knowledge_base` with the question as `prompt`
 - Direction questions ("what's missing", "what next") →
   `generate_content_gaps`, then optionally `generate_research_questions`
+- When synthesizing across several graphs or drafting recommendations,
+  pass the draft reasoning to `optimize_reasoning`: it diagnoses whether
+  the reasoning is biased (fixated on one cluster), focused, diversified,
+  or dispersed, and suggests which under-represented topics or gaps to
+  develop further. One check per substantial synthesis — not per answer.
 
 Consult the insight log's past entries before answering; after answering,
 APPEND a dated one-line insight ONLY when something non-obvious and

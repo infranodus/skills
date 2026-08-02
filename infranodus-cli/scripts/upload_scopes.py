@@ -441,6 +441,56 @@ def harvest_summary(response_text):
     return out
 
 
+def fetch_hint(client, graph_name):
+    """Best-effort structural hint for the build log: the graph's
+    textOverview (main concepts, topics, gaps, gateways, diversity) from
+    generate_contextual_hint. Returns None on any failure — the hint is
+    log enrichment, never a build blocker."""
+    status, out = client.call_tool("generate_contextual_hint",
+                                   {"graphName": graph_name})
+    if status != "ok":
+        return None
+    try:
+        parsed = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        return out or None
+    if isinstance(parsed, dict):
+        return parsed.get("textOverview") or None
+    return parsed if isinstance(parsed, str) else (out or None)
+
+
+def fetch_structure(client, graph_name):
+    """Best-effort structure/development summary via optimize_text_structure
+    (accepts graphName; optimize_reasoning is text-only): the diversity
+    diagnosis (biased/focused/diversified/dispersed) plus AI suggestions for
+    how the graph could be developed further. Returns None on any failure."""
+    status, out = client.call_tool("optimize_text_structure",
+                                   {"graphName": graph_name})
+    if status != "ok":
+        return None
+    try:
+        data = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    res = {}
+    ds = data.get("diversity_stats") or {}
+    if ds.get("diversity_score"):
+        res["diversity"] = str(ds["diversity_score"]) + (
+            f", modularity {ds['modularity_score']}"
+            if ds.get("modularity_score") else "")
+    if isinstance(data.get("suggestions"), list) and data["suggestions"]:
+        res["suggestions"] = [str(s) for s in data["suggestions"]]
+    if isinstance(data.get("topicsToDevelop"), list):
+        res["topicsToDevelop"] = [str(t) for t in data["topicsToDevelop"][:3]]
+    return res or None
+
+
+def condense(text, limit=400):
+    return re.sub(r"\s+", " ", text).strip()[:limit]
+
+
 REPORT_HEADER = """# InfraNodus log — {project}
 
 Append-only. Builds append a dated section below; query sessions append
@@ -463,6 +513,30 @@ def append_build_log(root, project, entries):
             lines.append(f"- topics: {'; '.join(e['topics'])}")
         if e.get("gaps"):
             lines.append(f"- gaps: {'; '.join(e['gaps'])}")
+        st = e.get("structure") or {}
+        if st.get("diversity"):
+            lines.append(f"- diversity: {st['diversity']}")
+        if e.get("hint"):
+            lines.append("")
+            lines.append("<details><summary>structural hint "
+                         "(generate_contextual_hint)</summary>")
+            lines.append("")
+            lines.append(e["hint"].strip())
+            lines.append("")
+            lines.append("</details>")
+        if st.get("suggestions"):
+            lines.append("")
+            lines.append("<details><summary>development suggestions "
+                         "(optimize_text_structure)</summary>")
+            lines.append("")
+            for s in st["suggestions"]:
+                lines.append(s.strip())
+                lines.append("")
+            if st.get("topicsToDevelop"):
+                lines.append("topics to develop: "
+                             + " | ".join(st["topicsToDevelop"]))
+                lines.append("")
+            lines.append("</details>")
         lines.append("")
     body = "\n".join(lines)
     if path.exists():
@@ -488,7 +562,12 @@ CLAUDE_MD_BLOCK = f"""{CLAUDE_MD_BEGIN}
 This project's content is indexed as InfraNodus knowledge graphs. The
 content lives ONLY in the graphs — there are no local copies of it.
 `infranodus/manifest.json` is the routing table: per graph it records
-`graphName`, `purpose` (what the graph is for), `topics`, and `gaps`.
+`graphName`, `purpose` (what the graph is for), `topics`, `gaps`,
+`hint` (structural overview: main concepts, gateways, relations,
+diversity), `diversity` (biased/focused/diversified/dispersed), and
+`develop` (how the graph could be developed further). Use `purpose` +
+`topics` to pick the graph; use `hint` when they don't disambiguate;
+use `diversity` + `develop` for direction/improvement questions.
 
 Rules:
 - For questions about themes, concepts, rationale, or what is missing or
@@ -497,7 +576,13 @@ Rules:
   `purpose` and `topics`, then call
   `analyze_existing_graph_by_name` (structure: topics, clusters, gaps),
   `retrieve_from_knowledge_base` (content: GraphRAG over the statements),
+  `generate_contextual_hint` (broad questions: lightweight structural
+  overview of the graph — inject it as context before answering),
   `generate_content_gaps` (direction: what to develop next).
+- When synthesizing across graphs or drafting recommendations, run
+  `optimize_reasoning` on the draft reasoning: it diagnoses whether it is
+  biased / focused / diversified / dispersed and suggests which
+  under-represented topics or gaps to develop further.
 - Read graph names from `infranodus/manifest.json` — do not guess them.
 - `infranodus/INFRANODUS_REPORT.md` is an APPEND-ONLY log: dated build
   sections plus insights from past sessions. Consult it for prior
@@ -685,6 +770,12 @@ def main():
         if meta.get("graphName") and not args.force:
             print(f"skip {fname} (already uploaded: {meta['graphName']})")
             continue
+        if "file" not in meta:
+            # External entries (e.g. graphs exported from the VSCode
+            # extension) register a graph without a local scope file —
+            # they are query-only here, never uploaded or deleted.
+            print(f"skip {fname} (external entry, no scope file)")
+            continue
         if meta.get("graphName") and args.force:
             print(f"WARNING: {fname} re-uploads to existing graph "
                   f"{meta['graphName']} — statements APPEND; for a clean "
@@ -714,12 +805,34 @@ def main():
             meta["topics"] = summary["topics"]
         if summary.get("gaps"):
             meta["gaps"] = summary["gaps"]
+        # First manifest write right away — the graph identity must survive
+        # even if the enrichment calls below fail or get rate-limited.
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
                                  encoding="utf-8")
+
+        # Enrichment (best-effort, one paced call each): the structural
+        # overview and the structure/development diagnosis — summaries that
+        # tell a future agent WHICH graph to query and HOW to develop it.
+        time.sleep(PACE_SECONDS)
+        hint = fetch_hint(client, graph_name)
+        time.sleep(PACE_SECONDS)
+        structure = fetch_structure(client, graph_name)
+        if hint:
+            meta["hint"] = hint.strip()
+        if structure:
+            if structure.get("diversity"):
+                meta["diversity"] = structure["diversity"]
+            if structure.get("suggestions"):
+                meta["develop"] = [condense(s)
+                                   for s in structure["suggestions"][:2]]
+        if hint or structure:
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
+                                     encoding="utf-8")
         log_entries.append({"graphName": graph_name, "url": meta["url"],
                             "purpose": meta["purpose"],
                             "topics": summary.get("topics"),
-                            "gaps": summary.get("gaps")})
+                            "gaps": summary.get("gaps"),
+                            "hint": hint, "structure": structure})
 
         # Only generated intermediates are deleted — curated scope files
         # (llm-wiki ontologies etc. sharing this manifest) are human-owned
