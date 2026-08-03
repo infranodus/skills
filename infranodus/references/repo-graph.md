@@ -4,21 +4,35 @@ Build a knowledge graph of the current repo or Obsidian vault, save it to
 InfraNodus, and write a report. Deterministic collection (no LLM),
 server-side graph computation. Division of labor:
 
-- **Uploads** (bulk writes): `scripts/upload_scopes.py` talks to the MCP
-  server itself over HTTP. It discovers its credential on its own —
-  `INFRANODUS_API_KEY` env var, else the key of an already-configured local
-  `infranodus` MCP server entry (`.mcp.json`, `~/.claude.json`, …) — so a
-  locally-installed MCP server needs no extra setup. The agent never
-  carries scope-file contents through its own context.
+- **Uploads** (bulk writes): `scripts/upload_scopes.py` uploads through the
+  MCP server the user configured, resolved from this agent's own config
+  (`<project>/.mcp.json` → `~/.claude.json` project section → `~/.claude.json`
+  global → `~/.claude/settings.json`, project scope winning). An `http` entry
+  is posted to its own `url`; a `stdio` entry is launched as a subprocess.
+  Credentials are never read from config files: `http` takes
+  `INFRANODUS_API_KEY` from the environment only, `stdio` hands the entry's
+  own `env` to the subprocess untouched. One server, one attempt, no
+  fallback. The agent never carries scope-file contents through its own
+  context.
 - **Queries** (reads): the session's native InfraNodus MCP tools
   (`mcp__infranodus__<tool>` or the connector's equivalents).
 
-Before an upload, `upload_scopes.py --check-auth` verifies a credential
-exists and works. If it finds none (env unset and no local MCP entry — a
-cloud OAuth connector holds its token remotely), AskUserQuestion once:
-**A)** paste an API key (infranodus.com → settings → API access —
-recommended), **B)** skip upload — keep the local scope files only (they
-still render in Obsidian).
+Before an upload, `upload_scopes.py [project_dir] --check-auth` resolves the
+server and verifies the connection, printing the transport and endpoint. Two
+failure cases, each with its own AskUserQuestion:
+
+- **No server configured** — the script prints `claude mcp add` commands for
+  the hosted and the local option. Ask: **A)** add the hosted server (needs
+  an API key: infranodus.com → settings → API access), **B)** add a local /
+  self-hosted one, **C)** skip upload — keep the local scope files only
+  (they still render in Obsidian). Never guess an endpoint.
+- **Server configured but the connection failed** — report the endpoint and
+  the error verbatim and stop. Do NOT hunt for another key or endpoint; a
+  401 means the wrong key for *that* server, not permission to use another.
+
+After a build, each scope carries `endpoint`, `transport`, `account`, and
+`verified` in the manifest. When a later query fails, check those first —
+a `graphName` only resolves against the server and account that hold it.
 
 ## Step 0 — Fast path (ALWAYS check first)
 

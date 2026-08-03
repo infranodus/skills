@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Upload infranodus/ scope files to InfraNodus as saved graphs.
 
-Stdlib-only. Talks to the InfraNodus MCP server directly over streamable
-HTTP (JSON-RPC POSTs to https://mcp.infranodus.com/mcp, authenticated with
-INFRANODUS_API_KEY) — the data flows disk -> server without passing through
-an agent context, and the server's wikilinksMode handling (parentAndConcepts
-heading parsing, wikilinksOnly, ...) applies exactly as it does for native
-MCP tool calls.
+Stdlib-only. Talks to THE MCP SERVER THE USER CONFIGURED — an http entry is
+reached at its own url, a stdio entry is launched as its own subprocess —
+so the data flows disk -> that server without passing through an agent
+context, and the server's wikilinksMode handling (parentAndConcepts heading
+parsing, wikilinksOnly, ...) applies exactly as it does for native MCP tool
+calls.
+
+The endpoint is never guessed and credentials are never read out of config
+files. See "MCP server resolution" below for the whole contract.
 
 Handles the two API failure modes deterministically:
   - 413 Payload Too Large: chunks every scope file to <= CHUNK_BYTES before
@@ -20,7 +23,9 @@ policy "curated" (llm-wiki ontologies etc.) are NEVER uploaded, named, or
 metadata-rewritten here — they belong to their authoring skill, which ships
 its own uploader. Per uploaded scope: records the routing metadata into
 the manifest (graphName, url, purpose, topics, gaps — so the agent can pick
-the right graph per question), appends a dated build section to the
+the right graph per question) plus its provenance (endpoint, transport,
+account, verified — so a later session can tell WHERE the graph lives and
+whether it is still readable), appends a dated build section to the
 append-only infranodus/INFRANODUS_REPORT.md log, and deletes the scope
 file — scope files are build intermediates (kept on failure/skip, with
 --keep-scopes, or when not marked policy "generated"); the content's home
@@ -61,19 +66,39 @@ Usage:
 Both registration modes preserve everything outside their markers; neither
 rewrites a CLAUDE.md.
 
-Credentials (uploads only; queries use the session's own MCP connection):
-  1. INFRANODUS_API_KEY env var (infranodus.com -> settings -> API access)
-  2. else auto-reused from an already-configured local 'infranodus' MCP
-     server entry (.mcp.json, ~/.claude.json, ...): Bearer header or env
-     key. A cloud OAuth connector holds its token remotely — not reusable.
-  INFRANODUS_MCP_URL  optional server override (default
-                      https://mcp.infranodus.com)
+MCP server resolution (uploads only; queries use the session's own MCP
+connection). The server comes from this agent's own configuration, in this
+order — project scope wins, first match wins:
+
+  <project_dir>/.mcp.json
+  ~/.claude.json            (this project's section, then the global one)
+  ~/.claude/settings.json
+
+Nothing else is consulted: no other application's config is read, and no
+endpoint default exists. If no infranodus server is configured the script
+stops and explains how to add one.
+
+Credentials are NEVER read out of a config file:
+  - http server  -> INFRANODUS_API_KEY from the environment, and nothing
+                    else (infranodus.com -> settings -> API access).
+  - stdio server -> the entry's own env block is handed to the subprocess
+                    untouched, so whatever key the user configured is passed
+                    through without being inspected, logged, or re-aimed at
+                    a different endpoint.
+
+Exactly one server is tried. A failed connection is a hard stop — it never
+falls through to another credential or another endpoint.
+
+Preflight: `upload_scopes.py [project_dir] --check-auth`.
 """
 import argparse
 import json
 import os
+import queue
 import re
+import subprocess
 import sys
+import threading
 import time
 from datetime import date
 import urllib.error
@@ -81,7 +106,6 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-MCP_URL = os.environ.get("INFRANODUS_MCP_URL", "https://mcp.infranodus.com")
 CHUNK_BYTES = 80_000      # safe payload size; API rejects ~100 KB+ with 413
 MAX_NODES = 500           # graph size cap per scope (server default 150 is
                           # too small for repo/vault corpora; API max 1000)
@@ -95,81 +119,157 @@ RE_429 = re.compile(r"API request failed \(429\)|Too Many Requests", re.I)
 RE_413 = re.compile(r"Payload Too Large|code:\s*413", re.I)
 
 
-# ------------------------------------------------------ credential discovery
+# -------------------------------------------------- MCP server resolution
 
-# Local MCP client configs that may already hold the InfraNodus credential
-# (an HTTP entry with an Authorization header, or a stdio entry with the key
-# in its env block). If the server is connected via a cloud OAuth connector
-# instead, the token lives remotely — only INFRANODUS_API_KEY works then.
-MCP_CONFIG_PATHS = [
-    Path.cwd() / ".mcp.json",
-    Path.home() / ".claude.json",
-    Path.home() / ".claude" / "settings.json",
-    Path.home() / ".cursor" / "mcp.json",
-    Path.home() / ".codex" / "config.json",
-]
-
-
-def _expand_env(value):
-    return re.sub(r"\$\{?(\w+)\}?",
-                  lambda m: os.environ.get(m.group(1), ""), value)
+# WHY only these three: they are this agent's own MCP configuration. Reading
+# another application's config (a different editor's mcp.json, a shell rc,
+# ...) would mean uploading a user's content through a server and an account
+# they did not choose for this project — which is exactly the failure this
+# resolution order exists to prevent. Project scope wins over global.
+def _config_sources(root):
+    return [
+        (root / ".mcp.json", "project"),
+        (Path.home() / ".claude.json", None),   # both scopes, handled below
+        (Path.home() / ".claude" / "settings.json", "global"),
+    ]
 
 
-def _find_infranodus_entries(node, out):
-    """Collect every mcpServers entry whose name mentions infranodus,
-    anywhere in the config tree (covers per-project sections)."""
-    if isinstance(node, dict):
-        servers = node.get("mcpServers")
-        if isinstance(servers, dict):
-            for name, entry in servers.items():
-                if "infranodus" in name.lower() and isinstance(entry, dict):
-                    out.append(entry)
-        for v in node.values():
-            _find_infranodus_entries(v, out)
-    elif isinstance(node, list):
-        for v in node:
-            _find_infranodus_entries(v, out)
+class ServerSpec:
+    """The InfraNodus MCP server the user configured, and how to reach it.
+
+    Holds transport information only. For a stdio server `env` is carried
+    verbatim so it can be handed to the subprocess — its values are never
+    read, printed, or sent anywhere else."""
+
+    def __init__(self, name, source, scope, transport,
+                 url=None, command=None, args=None, env=None):
+        self.name = name
+        self.source = source        # config file this came from
+        self.scope = scope          # 'project' | 'global'
+        self.transport = transport  # 'http' | 'stdio'
+        self.url = url
+        self.command = command
+        self.args = list(args or [])
+        self.env = dict(env or {})
+
+    def endpoint(self):
+        if self.transport == "http":
+            return self.url
+        return " ".join([self.command, *self.args])
+
+    def describe(self):
+        return (f"  server:   {self.name} ({self.transport}, {self.scope})\n"
+                f"  endpoint: {self.endpoint()}\n"
+                f"  source:   {self.source}")
 
 
-def discover_credentials():
-    """Return [(credential, source), ...]: INFRANODUS_API_KEY env var first,
-    then every credential of already-configured local infranodus MCP server
-    entries (a Bearer header value may be a raw API key OR a stored access
-    token — connect() handles both). Credentials are never printed — only
-    their sources are."""
-    found, seen = [], set()
+def _infranodus_entries(servers):
+    if not isinstance(servers, dict):
+        return []
+    return [(name, entry) for name, entry in servers.items()
+            if "infranodus" in name.lower() and isinstance(entry, dict)]
 
-    def add(cred, source):
-        cred = cred.strip()
-        if cred and "$" not in cred and cred not in seen:
-            seen.add(cred)
-            found.append((cred, source))
 
-    add(os.environ.get("INFRANODUS_API_KEY", ""), "environment")
-    for path in MCP_CONFIG_PATHS:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+def _spec_from_entry(name, entry, source, scope):
+    """Build a ServerSpec from an mcpServers entry — transport only."""
+    url = entry.get("url") or entry.get("endpoint")
+    etype = str(entry.get("type") or "").lower()
+    if url and etype in ("", "http", "sse", "streamable-http", "streamablehttp"):
+        return ServerSpec(name, source, scope, "http", url=url)
+    if entry.get("command"):
+        return ServerSpec(name, source, scope, "stdio",
+                          command=entry["command"], args=entry.get("args"),
+                          env=entry.get("env"))
+    return None
+
+
+def _load_json(path):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def resolve_mcp_server(root):
+    """Return the ServerSpec of the InfraNodus MCP server configured for this
+    project, or None if the user has not configured one."""
+    candidates = []
+    for path, scope in _config_sources(root):
+        data = _load_json(path)
+        if data is None:
             continue
-        entries = []
-        _find_infranodus_entries(data, entries)
-        for entry in entries:
-            headers = {k.lower(): v for k, v in
-                       (entry.get("headers") or {}).items()
-                       if isinstance(v, str)}
-            m = re.match(r"Bearer\s+(\S+)",
-                         _expand_env(headers.get("authorization", "")))
-            if m:
-                add(m.group(1), str(path))
-            add(_expand_env(
-                str((entry.get("env") or {}).get("INFRANODUS_API_KEY", ""))),
-                str(path))
-    return found
+        if scope is None:
+            # ~/.claude.json: this project's own section outranks the global
+            # server list, mirroring how the agent itself resolves servers.
+            projects = data.get("projects")
+            if isinstance(projects, dict):
+                pcfg = projects.get(str(root))
+                if isinstance(pcfg, dict):
+                    for name, entry in _infranodus_entries(
+                            pcfg.get("mcpServers")):
+                        candidates.append((name, entry, str(path), "project"))
+            for name, entry in _infranodus_entries(data.get("mcpServers")):
+                candidates.append((name, entry, str(path), "global"))
+        else:
+            for name, entry in _infranodus_entries(data.get("mcpServers")):
+                candidates.append((name, entry, str(path), scope))
+
+    for name, entry, source, scope in candidates:
+        spec = _spec_from_entry(name, entry, source, scope)
+        if spec:
+            return spec
+    return None
+
+
+NO_SERVER_HELP = """\
+no InfraNodus MCP server is configured for this project.
+
+Uploads go through the MCP server you set up — this script does not pick an
+endpoint or look for a credential on its own. Add one, then re-run:
+
+  hosted server
+    export INFRANODUS_API_KEY=...   # infranodus.com -> settings -> API access
+    claude mcp add --transport http infranodus https://mcp.infranodus.com \\
+        --header "Authorization: Bearer $INFRANODUS_API_KEY"
+
+  local / self-hosted server
+    claude mcp add infranodus -- node /path/to/mcp-server-infranodus/dist/index.js
+
+  or connect the InfraNodus connector in claude.ai. A cloud OAuth connector
+  keeps its token remotely, so uploads additionally need INFRANODUS_API_KEY.
+
+Looked in: {sources}"""
 
 
 # ------------------------------------------------------------ MCP transport
 
-class McpClient:
+def _classify_payload(payload):
+    """JSON-RPC payload -> (status, text), status in ok/429/413/error.
+    Shared by both transports so retry and bisect behave identically."""
+    if payload is None:
+        return "error", "empty response from server"
+    if "error" in payload:
+        text = json.dumps(payload["error"])
+        if RE_429.search(text):
+            return "429", text
+        if RE_413.search(text):
+            return "413", text
+        return "error", text
+    result = payload.get("result", {})
+    text = "".join(c.get("text", "")
+                   for c in result.get("content", [])
+                   if c.get("type") == "text")
+    if result.get("isError"):
+        if RE_429.search(text):
+            return "429", text
+        if RE_413.search(text):
+            return "413", text
+        return "error", text
+    return "ok", text
+
+
+class HttpMcpClient:
     """Minimal MCP streamable-HTTP client (JSON-RPC over POST).
 
     Flow: exchange the API key for a JWT at /oauth/token (the JWT carries a
@@ -291,27 +391,121 @@ class McpClient:
             except (urllib.error.URLError, TimeoutError) as e:
                 return "error", f"connection failed: {e}"
 
-            if payload is None:
-                return "error", "empty response from server"
-            if "error" in payload:
-                text = json.dumps(payload["error"])
-                if RE_429.search(text):
-                    return "429", text
-                if RE_413.search(text):
-                    return "413", text
-                return "error", text
-            result = payload.get("result", {})
-            text = "".join(c.get("text", "")
-                           for c in result.get("content", [])
-                           if c.get("type") == "text")
-            if result.get("isError"):
-                if RE_429.search(text):
-                    return "429", text
-                if RE_413.search(text):
-                    return "413", text
-                return "error", text
-            return "ok", text
+            return _classify_payload(payload)
         return "error", "reconnect loop exhausted"
+
+    def close(self):
+        pass
+
+
+class StdioMcpClient:
+    """MCP stdio transport: launches the user's configured server command and
+    speaks newline-delimited JSON-RPC over its stdin/stdout.
+
+    WHY this exists: a locally configured server (`command` + `args`) has no
+    HTTP endpoint to post to, so the only way to honour it is to run it. The
+    entry's env block is merged into the child environment untouched — the
+    script never reads, prints, or re-targets whatever credential is in it.
+
+    Responses are pumped off stdout by a reader thread so a wedged server
+    times out instead of hanging the build; non-JSON lines (servers that log
+    to stdout) are skipped rather than treated as protocol errors."""
+
+    def __init__(self, spec):
+        self.spec = spec
+        self.proc = None
+        self._rpc_id = 0
+        self._lines = queue.Queue()
+
+    def connect(self):
+        env = dict(os.environ)
+        env.update({str(k): str(v) for k, v in self.spec.env.items()})
+        try:
+            self.proc = subprocess.Popen(
+                [self.spec.command, *self.spec.args],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, env=env,
+                text=True, encoding="utf-8", errors="replace", bufsize=1)
+        except OSError as e:
+            raise RuntimeError(
+                f"cannot launch {self.spec.endpoint()}: {e}") from e
+
+        def pump(stream, sink):
+            for line in stream:
+                sink.put(line)
+            sink.put(None)
+
+        threading.Thread(target=pump, args=(self.proc.stdout, self._lines),
+                         daemon=True).start()
+
+        payload = self._rpc("initialize", {
+            "protocolVersion": "2025-03-26",
+            "capabilities": {},
+            "clientInfo": {"name": "upload_scopes", "version": "2.0"},
+        })
+        if payload is None or "error" in payload:
+            raise RuntimeError(f"initialize rejected by the server: {payload}")
+        self._notify("notifications/initialized")
+
+    def _send(self, msg):
+        if self.proc is None or self.proc.poll() is not None:
+            raise RuntimeError("the MCP server process is not running")
+        try:
+            self.proc.stdin.write(json.dumps(msg) + "\n")
+            self.proc.stdin.flush()
+        except (BrokenPipeError, ValueError) as e:
+            raise RuntimeError(f"lost the MCP server process: {e}") from e
+
+    def _rpc(self, method, params):
+        self._rpc_id += 1
+        msg = {"jsonrpc": "2.0", "id": self._rpc_id, "method": method}
+        if params is not None:
+            msg["params"] = params
+        self._send(msg)
+        return self._await(self._rpc_id)
+
+    def _notify(self, method):
+        self._send({"jsonrpc": "2.0", "method": method})
+
+    def _await(self, rpc_id):
+        deadline = time.monotonic() + HTTP_TIMEOUT
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError(
+                    f"no reply within {HTTP_TIMEOUT}s from "
+                    f"{self.spec.endpoint()}")
+            try:
+                line = self._lines.get(timeout=remaining)
+            except queue.Empty:
+                continue
+            if line is None:
+                raise RuntimeError("the MCP server closed its output stream")
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                msg = json.loads(line)
+            except json.JSONDecodeError:
+                continue          # server logging to stdout, not a response
+            if isinstance(msg, dict) and msg.get("id") == rpc_id:
+                return msg
+
+    def call_tool(self, tool, arguments):
+        try:
+            payload = self._rpc("tools/call",
+                                {"name": tool, "arguments": arguments})
+        except RuntimeError as e:
+            return "error", str(e)
+        return _classify_payload(payload)
+
+    def close(self):
+        if self.proc and self.proc.poll() is None:
+            try:
+                self.proc.stdin.close()
+            except (OSError, ValueError):
+                pass
+            self.proc.terminate()
 
 
 # ---------------------------------------------------------------- chunking
@@ -384,9 +578,24 @@ def upload_chunk(client, graph_name, chunk, wikilinks_mode="default"):
     raise RuntimeError(f"gave up after {MAX_RETRIES} rate-limit retries")
 
 
-def extract_url(response_text):
-    m = re.search(r"https://infranodus\.com/[^\s\"'\\]+", response_text)
-    return m.group(0) if m else None
+def graph_location(response_text, graph_name):
+    """Return (url, account) for an uploaded graph.
+
+    The server answers with the graph's URL, whose path is
+    /<account>/<graphName>/...; that account segment is the only record of
+    WHICH account now holds the content. A graphName on its own cannot be
+    resolved later — the same name means different graphs on different
+    servers and accounts — so the account is recorded alongside it."""
+    m = re.search(r"https?://[^\s\"'\\]+", response_text or "")
+    if not m:
+        return None, None
+    url = m.group(0).rstrip(".,);")
+    parts = [p for p in urllib.parse.urlparse(url).path.split("/") if p]
+    if graph_name in parts:
+        i = parts.index(graph_name)
+        if i > 0:
+            return url, parts[i - 1]
+    return url, None
 
 
 def scope_graph_name(prefix, fname):
@@ -514,6 +723,13 @@ def append_build_log(root, project, entries):
         lines.append(f"### {e['graphName']}" +
                      (f" — {e['url']}" if e.get("url") else ""))
         lines.append(f"- purpose: {e['purpose']}")
+        if e.get("endpoint"):
+            loc = f"- server: {e.get('transport', '?')} {e['endpoint']}"
+            if e.get("account"):
+                loc += f" | account: {e['account']}"
+            loc += (f" | read back {e['verified']}" if e.get("verified")
+                    else " | NOT verified — upload accepted but not readable")
+            lines.append(loc)
         if e.get("topics"):
             lines.append(f"- topics: {'; '.join(e['topics'])}")
         if e.get("gaps"):
@@ -573,6 +789,9 @@ diversity), `diversity` (biased/focused/diversified/dispersed), and
 `develop` (how the graph could be developed further). Use `purpose` +
 `topics` to pick the graph; use `hint` when they don't disambiguate;
 use `diversity` + `develop` for direction/improvement questions.
+Each graph also records its provenance — `endpoint` and `transport` (the
+MCP server it was uploaded through), `account` (who holds it), and
+`verified` (when it was last read back successfully).
 
 Rules:
 - For questions about themes, concepts, rationale, or what is missing or
@@ -589,6 +808,11 @@ Rules:
   biased / focused / diversified / dispersed and suggests which
   under-represented topics or gaps to develop further.
 - Read graph names from `infranodus/manifest.json` — do not guess them.
+- If a graph query fails with "select an existing graph context", do NOT
+  conclude the graph is missing. Compare the manifest's `endpoint` and
+  `account` for that graph against the server this session is connected
+  to (`list_graphs`): the same `graphName` is a different graph on a
+  different server or account. Report the mismatch instead of retrying.
 - `infranodus/INFRANODUS_REPORT.md` is an APPEND-ONLY log: dated build
   sections plus insights from past sessions. Consult it for prior
   findings. After answering, append a dated one-line insight ONLY when
@@ -686,27 +910,40 @@ def scope_wikilinks_mode(fname, path=None):
 
 # --------------------------------------------------------------------- main
 
-def connect_with_discovered_credentials():
-    """Try every discovered credential until one authenticates. Returns
-    (connected McpClient, source) or exits with guidance."""
-    creds = discover_credentials()
-    if not creds:
-        sys.exit("no InfraNodus credential found — set INFRANODUS_API_KEY "
-                 "(infranodus.com -> settings -> API access):\n"
-                 "  export INFRANODUS_API_KEY=your_key\n"
-                 "(also checked local MCP configs for an 'infranodus' server "
-                 "entry with a Bearer header or env key; a cloud OAuth "
-                 "connector holds its token remotely and cannot be reused)")
-    for cred, source in creds:
-        client = McpClient(MCP_URL, cred)
-        try:
-            client.connect()
-            return client, source
-        except RuntimeError as e:
-            print(f"credential from {source}: {e}", file=sys.stderr)
-    sys.exit(f"none of the {len(creds)} discovered credential(s) "
-             f"authenticated against {MCP_URL} — set a valid "
-             "INFRANODUS_API_KEY (infranodus.com -> settings -> API access)")
+def connect_to_configured_server(root):
+    """Connect to the InfraNodus MCP server configured for this project.
+
+    One server, one attempt, no fallback: trying a second credential after a
+    rejection is how content ends up in an account the user never chose."""
+    spec = resolve_mcp_server(root)
+    if spec is None:
+        sources = ", ".join(str(p) for p, _ in _config_sources(root))
+        sys.exit(NO_SERVER_HELP.format(sources=sources))
+
+    if spec.transport == "http":
+        key = os.environ.get("INFRANODUS_API_KEY", "").strip()
+        if not key:
+            sys.exit(
+                "the configured InfraNodus MCP server is remote but "
+                "INFRANODUS_API_KEY is not set.\n"
+                f"{spec.describe()}\n\n"
+                "  export INFRANODUS_API_KEY=...   "
+                "# infranodus.com -> settings -> API access\n\n"
+                "Credentials are taken from the environment only — this "
+                "script never reads a key out of an MCP config file.")
+        client = HttpMcpClient(spec.url, key)
+    else:
+        client = StdioMcpClient(spec)
+
+    try:
+        client.connect()
+    except RuntimeError as e:
+        client.close()
+        sys.exit("could not connect to the configured InfraNodus MCP "
+                 f"server.\n{spec.describe()}\n  error:    {e}\n\n"
+                 "Stopping. No other endpoint or credential will be tried — "
+                 "fix this server's configuration and re-run.")
+    return client, spec
 
 
 def main():
@@ -729,13 +966,17 @@ def main():
     ap.add_argument("--register-global", action="store_true",
                     help="write the skill trigger block into ~/.claude/CLAUDE.md")
     ap.add_argument("--check-auth", action="store_true",
-                    help="no upload: find a credential (env or local MCP "
-                         "config) and verify it against the server")
+                    help="no upload: resolve the configured MCP server and "
+                         "verify the connection to it")
     args = ap.parse_args()
 
+    root = Path(args.project_dir).resolve()
+
     if args.check_auth:
-        client, source = connect_with_discovered_credentials()
-        print(f"authenticated OK against {MCP_URL} (credential from {source})")
+        client, spec = connect_to_configured_server(root)
+        print("connected OK to the configured InfraNodus MCP server")
+        print(spec.describe())
+        client.close()
         return
 
     # Global registration is project-independent — handle it before the
@@ -745,7 +986,6 @@ def main():
         print(f"CLAUDE.md {action}: {path}")
         return
 
-    root = Path(args.project_dir).resolve()
     manifest_path = root / "infranodus" / "manifest.json"
     if not manifest_path.exists():
         sys.exit("no infranodus/manifest.json — run repo2statements.py first")
@@ -760,9 +1000,9 @@ def main():
                   "about themes, concepts, rationale, and gaps")
         return
 
-    client, source = connect_with_discovered_credentials()
-    if source != "environment":
-        print(f"using credential from MCP config: {source}")
+    client, spec = connect_to_configured_server(root)
+    print("uploading through the configured InfraNodus MCP server")
+    print(spec.describe(), flush=True)
 
     prefix = args.prefix
     if prefix is None:
@@ -809,8 +1049,17 @@ def main():
             time.sleep(PACE_SECONDS)
 
         summary = harvest_summary(last or "")
+        url, account = graph_location(
+            summary.get("graphUrl") or last or "", graph_name)
         meta["graphName"] = graph_name
-        meta["url"] = summary.get("graphUrl") or extract_url(last or "")
+        meta["url"] = url
+        # Provenance: a graphName is only resolvable together with the server
+        # and account that hold it. Without these a later session cannot tell
+        # "no such graph" from "not on the server you are talking to".
+        meta["endpoint"] = spec.endpoint()
+        meta["transport"] = spec.transport
+        if account:
+            meta["account"] = account
         meta["wikilinksMode"] = mode
         meta["purpose"] = scope_purpose(scope)
         if summary.get("topics"):
@@ -838,10 +1087,22 @@ def main():
                 meta["develop"] = [condense(s)
                                    for s in structure["suggestions"][:2]]
         if hint or structure:
+            # Both enrichment calls READ the saved graph back, so either one
+            # succeeding proves the graph is retrievable through this server
+            # with this credential — not merely that the upload returned 200.
+            meta["verified"] = date.today().isoformat()
             manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
                                      encoding="utf-8")
+        else:
+            print(f"  WARNING: {graph_name} uploaded but could not be read "
+                  f"back from {spec.endpoint()} — not marking it verified",
+                  file=sys.stderr, flush=True)
         log_entries.append({"graphName": graph_name, "url": meta["url"],
                             "purpose": meta["purpose"],
+                            "endpoint": spec.endpoint(),
+                            "transport": spec.transport,
+                            "account": account,
+                            "verified": meta.get("verified"),
                             "topics": summary.get("topics"),
                             "gaps": summary.get("gaps"),
                             "hint": hint, "structure": structure})

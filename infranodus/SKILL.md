@@ -38,19 +38,36 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   reference for every tool's parameters and workflow patterns — do not
   duplicate or second-guess them here.
 - **Bulk uploads (repo/vault graphs)** — the bundled
-  `scripts/upload_scopes.py` talks to the MCP server itself over HTTP.
-  It finds its credential automatically: `INFRANODUS_API_KEY` env var, or
-  the key from an already-configured local `infranodus` MCP server entry
-  (`.mcp.json`, `~/.claude.json`) — so a locally-installed MCP server means
-  no extra setup. Never route bulk uploads through the agent context chunk
-  by chunk; the script handles chunking, pacing, 429 backoff, and 413
-  bisection. Preflight: `upload_scopes.py --check-auth`.
-- If the MCP server is not connected and the user wants text analysis,
-  tell them to connect it (https://mcp.infranodus.com/ with an InfraNodus
-  API key, or the claude.ai connector). If `--check-auth` finds no
-  credential for an upload (a cloud OAuth connector holds its token
-  remotely and cannot be reused), ask for a key once (infranodus.com →
-  settings → API access) or offer to keep the extracted files local.
+  `scripts/upload_scopes.py` uploads through **the MCP server the user has
+  configured**, and only that one. It resolves the server from this agent's
+  own config — `<project>/.mcp.json`, then `~/.claude.json` (this project's
+  section, then global), then `~/.claude/settings.json` — with project scope
+  winning. An `http` entry is reached at its own `url`; a `stdio` entry is
+  launched as its own subprocess, so a local or self-hosted server works
+  too. Never route bulk uploads through the agent context chunk by chunk;
+  the script handles chunking, pacing, 429 backoff, and 413 bisection.
+  Preflight: `upload_scopes.py [project_dir] --check-auth`, which prints the
+  resolved server, transport, and endpoint.
+- **Credentials are never read from config files.** For an `http` server the
+  key comes from `INFRANODUS_API_KEY` in the environment and nowhere else;
+  for a `stdio` server the entry's own `env` block is passed to the
+  subprocess untouched. There is no endpoint default and no credential
+  fallback: one server, one attempt, and a failed connection is a hard stop.
+  Do not work around this by exporting a key you found in some other
+  application's config — that is how content lands in an account the user
+  never chose.
+- **If no server is configured**, `--check-auth` says so and prints the
+  `claude mcp add` commands for both the hosted and the local option. Offer
+  to run one of them, or offer to keep the extracted scope files local.
+  Never guess an endpoint. For a cloud OAuth connector the token lives
+  remotely and cannot be reused, so uploads still need
+  `INFRANODUS_API_KEY`.
+- **Provenance** — each uploaded scope records `endpoint`, `transport`,
+  `account`, and `verified` (the date the graph was successfully read back)
+  in the manifest. When a graph query fails, compare the manifest's
+  `endpoint`/`account` against the session's own server before assuming the
+  graph is missing: the same `graphName` means different graphs on different
+  servers and accounts.
 
 ## Quick orientation (details live in the server's tool schemas)
 
