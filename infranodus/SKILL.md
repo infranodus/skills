@@ -81,6 +81,9 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   `analyze_existing_graph_by_name` (structure of a saved graph),
   `generate_contextual_hint` (lightweight structural overview — good
   context injection before answering broad questions),
+  `generate_responses_from_graph` (prompt-based answers and expert
+  advice generated from a saved graph — good for advice/recommendation
+  questions the graph should answer in its own voice),
   `list_graphs` / `search` / `fetch` for discovery.
 - Reasoning check: `optimize_reasoning` on a draft synthesis — diagnoses
   biased/focused/diversified/dispersed and suggests which topics or gaps

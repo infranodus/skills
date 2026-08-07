@@ -251,6 +251,10 @@ and `topics`, then:
   ground the answer — then `retrieve_from_knowledge_base` for specifics
 - Content questions ("how does X work", "what was decided about Y") →
   `retrieve_from_knowledge_base` with the question as `prompt`
+- Advice/recommendation questions ("what should we do about X", "how
+  would this project approach Y") → `generate_responses_from_graph` with
+  the question as `prompt` — generates an answer grounded in the graph's
+  own concepts and relations rather than retrieving raw statements
 - Direction questions ("what's missing", "what next") →
   `generate_content_gaps`, then optionally `generate_research_questions`
 - When synthesizing across several graphs or drafting recommendations,

@@ -802,6 +802,8 @@ Rules:
   `retrieve_from_knowledge_base` (content: GraphRAG over the statements),
   `generate_contextual_hint` (broad questions: lightweight structural
   overview of the graph — inject it as context before answering),
+  `generate_responses_from_graph` (advice: prompt-based answers and
+  expert recommendations generated from the graph itself),
   `generate_content_gaps` (direction: what to develop next).
 - When synthesizing across graphs or drafting recommendations, run
   `optimize_reasoning` on the draft reasoning: it diagnoses whether it is
