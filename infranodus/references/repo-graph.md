@@ -4,31 +4,38 @@ Build a knowledge graph of the current repo or Obsidian vault, save it to
 InfraNodus, and write a report. Deterministic collection (no LLM),
 server-side graph computation. Division of labor:
 
-- **Uploads** (bulk writes): `scripts/upload_scopes.py` uploads through the
-  MCP server the user configured, resolved from this agent's own config
-  (`<project>/.mcp.json` → `~/.claude.json` project section → `~/.claude.json`
-  global → `~/.claude/settings.json`, project scope winning). An `http` entry
-  is posted to its own `url`; a `stdio` entry is launched as a subprocess.
+- **Uploads** (bulk writes): the InfraNodus MCP server already connected
+  to the session comes FIRST (e.g. the claude.ai InfraNodus connector) —
+  the agent uploads through its `create_knowledge_graph` tool per Step 3's
+  Path A contract. The bundled `scripts/upload_scopes.py` is the FALLBACK
+  for sessions with no InfraNodus MCP tools: it uploads through the MCP
+  server configured in this agent's own config (`<project>/.mcp.json` →
+  `~/.claude.json` project section → `~/.claude.json` global →
+  `~/.claude/settings.json`, project scope winning). An `http` entry is
+  posted to its own `url`; a `stdio` entry is launched as a subprocess.
   Credentials are never read from config files: `http` takes
   `INFRANODUS_API_KEY` from the environment only, `stdio` hands the entry's
-  own `env` to the subprocess untouched. One server, one attempt, no
-  fallback. The agent never carries scope-file contents through its own
-  context.
+  own `env` to the subprocess untouched. The script cannot reach a cloud
+  OAuth connector (its token lives remotely) — that is why the connector
+  path is agent-driven.
 - **Queries** (reads): the session's native InfraNodus MCP tools
   (`mcp__infranodus__<tool>` or the connector's equivalents).
 
-Before an upload, `upload_scopes.py [project_dir] --check-auth` resolves the
-server and verifies the connection, printing the transport and endpoint. Two
-failure cases, each with its own AskUserQuestion:
+Before a script-path upload, `upload_scopes.py [project_dir] --check-auth`
+resolves the server and verifies the connection, printing the transport and
+endpoint. Failure handling:
 
-- **No server configured** — the script prints `claude mcp add` commands for
-  the hosted and the local option. Ask: **A)** add the hosted server (needs
-  an API key: infranodus.com → settings → API access), **B)** add a local /
-  self-hosted one, **C)** skip upload — keep the local scope files only
-  (they still render in Obsidian). Never guess an endpoint.
-- **Server configured but the connection failed** — report the endpoint and
-  the error verbatim and stop. Do NOT hunt for another key or endpoint; a
-  401 means the wrong key for *that* server, not permission to use another.
+- **No session tools and no server configured** — the script prints
+  `claude mcp add` commands for the hosted and the local option. Ask:
+  **A)** add the hosted server (needs an API key: infranodus.com →
+  settings → API access), **B)** add a local / self-hosted one, **C)** skip
+  upload — keep the local scope files only (they still render in
+  Obsidian). Never guess an endpoint.
+- **Configured server's connection failed** — if the session has
+  InfraNodus MCP tools, switch to Path A and continue; otherwise report
+  the endpoint and the error verbatim and stop. Do NOT hunt for another
+  key or endpoint; a 401 means the wrong key for *that* server, not
+  permission to use another.
 
 After a build, each scope carries `endpoint`, `transport`, `account`, and
 `verified` in the manifest. When a later query fails, check those first —
@@ -156,17 +163,63 @@ insight log; the content lives in the graphs.
 
 ## Step 3 — Upload (one graph per scope)
 
+### Path A — session MCP server (PREFERRED when InfraNodus tools are connected)
+
+The agent drives the upload through the session's `create_knowledge_graph`.
+The contract mirrors the script exactly:
+
+1. **Chunk deterministically** with the script's own chunker (strip the
+   frontmatter first, keep the heading-aware boundaries):
+
+   ```bash
+   python3 - <<'EOF'
+   import importlib.util, re, os
+   spec = importlib.util.spec_from_file_location(
+       "up", "<SKILL_DIR>/scripts/upload_scopes.py")
+   up = importlib.util.module_from_spec(spec); spec.loader.exec_module(up)
+   for fname in sorted(os.listdir("infranodus")):
+       if not fname.endswith("-ontology.md"): continue
+       body = re.sub(r"^---.*?---\s*", "",
+                     open(f"infranodus/{fname}").read(), flags=re.S)
+       scope, gname = up.scope_graph_name("<prefix>", fname)
+       for i, c in enumerate(up.chunk_text(body, 25_000), 1):
+           open(f"<scratchpad>/chunks/{gname}.{i:02d}.txt", "w").write(c)
+   EOF
+   ```
+
+   ~25 KB per chunk keeps each piece inside tool I/O windows (the API
+   itself rejects ~100 KB+ with 413).
+
+2. **Upload every chunk of a scope to ONE `graphName`**
+   (`repo-<project>-<scope>` / `vault-<project>-<scope>` — same naming as
+   the script) with `{graphName, text: <chunk>, maxNodes: 500,
+   wikilinksMode: <the scope's frontmatter mode>}`. Uploads APPEND
+   server-side: never re-send a chunk that already succeeded. Pace calls;
+   on 429 wait ~5 min and retry the same chunk; on 413 split the chunk in
+   half and send the halves.
+
+3. **Do the script's per-scope bookkeeping yourself** (Path A skips the
+   script, not the record-keeping): the manifest entry and report section
+   described below, with `transport: "session-mcp"`, the connector's name
+   as `endpoint` (e.g. `claude.ai InfraNodus connector -> infranodus.com`),
+   the `account` segment parsed from the returned graph URL, and today's
+   date as `verified`. Then delete the scope file (or keep on
+   user request).
+
+### Path B — the bundled script (fallback: no InfraNodus tools in session)
+
 ```bash
 python3 <SKILL_DIR>/scripts/upload_scopes.py .            # long-running: use run_in_background
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --prefix repo-myproject
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --force    # re-upload (APPENDS — see below)
 ```
 
-Do NOT hand-roll `create_knowledge_graph` loops over scope files — the API
-rejects payloads over ~100 KB (413) and rate-limits bursts (429); the
-script chunks on heading-aware line boundaries, paces calls 20 s apart,
-backs off 5 min on 429s, bisects on 413s, uploads all chunks of a scope
-under ONE `graphName` (`repo-<project>-<scope>` / `vault-<project>-<scope>`),
+Do NOT hand-roll ad-hoc upload loops outside these two paths — Path A
+exists precisely so the chunking, pacing, appending, and bookkeeping
+rules still hold when the agent uploads directly. The script chunks on
+heading-aware line boundaries, paces calls 20 s apart, backs off 5 min on
+429s, bisects on 413s, uploads all chunks of a scope under ONE
+`graphName` (`repo-<project>-<scope>` / `vault-<project>-<scope>`),
 sets `maxNodes: 500` and the scope's declared `wikilinksMode` (these bind
 when the graph is FIRST created), and then, per scope:
 

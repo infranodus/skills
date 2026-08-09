@@ -37,31 +37,38 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   The server's own instructions and tool schemas are the authoritative
   reference for every tool's parameters and workflow patterns — do not
   duplicate or second-guess them here.
-- **Bulk uploads (repo/vault graphs)** — the bundled
-  `scripts/upload_scopes.py` uploads through **the MCP server the user has
-  configured**, and only that one. It resolves the server from this agent's
-  own config — `<project>/.mcp.json`, then `~/.claude.json` (this project's
-  section, then global), then `~/.claude/settings.json` — with project scope
-  winning. An `http` entry is reached at its own `url`; a `stdio` entry is
-  launched as its own subprocess, so a local or self-hosted server works
-  too. Never route bulk uploads through the agent context chunk by chunk;
-  the script handles chunking, pacing, 429 backoff, and 413 bisection.
-  Preflight: `upload_scopes.py [project_dir] --check-auth`, which prints the
-  resolved server, transport, and endpoint.
-- **Credentials are never read from config files.** For an `http` server the
-  key comes from `INFRANODUS_API_KEY` in the environment and nowhere else;
-  for a `stdio` server the entry's own `env` block is passed to the
-  subprocess untouched. There is no endpoint default and no credential
-  fallback: one server, one attempt, and a failed connection is a hard stop.
-  Do not work around this by exporting a key you found in some other
-  application's config — that is how content lands in an account the user
-  never chose.
-- **If no server is configured**, `--check-auth` says so and prints the
-  `claude mcp add` commands for both the hosted and the local option. Offer
-  to run one of them, or offer to keep the extracted scope files local.
-  Never guess an endpoint. For a cloud OAuth connector the token lives
-  remotely and cannot be reused, so uploads still need
-  `INFRANODUS_API_KEY`.
+- **Bulk uploads (repo/vault graphs) — session server FIRST.** Prefer the
+  InfraNodus MCP server already connected to this session (e.g. the
+  claude.ai InfraNodus connector): the agent performs the upload itself
+  with that server's `create_knowledge_graph` tool, chunk by chunk,
+  following the upload contract in
+  [references/repo-graph.md](references/repo-graph.md) Step 3 (one
+  `graphName` per scope, heading-aware chunks, `maxNodes: 500`, the
+  scope's declared `wikilinksMode`, paced calls, 429 backoff, 413
+  bisection, and the same manifest + report bookkeeping the script does).
+- **Fallback — the bundled script.** Only when the session has NO
+  InfraNodus MCP tools connected, use `scripts/upload_scopes.py`, which
+  uploads through the MCP server configured in this agent's own config —
+  `<project>/.mcp.json`, then `~/.claude.json` (this project's section,
+  then global), then `~/.claude/settings.json` — with project scope
+  winning. An `http` entry is reached at its own `url`; a `stdio` entry
+  (a local or self-hosted server) is launched as its own subprocess.
+  Preflight: `upload_scopes.py [project_dir] --check-auth`. The script
+  can never reach a cloud OAuth connector — that token lives remotely —
+  which is exactly why the connector path above is agent-driven.
+- **Credentials (script path only) are never read from config files.**
+  For an `http` server the key comes from `INFRANODUS_API_KEY` in the
+  environment and nowhere else; for a `stdio` server the entry's own
+  `env` block is passed to the subprocess untouched. There is no endpoint
+  default and no credential fallback: one server, one attempt, and a
+  failed connection falls back to the session connector if one exists —
+  otherwise it is a hard stop. Do not work around this by exporting a key
+  you found in some other application's config — that is how content
+  lands in an account the user never chose.
+- **If neither is available** (no session tools AND no configured server),
+  `--check-auth` prints the `claude mcp add` commands for both the hosted
+  and the local option. Offer to run one of them, or offer to keep the
+  extracted scope files local. Never guess an endpoint.
 - **Provenance** — each uploaded scope records `endpoint`, `transport`,
   `account`, and `verified` (the date the graph was successfully read back)
   in the manifest. When a graph query fails, compare the manifest's
