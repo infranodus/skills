@@ -1,0 +1,85 @@
+{
+	"name": "infranodus-skills",
+	"description": "InfraNodus skills for Claude: text network analysis, knowledge graphs, content gap detection, SEO, and cognitive variability workflows.",
+	"owner": {
+		"name": "InfraNodus",
+		"url": "https://github.com/infranodus/skills"
+	},
+	"plugins": [
+		{
+			"name": "infranodus",
+			"source": "./infranodus",
+			"description": "Text network analysis and knowledge graphs via the InfraNodus MCP server: content gaps, research questions, SEO/GEO optimization, GraphRAG retrieval, repo and vault graphs."
+		},
+		{
+			"name": "actionize",
+			"source": "./skill-actionize",
+			"description": "Turn insights or research into an actionable plan with deadlines and scheduled Telegram reminders."
+		},
+		{
+			"name": "cognitive-variability",
+			"source": "./skill-cognitive-variability",
+			"description": "Guide conversations through shifts between zoom levels and connecting/exploring modes to unlock creative breakthroughs and prevent rigid thinking."
+		},
+		{
+			"name": "critical-perspective",
+			"source": "./skill-critical-perspective",
+			"description": "Critical thinking: question assumptions, explore alternative perspectives, and uncover latent topics in conversations."
+		},
+		{
+			"name": "embodied-navigation",
+			"source": "./skill-embodied-navigation",
+			"description": "Transfer embodied movement principles (meditation, martial arts, dance) to navigate complex situations mapped as knowledge graphs."
+		},
+		{
+			"name": "llm-wiki",
+			"source": "./skill-llm-wiki",
+			"description": "Set up and maintain a personal LLM-authored wiki: an interlinked, compounding knowledge base built from raw sources with knowledge graph support."
+		},
+		{
+			"name": "ontology-generator",
+			"source": "./skill-ontology-creator",
+			"description": "Generate ontological knowledge graphs in [[wikilinks]] syntax for Obsidian / InfraNodus visualization and gap analysis."
+		},
+		{
+			"name": "perspective-reversal",
+			"source": "./skill-perspective-reversal",
+			"description": "Flip any conflict or negotiation to the opponent's perspective to extract superior tactical advice and counter-moves."
+		},
+		{
+			"name": "rhetorical-analyst",
+			"source": "./skill-rhetorical-analyst",
+			"description": "Analyze arguments, debate tactics, and rhetorical moves across persuasion, rhetoric, and logic dimensions."
+		},
+		{
+			"name": "seo-analysis",
+			"source": "./skill-seo-analysis",
+			"description": "SEO analysis: keyword research, content gap analysis, search intent, and optimization recommendations using real Google data."
+		},
+		{
+			"name": "shifting-perspective",
+			"source": "./skill-shifting-perspective",
+			"description": "Diagnose the structural diversity of a text with knowledge graph analysis and actively shift its perspective."
+		},
+		{
+			"name": "shopping-assistant",
+			"source": "./skill-shopping",
+			"description": "Systematic shopping research: comparison matrices, review analysis, and value assessment converging on the best options."
+		},
+		{
+			"name": "vipassana-llm",
+			"source": "./skill-vipassana-meditation",
+			"description": "Apply Vipassana meditation principles to LLM processing: equanimous scanning, non-reactive observation, impermanence awareness."
+		},
+		{
+			"name": "youtube-viral-optimizer",
+			"source": "./skill-viral-videos",
+			"description": "Generate high-CTR YouTube thumbnails, titles, and video scripts optimized for virality and algorithm positioning."
+		},
+		{
+			"name": "writing-assistant",
+			"source": "./skill-writing-assistant",
+			"description": "Refine texts in any language: grammar, style, paraphrasing, and grammatical pattern detection that signals cognitive states."
+		}
+	]
+}

@@ -69,6 +69,29 @@ Some skills can access the [InfraNodus MCP Server](https://infranodus.com/mcp) t
 
 #### Claude Code
 
+**Option A — Plugin marketplace (recommended):**
+
+This repository is a Claude Code plugin marketplace. Inside Claude Code, run:
+
+```
+/plugin marketplace add infranodus/skills
+/plugin install infranodus@infranodus-skills
+```
+
+Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`). Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus`. To update later, run `/plugin marketplace update infranodus-skills`.
+
+**Option B — `npx skills` CLI:**
+
+From your terminal:
+
+```bash
+npx skills add infranodus/skills --skill infranodus -g
+```
+
+Omit `--skill infranodus` to choose from all the skills in this repo interactively, and omit `-g` to install into the current project instead of globally.
+
+**Option C — Manual copy:**
+
 Copy each skill folder (e.g. `skill-cognitive-variability`) to the `~/.claude/skills` directory to make it available globally across all projects.
 
 To scope a skill to a specific project, create a `.claude/skills` folder inside that project and copy the skill folder(s) there instead.
