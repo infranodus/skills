@@ -7,6 +7,28 @@
 	},
 	"plugins": [
 		{
+			"name": "infranodus-all",
+			"source": "./",
+			"description": "The complete InfraNodus skills collection: all 15 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
+			"skills": [
+				"./infranodus",
+				"./skill-actionize",
+				"./skill-cognitive-variability",
+				"./skill-critical-perspective",
+				"./skill-embodied-navigation",
+				"./skill-llm-wiki",
+				"./skill-ontology-creator",
+				"./skill-perspective-reversal",
+				"./skill-rhetorical-analyst",
+				"./skill-seo-analysis",
+				"./skill-shifting-perspective",
+				"./skill-shopping",
+				"./skill-vipassana-meditation",
+				"./skill-viral-videos",
+				"./skill-writing-assistant"
+			]
+		},
+		{
 			"name": "infranodus",
 			"source": "./infranodus",
 			"description": "Text network analysis and knowledge graphs via the InfraNodus MCP server: content gaps, research questions, SEO/GEO optimization, GraphRAG retrieval, repo and vault graphs."

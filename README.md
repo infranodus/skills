@@ -78,7 +78,13 @@ This repository is a Claude Code plugin marketplace. Inside Claude Code, run:
 /plugin install infranodus@infranodus-skills
 ```
 
-Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`). Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus`. To update later, run `/plugin marketplace update infranodus-skills`.
+Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`), or install the complete collection in one go:
+
+```
+/plugin install infranodus-all@infranodus-skills
+```
+
+Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus` (or `/infranodus-all:infranodus` for the bundle). To update later, run `/plugin marketplace update infranodus-skills`.
 
 **Option B — `npx skills` CLI:**
 
