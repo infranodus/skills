@@ -1,7 +1,7 @@
 ---
 name: project-learnings
 description: >
-  Self-learning for agents working inside a project (a repo, a folder, a vault): retrieve what earlier sessions learned about operating in it, reflect at the end of a task on what was learned, and save the durable insights — where things live, traps, conventions, decisions with their rationale, workflows, open questions — to an opt-in, append-only InfraNodus knowledge graph (learn-<project>) that any client and any machine can query. Uses the InfraNodus MCP server's get_project_learnings / add_project_learnings / enable_project_learnings tools. Use at the start of a substantive task in a named project ("what do we know about this repo?"), at the end of one ("what did I learn?"), or when the user says "save learnings", "remember this about the project", "start keeping learnings", "what did previous sessions find", or "/learnings". Never writes without the user's explicit per-project opt-in and review of each batch. Keeps knowledge about the project only, never about the person.
+  Self-learning for agents working inside a project (a repo, folder, or vault): retrieve what earlier sessions learned about operating in it, reflect at the end of a task, and save the durable insights — where things live, traps, conventions, decisions with rationale, workflows, open questions, and a self-assessment of what worked well and what to do differently next time — to an opt-in, append-only InfraNodus graph (learn-<project>) any client can query. Uses the InfraNodus MCP server's get_project_learnings / add_project_learnings / enable_project_learnings tools. Use at the start of a substantive task in a named project ("what do we know about this repo?"), at the end of one ("what did I learn?"), or when the user says "save learnings", "remember this about the project", "start keeping learnings", or "/learnings". Never writes without the user's explicit per-project opt-in and review of each batch. Project knowledge only, never anything about the person.
 ---
 
 # Project Learnings
@@ -86,6 +86,12 @@ user, or a non-obvious fix. Ask yourself four questions:
 - Where did I go wrong first, and what was the actual cause?
 - What decision did I make, and why that one?
 - What would I check first next time?
+- **Self-assessment:** what about my approach worked well in this project and
+  should be repeated, and what should I do differently next time — which
+  check would have caught a mistake earlier, which order of steps saved
+  effort, where did I over- or under-verify? Save these with type
+  `approach`. Be as honest about what went well as about what did not: both
+  are equally useful to the next session.
 
 Draft 0–5 statements. **Zero is a normal answer**; do not pad. Each must pass
 all five admission criteria:
@@ -125,6 +131,7 @@ Each statement carries one `type`:
 | `decision` | what was chosen and the rationale |
 | `workflow` | how to run, test, build, deploy, debug |
 | `question` | open, unresolved, worth a future session's attention |
+| `approach` | self-assessment: what worked well and should be repeated, or what to do differently next time |
 
 Example (a real one):
 
@@ -141,6 +148,9 @@ Example (a real one):
   That is deliberate: things that keep being rediscovered become central.
 - `declined: true` with a `note` → the user wants a change; adjust and try
   once more. Without a note → do not retry.
+- `dryRun: true` with an `elicitation` field → the server tried to ask the
+  user directly but could not (dialog dismissed, client error). Not a
+  decline: show the plan and ask in chat as usual.
 - `rejected` with indices → strip the secret-like content from those
   statements (the server never echoes it) and resubmit.
 - A stale learning is not deleted (the graph is append-only); it is
@@ -154,9 +164,11 @@ Once a project has a few dozen learnings, the InfraNodus tools that work on
 any saved graph work on `learn-<project>` too:
 
 - `get_project_learnings` with no `prompt`/`entity` → overview: known areas,
-  main concepts, gaps.
-- `analyze_existing_graph_by_name` on the graph name → clusters and the
-  `[[type_trap]]` neighbourhood, i.e. the fragile parts of the codebase.
+  main concepts, gaps. Add `type: "trap"` for the fragile parts of the
+  project, `type: "question"` for what previous sessions left open,
+  `type: "approach"` for what worked and what to do differently.
+- `analyze_existing_graph_by_name` on the graph name → clusters, gaps, and
+  the most influential entities across all learnings.
 - If the **infranodus** skill has built `repo-<project>-*` graphs,
   `difference_between_texts` with `{graphName}` contexts shows modules that
   have code but no learnings — unexplored territory — and the learnings
@@ -164,10 +176,11 @@ any saved graph work on `learn-<project>` too:
   with `policy: "learnings"` so question routing sees it. Optional; nothing
   here depends on the manifest.
 
-The `type-*` labels are mention nodes attached to each statement's concepts.
-They are useful for filtering and neighbourhood queries and noisy for
-cluster analysis; hide mention nodes in the InfraNodus UI when studying the
-concept structure.
+The `type` of each learning is stored as statement metadata (a category on
+the statement), not as a node — so the graph's nodes are only the real
+entities and the structure is not distorted by the labels. Filter by type
+through the tool's `type` parameter or the statement categories in the
+InfraNodus UI.
 
 ## Relationship to other skills
 
@@ -192,5 +205,6 @@ concept structure.
 > **Agent:** Two things from this session worth keeping:
 > 1. [trap] `Reading a graph right after creating it can fail on infranodus.com: the app runs several instances with a per-process contexts-list cache ([[lib/middleware/getOwnerContextsList.js]]); [[src/utils/learnings.ts]] retries reads and treats any positive as authoritative.`
 > 2. [workflow] `There is no test runner in the repo; [[npm test]] builds with tsc and runs [[node --test]] over test/*.test.mjs against dist/.`
+> 3. [approach] `Testing the new tools through an in-memory [[MCP client]] with an intercepted [[fetch]] caught the body-shape and session-state bugs that unit tests of the pure helpers missed; do that before any live run in this project.`
 >
 > Save these? *(dry run shown; on "yes" → `confirm: true`)*
