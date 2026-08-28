@@ -141,6 +141,14 @@ Knowledge-base workflows:
   This skill maps what exists; llm-wiki writes new knowledge on top. Its
   curated scopes share the same `infranodus/` manifest and their `wiki-*`
   graphs are equally queryable (see the runbook's policy rules).
+- **project-learnings** — what agents *learned operating in* a project
+  (traps, conventions, where things live, decisions), saved to an opt-in
+  `learn-<project>` graph via the server's `get_project_learnings` /
+  `add_project_learnings` tools. This skill maps what a repo contains; that
+  one records what working in it taught the agent. Same entity names, so
+  the graphs compose (`difference_between_texts` between them shows modules
+  with code but no learnings). Route there at the start/end of substantive
+  tasks and on "save what you learned" — never enable it unasked.
 - **ontology-creator** — LLM-generated `[[wikilinks]]` ontology with
   `[relationCode]` tags from a topic or text. Offer it when the user
   wants semantic relations (X causes Y) rather than this skill's

@@ -9,7 +9,7 @@
 		{
 			"name": "infranodus-all",
 			"source": "./",
-			"description": "The complete InfraNodus skills collection: all 15 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
+			"description": "The complete InfraNodus skills collection: all 16 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
 			"skills": [
 				"./infranodus",
 				"./skill-actionize",
@@ -19,6 +19,7 @@
 				"./skill-llm-wiki",
 				"./skill-ontology-creator",
 				"./skill-perspective-reversal",
+				"./skill-project-learnings",
 				"./skill-rhetorical-analyst",
 				"./skill-seo-analysis",
 				"./skill-shifting-perspective",
@@ -67,6 +68,11 @@
 			"name": "perspective-reversal",
 			"source": "./skill-perspective-reversal",
 			"description": "Flip any conflict or negotiation to the opponent's perspective to extract superior tactical advice and counter-moves."
+		},
+		{
+			"name": "project-learnings",
+			"source": "./skill-project-learnings",
+			"description": "Agent self-learning inside a project: retrieve and save what sessions learned about operating in a repo or vault to an opt-in InfraNodus learnings graph."
 		},
 		{
 			"name": "rhetorical-analyst",
