@@ -53,6 +53,12 @@ Usage:
                      infranodus/<scope>-graph.json (opt-in)
   --keep-scopes      keep the scope .md files after a successful upload
                      (e.g. for Obsidian rendering)
+  --ontology         after the uploads, ask the server to generate an
+                     AI ontology graph (onto-<prefix>) from an uploaded
+                     scope via generate_ontology_graph(sourceGraphName)
+                     — from the digest scope when present (codebase mode),
+                     else from docs (general mode); --ontology-from SCOPE
+                     picks one explicitly. Costs LLM tokens.
   --register-project no upload: write the "## infranodus" always-on block
                      into <project_dir>/CLAUDE.md so the agent queries these
                      graphs for questions instead of grepping files.
@@ -603,6 +609,28 @@ def scope_graph_name(prefix, fname):
     return scope, f"{prefix}-{scope}"
 
 
+def generate_ontology(client, prefix, source_graph, source_scope):
+    """One paced call: the server reads the source graph's statements,
+    chunks them, and appends an ontology per chunk to onto-<slug>. Returns
+    (graph_name, response_text)."""
+    slug = re.sub(r"^(repo|vault)-", "", prefix)
+    graph_name = f"onto-{slug}"[:28].rstrip("-")
+    args = {
+        "sourceGraphName": source_graph,
+        "graphName": graph_name,
+        "ontologyMode": "codebase" if source_scope.startswith("digest")
+                        else "general",
+        "saveGraph": True,
+        "includeGraph": False,
+        "includeStatements": False,
+    }
+    status, out = client.call_tool("generate_ontology_graph", args)
+    if status != "ok":
+        print(f"  ontology generation failed: {out[:300]}", file=sys.stderr)
+        return graph_name, None
+    return graph_name, out
+
+
 # --------------------------------------------- routing metadata + insight log
 
 # What each graph is FOR — recorded in the manifest so the agent can route a
@@ -618,6 +646,12 @@ SCOPE_PURPOSES = {
                "changed, when, and the discussion around it",
     "vault-links": "the vault's page-link structure — how notes reference "
                    "each other",
+    "digest": "condensed structural map — directories, file imports and "
+              "dependencies, exported symbols, docstring headlines: how the "
+              "project is organised",
+    "onto": "AI-generated ontology of the project (entities and typed "
+            "relations condensed from the digest or the full text): how "
+            "the parts fit together",
 }
 
 
@@ -959,6 +993,12 @@ def main():
                          "(APPENDS to the existing graph)")
     ap.add_argument("--save-graph", action="store_true",
                     help="also save infranodus/<scope>-graph.json per scope")
+    ap.add_argument("--ontology", action="store_true",
+                    help="also generate onto-<prefix> from an uploaded "
+                         "scope (digest if present, else docs)")
+    ap.add_argument("--ontology-from", default=None, metavar="SCOPE",
+                    help="scope to build the ontology from (e.g. digest, "
+                         "docs); implies --ontology")
     ap.add_argument("--keep-scopes", action="store_true",
                     help="keep the scope .md files after a successful upload "
                          "(default: they are build intermediates, deleted "
@@ -1131,6 +1171,70 @@ def main():
                 print(f"  WARNING: could not fetch graph JSON: {out[:200]}",
                       flush=True)
             time.sleep(PACE_SECONDS)
+
+    # ------------------------------------------------ optional ontology layer
+    want_onto = args.ontology or bool(args.ontology_from)
+    if want_onto:
+        scopes = manifest.get("scopes", {})
+        chosen = None
+        if args.ontology_from:
+            for fname, meta in scopes.items():
+                sc, _ = scope_graph_name(prefix, fname)
+                if sc == args.ontology_from and meta.get("graphName"):
+                    chosen = (sc, meta["graphName"])
+        else:
+            for preferred in ("digest", "docs"):
+                for fname, meta in scopes.items():
+                    sc, _ = scope_graph_name(prefix, fname)
+                    if sc == preferred and meta.get("graphName"):
+                        chosen = (sc, meta["graphName"])
+                        break
+                if chosen:
+                    break
+        if not chosen:
+            print("ontology: no uploaded digest/docs scope to build from "
+                  "(run repo2statements.py --digest first)", file=sys.stderr)
+        else:
+            source_scope, source_graph = chosen
+            print(f"ontology from {source_graph} -> onto graph", flush=True)
+            time.sleep(PACE_SECONDS)
+            onto_name, out = generate_ontology(client, prefix, source_graph,
+                                               source_scope)
+            if out:
+                summary = harvest_summary(out)
+                url, account = graph_location(
+                    summary.get("graphUrl") or out, onto_name)
+                entry = scopes.setdefault("onto", {})
+                entry.update({
+                    "policy": "generated",
+                    "source": "generate_ontology_graph",
+                    "sourceScope": source_scope,
+                    "sourceGraph": source_graph,
+                    "graphName": onto_name,
+                    "url": url,
+                    "endpoint": spec.endpoint(),
+                    "transport": spec.transport,
+                    "purpose": SCOPE_PURPOSES["onto"],
+                    "updated": date.today().isoformat(),
+                })
+                if account:
+                    entry["account"] = account
+                if summary.get("topics"):
+                    entry["topics"] = summary["topics"]
+                if summary.get("gaps"):
+                    entry["gaps"] = summary["gaps"]
+                manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
+                                         encoding="utf-8")
+                log_entries.append({"graphName": onto_name, "url": url,
+                                    "purpose": entry["purpose"],
+                                    "endpoint": spec.endpoint(),
+                                    "transport": spec.transport,
+                                    "account": account,
+                                    "verified": None,
+                                    "topics": summary.get("topics"),
+                                    "gaps": summary.get("gaps"),
+                                    "hint": None, "structure": None})
+                print(f"  {onto_name}: {url or 'saved'}", flush=True)
 
     append_build_log(root, root.name, log_entries)
     print("all scopes uploaded; manifest updated")

@@ -116,13 +116,20 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
 2. On a bare launch (no target named), inventory the folder, then
    AskUserQuestion what to build: full graph (recommended) / a specific
    folder / docs containing certain terms / one document (see the runbook
-   for the follow-up questions). Skip the question when the user already
-   named the target.
-3. Build: `python3 scripts/repo2statements.py .` (deterministic extraction)
-   → `python3 scripts/upload_scopes.py .` (upload, run in background —
-   records routing metadata into the manifest, appends a dated section to
-   the append-only `INFRANODUS_REPORT.md` log, deletes the intermediate
-   scope files) → `upload_scopes.py . --register-project` (once).
+   for the follow-up questions). Skip that question when the user already
+   named the target. Then ALWAYS ask the build mode (multi-select): **full
+   ingestion** (all prose scopes), **digest** (condensed structural map:
+   tree, imports, exports, docstring headlines — cheap, no LLM), and/or
+   **ontology** (AI-condensed `onto-<project>` graph generated from the
+   digest or the docs graph — costs LLM tokens).
+3. Build: `python3 scripts/repo2statements.py .` (full) and/or
+   `... --digest` (deterministic extraction) → `python3 scripts/upload_scopes.py .`
+   (upload, run in background — records routing metadata into the
+   manifest, appends a dated section to the append-only
+   `INFRANODUS_REPORT.md` log, deletes the intermediate scope files; add
+   `--ontology` for the ontology layer, or call `generate_ontology_graph`
+   with `sourceGraphName` yourself on Path A) →
+   `upload_scopes.py . --register-project` (once).
 
 ## Companion skills
 

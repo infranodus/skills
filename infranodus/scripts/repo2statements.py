@@ -14,6 +14,14 @@ Sources (repo mode, default):
   - *.pdf text layer (see below)      -> repo-pdfs-ontology.md
   - docstrings + WHY:/NOTE:/TODO:/... -> repo-code-rationale-ontology.md
   - git commit bodies, gh PRs/issues  -> repo-history-ontology.md
+Digest mode (--digest), a condensed structural map instead of the prose:
+  - directory tree, file -> imports (local deps + packages),
+    file -> exported symbols, first docstring line per file,
+    package manifests -> dependencies    -> repo-digest-ontology.md
+  The digest is small enough to feed generate_ontology_graph (see
+  upload_scopes.py --ontology) and is the architecture layer the
+  rationale scopes lack. Runs alone; combine with a full run by
+  running the script twice (scopes are independent files).
 
 Vault mode (--vault):
   - [[wikilink]] / [md](links) between pages -> vault-links-ontology.md
@@ -454,9 +462,162 @@ def scope_wikilinks_mode(name: str) -> str:
     """Processing mode a scope file should be uploaded with (declared in its
     frontmatter so any later consumer knows without heuristics). Link scopes
     are pure [[A]] links to [[B]] statements -> wikilinksOnly; prose scopes
-    use parentAndConcepts (## [[page]] headings carry the parent)."""
+    (and the digest, whose statements all carry [[wikilinks]] under
+    ## [[dir/]] headings) use parentAndConcepts."""
     return ("wikilinksOnly" if name.startswith("vault-links")
             else "parentAndConcepts")
+
+
+# ------------------------------------------------------------- digest pass
+
+TS_IMPORT_RE = re.compile(
+    r'^\s*(?:import|export)\s+(?:[^\'"\n]*?\s+from\s+)?[\'"]([^\'"\n]+)[\'"]',
+    re.M)
+REQUIRE_RE = re.compile(r'require\(\s*[\'"]([^\'"\n]+)[\'"]\s*\)')
+TS_EXPORT_RE = re.compile(
+    r'^\s*export\s+(?:default\s+)?(?:async\s+)?'
+    r'(?:function|class|const|let|var|interface|type|enum)\s+'
+    r'([A-Za-z_$][\w$]*)', re.M)
+PY_IMPORT_RE = re.compile(r'^\s*(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))',
+                          re.M)
+PY_DEF_RE = re.compile(r'^(?:def|class)\s+([A-Za-z_]\w*)', re.M)
+DIGEST_MAX_EXPORTS = 25
+DIGEST_MAX_IMPORTS = 25
+DIGEST_HEADLINE_CHARS = 160
+
+
+def _resolve_local_import(from_file: Path, spec: str, root: Path,
+                          known: set[str]) -> str | None:
+    """Map a relative import specifier to a repo path when the target exists
+    in the scan (index files and stripped .js -> .ts extensions included)."""
+    if not spec.startswith("."):
+        return None
+    base = (from_file.parent / spec).resolve()
+    candidates = [base]
+    stem = re.sub(r"\.(js|mjs|cjs|jsx)$", "", str(base))
+    for ext in (".ts", ".tsx", ".js", ".mjs", ".jsx", ".py"):
+        candidates.append(Path(stem + ext))
+        candidates.append(base / f"index{ext}")
+    for c in candidates:
+        try:
+            rel = c.relative_to(root).as_posix()
+        except ValueError:
+            continue
+        if rel in known:
+            return rel
+    return None
+
+
+def _first_docstring_line(src: str, suffix: str) -> str:
+    m = (PY_DOCSTRING_RE.search(src) if suffix == ".py"
+         else C_DOCSTRING_RE.search(src))
+    if not m:
+        return ""
+    body = m.group(1) or (m.group(2) if m.lastindex and m.lastindex >= 2 else "")
+    body = re.sub(r"^\s*\*\s?", "", body or "", flags=re.M)
+    first = one_line(body.strip().split("\n\n")[0])
+    return first[:DIGEST_HEADLINE_CHARS]
+
+
+def mine_digest(root: Path) -> list[str]:
+    """Condensed structural map: one `## [[dir/]]` section per directory,
+    then per file its imports (local paths resolved, packages by name),
+    exported symbols, and the first docstring line. Every statement carries
+    [[wikilinks]], so under parentAndConcepts only real entities become
+    nodes. Deterministic; a few statements per file."""
+    files = [p for p in iter_files(root) if p.suffix.lower() in CODE_EXTS]
+    known = {p.relative_to(root).as_posix() for p in files}
+    by_dir: dict[str, list[str]] = {}
+
+    for p in files:
+        rel = p.relative_to(root).as_posix()
+        src = read_text(p)
+        if not src:
+            continue
+        stmts: list[str] = []
+        suffix = p.suffix.lower()
+
+        imports: list[str] = []
+        if suffix == ".py":
+            for m in PY_IMPORT_RE.finditer(src):
+                mod = m.group(1) or m.group(2) or ""
+                if not mod:
+                    continue
+                if mod.startswith("."):
+                    target = _resolve_local_import(
+                        p, "./" + mod.lstrip(".").replace(".", "/"), root, known)
+                    imports.append(target or mod)
+                else:
+                    local = (root / (mod.replace(".", "/") + ".py"))
+                    imports.append(local.relative_to(root).as_posix()
+                                   if local.exists() else mod.split(".")[0])
+        else:
+            specs = TS_IMPORT_RE.findall(src) + REQUIRE_RE.findall(src)
+            for spec in specs:
+                target = _resolve_local_import(p, spec, root, known)
+                if target:
+                    imports.append(target)
+                elif not spec.startswith("."):
+                    # package name (scoped packages keep their scope)
+                    parts = spec.split("/")
+                    imports.append("/".join(parts[:2]) if spec.startswith("@")
+                                   else parts[0])
+        seen: list[str] = []
+        for imp in imports:
+            if imp not in seen and imp != rel:
+                seen.append(imp)
+        for imp in seen[:DIGEST_MAX_IMPORTS]:
+            stmts.append(f"[[{rel}]] imports [[{imp}]]")
+
+        exports = (PY_DEF_RE.findall(src) if suffix == ".py"
+                   else TS_EXPORT_RE.findall(src))
+        uniq: list[str] = []
+        for e in exports:
+            if e not in uniq and not e.startswith("_"):
+                uniq.append(e)
+        if uniq:
+            names = ", ".join(f"[[{e}]]" for e in uniq[:DIGEST_MAX_EXPORTS])
+            stmts.append(f"[[{rel}]] exports {names}")
+
+        headline = _first_docstring_line(src, suffix)
+        if len(headline) >= 15:
+            stmts.append(f"[[{rel}]]: {headline}")
+
+        if not stmts:
+            stmts.append(f"[[{rel}]] is a {suffix.lstrip('.')} file")
+        d = p.parent.relative_to(root).as_posix()
+        by_dir.setdefault(d if d != "." else "", []).extend(stmts)
+
+    # package manifests -> external dependencies
+    manifest_stmts: list[str] = []
+    pkg = root / "package.json"
+    if pkg.exists():
+        try:
+            data = json.loads(read_text(pkg))
+            for key in ("dependencies", "peerDependencies"):
+                for dep in sorted((data.get(key) or {}).keys()):
+                    manifest_stmts.append(f"[[package.json]] depends on [[{dep}]]")
+            for script in sorted((data.get("scripts") or {}).keys()):
+                manifest_stmts.append(
+                    f"[[package.json]] defines script [[npm run {script}]]")
+        except (json.JSONDecodeError, AttributeError):
+            pass
+    for req in ("requirements.txt", "pyproject.toml"):
+        f = root / req
+        if f.exists():
+            for line in read_text(f).splitlines():
+                m = re.match(r"^\s*([A-Za-z0-9_.\-]+)\s*(?:[<>=!~\[]|$)", line)
+                if m and not line.lstrip().startswith(("#", "[")):
+                    manifest_stmts.append(f"[[{req}]] depends on [[{m.group(1)}]]")
+    if manifest_stmts:
+        by_dir.setdefault("", []).extend(manifest_stmts)
+
+    statements: list[str] = []
+    for d in sorted(by_dir):
+        statements.append(f"## [[{d + '/' if d else '/'}]]")
+        statements.extend(by_dir[d])
+        statements.append("")
+    return statements
 
 
 HEADING_LINE_RE = re.compile(r"^\s*#{1,6}\s")
@@ -520,6 +681,11 @@ def main() -> int:
     ap.add_argument("path", nargs="?", default=".")
     ap.add_argument("--vault", action="store_true",
                     help="page-link scan for an Obsidian/md vault")
+    ap.add_argument("--digest", action="store_true",
+                    help="condensed structural map only (tree, imports, "
+                         "exports, docstring headlines, manifests) -> "
+                         "repo-digest-ontology.md; run again without it "
+                         "for the full prose scan")
     ap.add_argument("--structure", action="store_true",
                     help="DEFERRED: code-structure extraction (not in v1)")
     ap.add_argument("--no-git", action="store_true")
@@ -567,7 +733,9 @@ def main() -> int:
         if path:
             written[path.name] = count_statements(statements)
 
-    if args.vault:
+    if args.digest:
+        keep("repo-digest-ontology.md", mine_digest(root), "repo")
+    elif args.vault:
         # explicit --vault: map the vault structure ONLY
         keep("vault-links-ontology.md", mine_vault_links(root), "vault")
     else:
