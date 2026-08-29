@@ -120,11 +120,11 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    named the target. Then ALWAYS ask the build mode (multi-select): **full
    ingestion** (all prose scopes, no LLM), **structure map** (deterministic:
    tree, imports, exports, docstring headlines in a repo, page links in a
-   vault — cheap, no LLM),
-   **digest + structural feedback** (YOU read the target and
-   write simple statements on how it works — principles, rules, procedures,
-   hand-offs — then `optimize_knowledge_base` on the uploaded graph: what
-   dominates, what is under-developed, which clusters never connect), and/or
+   vault — cheap, no LLM), **digest + structural feedback** (YOU read the
+   target and write simple statements on how it works — principles, rules,
+   procedures, hand-offs — then `optimize_knowledge_base` on the uploaded
+   graph: what dominates, what is under-developed, which clusters never
+   connect), and/or
    **ontology** (the server distils entities and typed relations from the
    structure or docs graph into `onto-<project>` — how the parts fit together;
    costs server LLM tokens). The digest is for reviewing and improving the

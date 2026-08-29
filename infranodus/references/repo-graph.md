@@ -399,6 +399,14 @@ or find *what is missing / under-developed* in the project, run
 | a document vault | `vault-<p>-docs` (or `-digest`) | `vault` | `vault-<p>-links` |
 | procedural knowledge (rules, frameworks, playbooks) | `repo-<p>-digest` | `procedural` | the docs or structure graph |
 
+No file access (a client without a filesystem), or the content already
+lives in a graph (built in the app, from URLs, transcripts, an earlier
+ingestion) and nobody should re-read the files: let the server write the
+digest instead — `generate_ontology_graph({ sourceGraphName:
+"<prefix>-docs" (or "-structure"), ontologyMode: "procedural", graphName:
+"<prefix>-digest", saveGraph: true })` — then run `optimize_knowledge_base`
+on it as above. Same graph name and shape as the agent-written digest.
+
 Report to the user, in this order: the state and its reading (`meaning`,
 `action`), the dominant cluster, the under-developed areas, the missing
 bridges (with the focus-specific meaning: integrations / bridge notes /

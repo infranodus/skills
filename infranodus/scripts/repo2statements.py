@@ -32,8 +32,9 @@ Digest mode (--digest), the LLM-written digest:
   --include / --term; docs, code, and main config files only, capped) and
   the format; run it AGAIN after writing to normalise the frontmatter and
   register the scope in the manifest (policy "authored": the uploader keeps
-  the file). Exit code 2 on the first run means "now write the file". Feed the uploaded graph to
-  optimize_knowledge_base (focus: codebase | vault | procedural).
+  the file). Exit code 2 on the first run means "now write the file". Feed
+  the uploaded graph to optimize_knowledge_base (focus: codebase | vault |
+  procedural).
 
 Vault mode (--vault):
   - [[wikilink]] / [md](links) between pages -> vault-links-ontology.md
@@ -568,12 +569,29 @@ def register_digest(out_dir: Path, fname: str, mode: str) -> int | None:
     return count_statements(body.splitlines())
 
 
+LEGACY_PRINCIPLES_RE = re.compile(r"^(repo|vault)-principles(-.+)?-ontology\.md$")
+
+
+def adopt_legacy_digest(out_dir: Path, fname: str) -> None:
+    """The digest scope used to be called principles: if an agent-written
+    principles file for the same target is on disk and no digest file is,
+    rename it so the register step picks it up."""
+    if (out_dir / fname).exists():
+        return
+    legacy = fname.replace("-digest", "-principles", 1)
+    if (out_dir / legacy).exists():
+        (out_dir / legacy).rename(out_dir / fname)
+        print(f"NOTE: renamed infranodus/{legacy} -> {fname} (the scope is "
+              "now called digest)")
+
+
 def retire_old_digest(out_dir: Path, fname: str) -> None:
-    """Before registering an agent-written digest, drop manifest entries
-    for the SAME principles scope left by the old regex extractor (source
-    repo2statements — possibly under the repo- name in a vault). Their
-    graphs contain mined sentences, and uploads append, so the user must
-    delete those graphs on the server before the new digest goes up."""
+    """Before registering an agent-written digest, drop stale manifest
+    entries for the same target: the script-generated structure map that
+    used to carry the digest name (source repo2statements), and any entry
+    under the old principles name. Their graphs hold other content, and
+    uploads append, so the user must delete those graphs on the server
+    before the new digest goes up."""
     manifest_path = out_dir / "manifest.json"
     if not manifest_path.exists():
         return
@@ -583,14 +601,20 @@ def retire_old_digest(out_dir: Path, fname: str) -> None:
         return
     scopes = manifest.get("scopes", {})
     suffix_part = DIGEST_FNAME_RE.match(fname).group(2) or ""
-    stale = [k for k, v in scopes.items()
-             if (mm := DIGEST_FNAME_RE.match(k))
-             and (mm.group(2) or "") == suffix_part
-             and v.get("source") == "repo2statements"]
-    for k in stale:
+    stale = []
+    for k, v in scopes.items():
+        m = DIGEST_FNAME_RE.match(k)
+        if m and (m.group(2) or "") == suffix_part \
+                and v.get("source") == "repo2statements":
+            stale.append((k, "the script-generated structure map"))
+            continue
+        m = LEGACY_PRINCIPLES_RE.match(k)
+        if m and (m.group(2) or "") == suffix_part:
+            stale.append((k, "the earlier principles version of this mode"))
+    for k, why in stale:
         entry = scopes.pop(k)
         if entry.get("graphName"):
-            print(f"NOTE: {k} was built by the old extractor and uploaded as "
+            print(f"NOTE: {k} was {why} and is uploaded as "
                   f"{entry['graphName']}; delete that graph on the server "
                   f"before uploading (uploads append to an existing graph).")
         if k != fname and (out_dir / k).exists():
@@ -849,7 +873,7 @@ def main() -> int:
     out_dir = root / "infranodus"
     out_dir.mkdir(exist_ok=True)
 
-    if sum(map(bool, (args.structure, args.principles, args.vault))) > 1:
+    if sum(map(bool, (args.structure, args.digest, args.vault))) > 1:
         print("--structure, --digest and --vault are separate runs; "
               "run them one at a time (scopes share the manifest)",
               file=sys.stderr)
@@ -875,13 +899,14 @@ def main() -> int:
             written[path.name] = count_statements(statements)
 
     if args.structure:
-        if is_vault(root):
-            print("--structure maps code (imports, exports, docstrings); a "
-                  "vault's structure is its link map: use --vault",
-                  file=sys.stderr)
+        stmts = mine_structure(root)
+        if not stmts:
+            print("--structure maps code (imports, exports, docstrings) and "
+                  "found no code files here; a vault's structure is its "
+                  "link map: use --vault", file=sys.stderr)
             return 1
-        keep("repo-structure-ontology.md", mine_structure(root), "repo")
-    elif args.principles:
+        keep("repo-structure-ontology.md", stmts, "repo")
+    elif args.digest:
         # The agent writes this scope; the script only lists what to read
         # and registers the result. A vault gets the vault- prefix so the
         # graph is named vault-<p>-digest (Step 6 of the runbook).
@@ -889,6 +914,7 @@ def main() -> int:
         fname = f"{mode}-digest-ontology.md"
         if suffix:
             fname = fname.replace("-ontology.md", f"-{suffix}-ontology.md")
+        adopt_legacy_digest(out_dir, fname)
         count = register_digest(out_dir, fname, mode)
         if count is None:
             files = digest_reading_list(root)
