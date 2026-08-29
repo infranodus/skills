@@ -50,15 +50,21 @@ Change tracking (--detect / --update), for scopes that are already uploaded:
   the index keys are exactly what `delete_statements({categories})` needs
   to remove one file's statements from the graph.
   --detect  re-walks each scope with its stored filters and prints, per
-            scope, the new / modified / deleted files (JSON on stdout, a
-            one-line summary per scope on stderr). No writes.
+            scope, the new / modified / deleted / renamed files (JSON on
+            stdout, a one-line summary per scope on stderr). A deleted
+            and a new prefix with the same hash are one renamed file
+            (`renamed: [{from, to}]`; exact match only). No writes.
   --update  extracts the new and modified files (and history past the
             cursors) into infranodus/<scope>-delta-ontology.md, whose
-            frontmatter names the target graph and the categories to
-            replace; upload_scopes.py deletes those categories' statements
-            and appends the delta to the same graph. Deleted files are
-            listed for removal only. Link scopes (wikilinksOnly, no
-            categories) are re-uploaded whole with `replaceAll: true`.
+            frontmatter names the target graph, the categories to
+            replace, and the renames (`renameFrom` / `renameTo`);
+            upload_scopes.py relabels the renamed files' statements in
+            place (update_statements), deletes the replaced categories'
+            statements, and appends the delta to the same graph. Deleted
+            files are listed for removal only; renamed files are not
+            re-extracted (a delta can be renames only, no statements).
+            Link scopes (wikilinksOnly, no categories) are re-uploaded
+            whole with `replaceAll: true`.
   A scope built before change tracking has no index: rebuild it once
   (plain run, then `upload_scopes.py --force`) to enable updates.
 
@@ -1113,12 +1119,35 @@ def under_path(rel_or_prefix: str, path: str | None) -> bool:
     return bool(p) and (x == p or x.startswith(p + "/"))
 
 
+def pair_renames(stored: dict[str, str], current: dict[str, str],
+                 new: list[str], deleted: list[str]):
+    """A deleted prefix and a new prefix with the SAME extracted-text hash
+    are one moved file: (renamed [{from, to}], new, deleted) with both
+    sides taken out of new/deleted. Exact hash only — a moved-and-edited
+    file stays delete + add. One-to-one: several candidates sharing a hash
+    are paired in sorted order, leftovers stay as they were."""
+    by_hash: dict[str, list[str]] = {}
+    for k in sorted(deleted):
+        by_hash.setdefault(stored[k], []).append(k)
+    renamed: list[dict] = []
+    taken: set[str] = set()
+    for k in sorted(new):
+        olds = by_hash.get(current[k])
+        if olds:
+            old = olds.pop(0)
+            renamed.append({"from": old, "to": k})
+            taken.update((old, k))
+    return (renamed, [k for k in new if k not in taken],
+            [k for k in deleted if k not in taken])
+
+
 def diff_index(stored: dict[str, str], sections: list[Section],
                path: str | None = None):
-    """(new, modified, deleted, current_index) of prefixes against the
-    stored index. --path narrows the lists to files under it: new/modified
-    by their real path, deleted by their prefix (a deleted vault page is
-    known only by its stem, so it matches only when --path names it)."""
+    """(new, modified, deleted, renamed, current_index) of prefixes against
+    the stored index. --path narrows the lists to files under it:
+    new/modified by their real path, deleted by their prefix (a deleted
+    vault page is known only by its stem, so it matches only when --path
+    names it), a rename when either side is under it."""
     current = hash_sections(sections)
     rel_of: dict[str, str] = {}
     for prefix, rel, stmts in sections:
@@ -1127,13 +1156,16 @@ def diff_index(stored: dict[str, str], sections: list[Section],
     new = [k for k in current if k not in stored]
     modified = [k for k in current if k in stored and stored[k] != current[k]]
     deleted = [k for k in stored if k not in current]
+    renamed, new, deleted = pair_renames(stored, current, new, deleted)
     if path:
         def keep(k: str) -> bool:
             return under_path(rel_of.get(k, k), path) or under_path(k, path)
         new = [k for k in new if keep(k)]
         modified = [k for k in modified if keep(k)]
         deleted = [k for k in deleted if under_path(k, path)]
-    return sorted(new), sorted(modified), sorted(deleted), current
+        renamed = [r for r in renamed
+                   if under_path(r["from"], path) or keep(r["to"])]
+    return sorted(new), sorted(modified), sorted(deleted), renamed, current
 
 
 UNTRACKED_REASON = ("built before change tracking; rebuild once "
@@ -1183,10 +1215,13 @@ def detect_changes(root: Path, scopes: dict, hist_opts: dict, vault: bool,
             report[fname] = detect_history(root, entry["history"], hist_opts)
             continue
         sections, _, _ = mine_scope(kind, root, vault, hist_opts, quiet=True)
-        new, modified, deleted, _ = diff_index(entry["files"], sections, path)
+        new, modified, deleted, renamed, _ = diff_index(
+            entry["files"], sections, path)
         report[fname] = {
-            "status": "changed" if (new or modified or deleted) else "clean",
+            "status": ("changed" if (new or modified or deleted or renamed)
+                       else "clean"),
             "new": new, "modified": modified, "deleted": deleted,
+            "renamed": renamed,
         }
     return report
 
@@ -1198,7 +1233,8 @@ def summarize(fname: str, r: dict) -> str:
         return f"{label}: clean"
     if st == "changed" and "new" in r:
         return (f"{label}: +{len(r['new'])} new / {len(r['modified'])} "
-                f"modified / {len(r['deleted'])} deleted")
+                f"modified / {len(r['deleted'])} deleted / "
+                f"{len(r.get('renamed') or [])} renamed")
     if st == "changed":
         parts = [f"{r['newCommits']} new commits" if r.get("newCommits") else "",
                  f"{r['newPrs']} new PRs" if r.get("newPrs") else "",
@@ -1209,11 +1245,16 @@ def summarize(fname: str, r: dict) -> str:
 
 def write_delta(out_dir: Path, name: str, statements: list[str], mode: str,
                 graph_name: str, parent: str, replace_categories: list[str],
-                replace_all: bool) -> Path:
+                replace_all: bool, renames: list[dict] | None = None) -> Path:
     """A delta scope file: same frontmatter contract as a scope, plus the
-    upload instructions — the graph to append to, the parent scope, and
-    the categories whose statements the uploader deletes first
-    (`replaceAll: true` for link scopes, which carry no categories)."""
+    upload instructions — the graph to append to, the parent scope, the
+    categories whose statements the uploader deletes first (`replaceAll:
+    true` for link scopes, which carry no categories), and the renames it
+    relabels in place. Renames go in as two parallel JSON-quoted lists,
+    `renameFrom:` / `renameTo:` (i-th entries pair up, in order), which
+    the uploader's flat key/list frontmatter parser reads as is; the
+    manifest carries the same pairs as `renameCategories: [{from, to}]`.
+    A delta may hold renames only: no statements after the frontmatter."""
     path = out_dir / name
     lines = ["---", "generated: true", "generator: repo2statements",
              f"mode: {mode}", f"wikilinksMode: {scope_wikilinks_mode(name)}",
@@ -1227,6 +1268,11 @@ def write_delta(out_dir: Path, name: str, statements: list[str], mode: str,
         lines += [f"  - {json.dumps(c)}" for c in replace_categories]
     else:
         lines.append("replaceCategories: []")
+    if renames:
+        lines.append("renameFrom:")
+        lines += [f"  - {json.dumps(r['from'])}" for r in renames]
+        lines.append("renameTo:")
+        lines += [f"  - {json.dumps(r['to'])}" for r in renames]
     lines += ["---", ""]
     path.write_text("\n".join(lines) + "\n" + "\n".join(statements) + "\n",
                     encoding="utf-8")
@@ -1292,6 +1338,7 @@ def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
             pending_sections, pending_loose = read_delta(delta_path)
         replace_cats = sorted(set(pending.get("replaceCategories") or []))
         replace_all = bool(pending.get("replaceAll"))
+        renames: list[dict] = list(pending.get("renameCategories") or [])
 
         if kind == "history":
             cur = entry["history"]
@@ -1312,9 +1359,21 @@ def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
         else:
             sections, _, _ = mine_scope(kind, root, vault, hist_opts,
                                         quiet=True)
-            new, modified, deleted, current = diff_index(
+            new, modified, deleted, renamed, current = diff_index(
                 entry["files"], sections, path)
-            if not (new or modified or deleted):
+            # A rename is relabelled on the server, so it only holds when
+            # the server has the old label: a pending (not yet uploaded)
+            # delta that still carries the old prefix — as a section to
+            # append or a category to replace — makes it a plain
+            # delete + add instead.
+            pending_keys = ({s[0] for s in pending_sections}
+                            | set(replace_cats))
+            for r in [r for r in renamed if r["from"] in pending_keys]:
+                renamed.remove(r)
+                new.append(r["to"])
+                deleted.append(r["from"])
+            new, deleted = sorted(new), sorted(deleted)
+            if not (new or modified or deleted or renamed):
                 print(f"{label}: no changes", file=sys.stderr)
                 continue
             changed = set(new) | set(modified)
@@ -1322,7 +1381,7 @@ def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
                 # wikilinksOnly: no categories to replace — the whole scope
                 # goes up again after the graph is cleared.
                 delta_sections = sections
-                replace_all, replace_cats = True, []
+                replace_all, replace_cats, renamed = True, [], []
             else:
                 gone = changed | set(deleted)
                 delta_sections = [s for s in pending_sections
@@ -1337,12 +1396,16 @@ def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
                 files[k] = current[k]
             for k in deleted:
                 files.pop(k, None)
+            for r in renamed:   # same hash, new key — nothing re-extracted
+                files[r["to"]] = files.pop(r["from"], current[r["to"]])
             entry["files"] = files
+            renames += renamed
             summary = (f"+{len(new)} new / {len(modified)} modified / "
-                       f"{len(deleted)} deleted")
+                       f"{len(deleted)} deleted / {len(renamed)} renamed")
 
         write_delta(out_dir, delta_name, statements, mode or "repo",
-                    entry["graphName"], fname, replace_cats, replace_all)
+                    entry["graphName"], fname, replace_cats, replace_all,
+                    renames)
         entry["updated"] = today
         entry["builtAtCommit"] = head
         count = count_statements(statements)
@@ -1355,6 +1418,7 @@ def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
             "deltaOf": fname,
             "replaceCategories": replace_cats,
             "replaceAll": replace_all,
+            "renameCategories": renames,
             "graphName": None,
             "url": None,
         }
@@ -1362,6 +1426,8 @@ def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
         print(f"infranodus/{delta_name}: {count} statements ({summary}"
               + (f"; replaces {len(replace_cats)} file(s)" if replace_cats
                  else "; replaces the whole graph" if replace_all else "")
+              + (f"; relabels {len(renames)} renamed file(s)" if renames
+                 else "")
               + f") -> {entry['graphName']}")
     if written:
         (out_dir / "manifest.json").write_text(
@@ -1388,8 +1454,9 @@ def main() -> int:
     ap.add_argument("--detect", action="store_true",
                     help="no extraction: compare each uploaded scope with "
                          "the working tree (its stored filters re-applied) "
-                         "and print new / modified / deleted files as JSON "
-                         "(stdout) plus a one-line summary per scope (stderr)")
+                         "and print new / modified / deleted / renamed files "
+                         "as JSON (stdout) plus a one-line summary per scope "
+                         "(stderr)")
     ap.add_argument("--update", action="store_true",
                     help="extract only what changed since the last build "
                          "into infranodus/<scope>-delta-ontology.md and "

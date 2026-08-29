@@ -43,7 +43,11 @@ server's delete_statements tool is what makes replacement possible:
     delta says `replaceAll` (link scopes carry no categories) — then
     appends the delta's chunks to the same graph, re-runs the enrichment
     calls for the parent, logs a "delta build" section, and deletes the
-    delta file and its manifest entry.
+    delta file and its manifest entry. Renamed files (`renameCategories`
+    in the entry, `renameFrom` / `renameTo` in the frontmatter) are
+    relabelled in place first with update_statements (old category ->
+    new; ids and dates kept) — nothing deleted or re-appended for them,
+    and a delta may consist of renames alone.
   - --force rebuilds an already-uploaded scope IN PLACE: delete_statements
     with deleteAll on its graphName, then the upload as usual under the
     SAME name. wikilinksMode and maxNodes bind when a graph is first
@@ -646,6 +650,31 @@ def delete_statements(client, graph_name, categories=None, delete_all=False):
     return 0
 
 
+def relabel_statements(client, graph_name, old, new):
+    """Move every statement labelled `old` (a `## [[file]]` heading the
+    server stored as a category) to `new` IN PLACE via update_statements
+    — ids, dates, and order kept, nothing deleted or re-appended. Returns
+    the `updated` count; raises RuntimeError on an error response, like
+    delete_statements, so a failed relabel stops the scope."""
+    arguments = {"graphName": graph_name, "categories": [old],
+                 "set": {"removeCategories": [old], "addCategories": [new]},
+                 "confirm": True}
+    what = f"update_statements {old} -> {new} in {graph_name}"
+    status, out = call_paced(client, "update_statements", arguments, what)
+    if status != "ok":
+        raise RuntimeError(f"{what} failed: {(out or '')[:500]}")
+    try:
+        data = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        data = {}
+    if isinstance(data, dict):
+        try:
+            return int(data.get("updated") or 0)
+        except (TypeError, ValueError):
+            return 0
+    return 0
+
+
 def _yaml_scalar(value):
     v = value.strip()
     if v in ("true", "True"):
@@ -979,10 +1008,11 @@ Rules:
   installed (e.g. graphify) — the two are complementary, not competing.
 - After adding or substantially editing content, re-run `/infranodus` to
   refresh the affected scope: `repo2statements.py . --detect` lists the
-  new / modified / deleted files per scope, `--update` extracts only those
-  into a delta, and the uploader replaces their statements in place
-  (`delete_statements` by file category, then append) — no graph is
-  deleted or duplicated.
+  new / modified / deleted / renamed files per scope, `--update` extracts
+  only those into a delta, and the uploader replaces their statements in
+  place (`delete_statements` by file category, then append; renamed files
+  are relabelled with `update_statements`) — no graph is deleted or
+  duplicated.
 {CLAUDE_MD_END}
 """
 
@@ -1097,12 +1127,14 @@ def enrich_graph(client, spec, graph_name, meta):
 
 def upload_delta(client, spec, fname, meta, parent_name, parent, path,
                  log_entries):
-    """Apply one delta scope to its parent's graph IN PLACE: delete the
-    statements of the replaced files (by category) — or everything, for
-    a link scope — then append the delta's chunks to the same graphName
-    and refresh the parent's routing metadata. Returns True when fully
-    applied; on a failed delete nothing is appended (the delta file and
-    its manifest entry stay for a re-run)."""
+    """Apply one delta scope to its parent's graph IN PLACE: relabel the
+    renamed files' statements (update_statements, old category -> new),
+    delete the statements of the replaced files (by category) — or
+    everything, for a link scope — then append the delta's chunks to the
+    same graphName and refresh the parent's routing metadata. A delta may
+    carry renames only (no statements: nothing appended). Returns True
+    when fully applied; on a failed relabel or delete nothing is appended
+    (the delta file and its manifest entry stay for a re-run)."""
     graph_name = parent["graphName"]
     fm = parse_frontmatter(path)
     if fm.get("graphName") and fm["graphName"] != graph_name:
@@ -1113,9 +1145,26 @@ def upload_delta(client, spec, fname, meta, parent_name, parent, path,
     categories = list(meta.get("replaceCategories")
                       or fm.get("replaceCategories") or [])
     replace_all = bool(meta.get("replaceAll") or fm.get("replaceAll"))
+    # Renames: manifest `renameCategories: [{from, to}]`, or the delta's
+    # parallel `renameFrom` / `renameTo` lists (i-th entries pair up).
+    renames = [(r["from"], r["to"]) for r in meta.get("renameCategories") or []
+               if isinstance(r, dict) and r.get("from") and r.get("to")]
+    if not renames:
+        renames = [(a, b) for a, b in zip(fm.get("renameFrom") or [],
+                                          fm.get("renameTo") or [])
+                   if a and b]
 
     removed = 0
+    relabelled = []   # (from, to, count) — counts on the parent unchanged
     try:
+        if renames:
+            print(f"{fname} -> {graph_name}: relabelling {len(renames)} "
+                  "renamed file(s) in place", flush=True)
+        for old, new in renames:
+            n = relabel_statements(client, graph_name, old, new)
+            relabelled.append((old, new, n))
+            print(f"  relabelled {n} statements {old} -> {new}", flush=True)
+            time.sleep(PACE_SECONDS)
         if replace_all:
             print(f"{fname} -> {graph_name}: clearing the graph (replaceAll)",
                   flush=True)
@@ -1134,9 +1183,14 @@ def upload_delta(client, spec, fname, meta, parent_name, parent, path,
         return False
 
     text = strip_frontmatter(path)
-    chunks = chunk_text(text)
+    chunks = chunk_text(text) if text.strip() else []
     mode = scope_wikilinks_mode(fname, path)
-    print(f"  appending {len(chunks)} chunk(s) to {graph_name}", flush=True)
+    if chunks:
+        print(f"  appending {len(chunks)} chunk(s) to {graph_name}",
+              flush=True)
+    else:
+        print(f"  nothing to append to {graph_name} (renames only)",
+              flush=True)
     last = None
     for i, chunk in enumerate(chunks):
         print(f"  chunk {i + 1}/{len(chunks)}", flush=True)
@@ -1158,6 +1212,8 @@ def upload_delta(client, spec, fname, meta, parent_name, parent, path,
     new_files = [h for h in dict.fromkeys(headings) if h not in categories]
     notes = [f"delta of {parent_name}: {added} statement(s) appended, "
              f"{removed} removed"]
+    for old, new, n in relabelled:
+        notes.append(f"renamed: {old} -> {new} ({n} statements)")
     if replace_all:
         notes.append("replaced: the whole graph (link scope, no categories)")
     elif categories:

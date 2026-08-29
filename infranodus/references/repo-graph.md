@@ -67,25 +67,31 @@ that was extracted (`files`, keyed by the `## [[<file>]]` heading — which
 the server stores as each statement's **category**), the filters the scope
 was built with, and for history the commit/PR/issue cursors. So an update
 is exact: the changed files' old statements are deleted by category and
-the new ones appended to the same graph. Run detection first (fast, no
-writes):
+the new ones appended to the same graph; a file that only moved (same
+hash under a new path, or a new page stem in a vault) is **renamed**, and
+its statements are relabelled in place (`update_statements`: old
+category → new, ids and dates kept) instead of deleted and re-extracted.
+Run detection first (fast, no writes):
 
 ```bash
 python3 <SKILL_DIR>/scripts/repo2statements.py . --detect          # all scopes
 python3 <SKILL_DIR>/scripts/repo2statements.py . --detect --scope docs
 ```
 
-It prints one line per scope (`docs: +3 new / 5 modified / 1 deleted`,
-`history: 12 new commits`, `docs: clean`, `pdfs: unknown — built before
-change tracking; rebuild once …`) and the same as JSON on stdout. Then
-**AskUserQuestion** (single question), options in this order:
+It prints one line per scope (`docs: +3 new / 5 modified / 1 deleted / 2
+renamed`, `history: 12 new commits`, `docs: clean`, `pdfs: unknown —
+built before change tracking; rebuild once …`) and the same as JSON on
+stdout (`renamed: [{from, to}]` — exact-hash matches only; a moved AND
+edited file is a delete + add). Then **AskUserQuestion** (single
+question), options in this order:
 
 1. **Update changed scopes (Recommended)** — put the detection summary in
-   the label ("docs +3/5/1, history 12 commits"). →
+   the label ("docs +3/5/1/2, history 12 commits"). →
    `repo2statements.py . --update` (or `--update --scope <name>` per
    scope) writes `infranodus/<scope>-delta-ontology.md` files, then Step 3
-   replaces in place (Path A: `delete_statements` + `create_knowledge_graph`;
-   Path B: `upload_scopes.py .`).
+   replaces in place (Path A: `update_statements` for renames,
+   `delete_statements` + `create_knowledge_graph` for the rest; Path B:
+   `upload_scopes.py .`).
 2. **Rebuild a scope in place** — follow-up listing the scopes (mark the
    `unknown` ones: they NEED this once to enable updates). → re-extract
    with the scope's flags, then Path A rebuild or `upload_scopes.py .
@@ -291,12 +297,33 @@ registers what you wrote:
    `deleteAll`) before the digest goes up. On Path A do the same yourself.
 4. `upload_scopes.py .` as usual (it warns if a digest is on disk but not
    registered). Authored scopes are **kept** after upload, on both upload
-   paths, so the user can read and edit the digest. To update it: edit in
-   place and run steps 3–4 again with `--force` (the upload is skipped
-   while the manifest has a `graphName`; `--force` clears the graph and
-   re-uploads it under the same name — Path A: `deleteAll`, then
-   re-upload). To rewrite from scratch, delete the file and start at
-   step 1.
+   paths, so the user can read and edit the digest. To update it:
+   - **A few lines to correct or refine** ("that principle is wrong",
+     "say X instead") → edit the line in the local file AND change the
+     uploaded statement in place with `update_statements({graphName,
+     edits: [{ match: "<old line exactly as uploaded>", content: "<new
+     line>" }], confirm: false })` — the dry run returns
+     `changes: [{id, before, after}]`; show the before/after, then repeat
+     with `confirm: true`. Ids, dates, and order are kept, the rest of
+     the graph is untouched; one call can carry several edits. A
+     statement can also be matched by its `statementId`; new content is
+     ≤ 1000 chars. Unmatched lines come back as `unmatched` — the local
+     file drifted from the graph: fall back to a rebuild.
+   - **Structural rewrite** (new headings, sections dropped or reordered,
+     many lines changed) → edit in place and run steps 3–4 again with
+     `--force` (the upload is skipped while the manifest has a
+     `graphName`; `--force` clears the graph and re-uploads it under the
+     same name — Path A: `deleteAll`, then re-upload). To rewrite from
+     scratch, delete the file and start at step 1.
+
+   `update_statements` also has a bulk form (one selector — `categories`,
+   `statements`, `query`, `before` / `after`, `statementIds`, or `all` —
+   plus `set` and/or `replace`, same dry run → confirm): rename a concept
+   across a graph with `replace: { pattern: "[[old name]]", with: "[[new
+   name]]" }` (mirror it in the local digest), and relabel a source with
+   `categories: ["<old>"], set: { removeCategories: ["<old>"],
+   addCategories: ["<new>"] }` — what the update flow does for renamed
+   files.
 
 ## Step 3 — Upload (one graph per scope)
 
@@ -360,23 +387,31 @@ The contract mirrors the script exactly:
    `deltaOf: <parent>`) declares in its frontmatter `graphName` (the
    parent's graph), `replaceCategories` (the modified + deleted files'
    heading prefixes — the categories the server stored) or `replaceAll:
-   true` (link scopes). Apply it in this order:
-   1. `delete_statements({graphName, categories: <replaceCategories>,
+   true` (link scopes), and `renameFrom` / `renameTo` (two parallel lists:
+   the i-th entries are one moved file; the manifest entry has the same
+   pairs as `renameCategories: [{from, to}]`). Apply it in this order:
+   1. Per rename, `update_statements({graphName, categories: [from],
+      set: { removeCategories: [from], addCategories: [to] }, confirm:
+      true})` — relabels the file's statements in place (ids and dates
+      kept, nothing re-extracted); note the `updated` count. An `isError`
+      reply is fatal for that scope, as in step 3. A delta can be renames
+      only — then nothing is appended and the parent's count is unchanged.
+   2. `delete_statements({graphName, categories: <replaceCategories>,
       confirm: false})` — a dry run: show the user the matched statements
       (count + a few `content` lines) and ask to confirm. With
       `replaceAll`, `deleteAll: true` instead. Skip when
       `replaceCategories` is empty (a history delta only appends).
-   2. `delete_statements({…same selector…, confirm: true})` → note the
+   3. `delete_statements({…same selector…, confirm: true})` → note the
       `deleted` count. An `isError` reply is fatal for that scope: append
       nothing, keep the delta file, report the error.
-   3. `create_knowledge_graph` with the delta's chunks (step 1's chunker
+   4. `create_knowledge_graph` with the delta's chunks (step 1's chunker
       on the delta file) to the SAME `graphName`, same `wikilinksMode` —
       appending is the intent here, no warning.
-   4. Bookkeeping: parent `statements` = old − deleted + delta count,
+   5. Bookkeeping: parent `statements` = old − deleted + delta count,
       `updated` today, re-run the two enrichment calls for the parent,
       append a dated `## Delta build` section to `INFRANODUS_REPORT.md`
-      (replaced files, new files, counts), delete the delta file and its
-      manifest entry.
+      (`renamed: a -> b (N statements)` lines, replaced files, new files,
+      counts), delete the delta file and its manifest entry.
 6. **Rebuilding a scope in place.** `delete_statements({graphName,
    deleteAll: true, confirm: false})` → show the count → `confirm: true`
    → upload the re-extracted scope's chunks to the same `graphName` as in
@@ -422,12 +457,16 @@ when the graph is FIRST created), and then, per scope:
 
 **Replace rule:** uploads to an existing `graphName` append server-side,
 so the script never uploads on top of what is already there. A delta entry
-(`deltaOf`) first calls `delete_statements` on the parent graph with the
-delta's `replaceCategories` (`deleteAll` for `replaceAll`), prints the
-removed count, then appends the delta, updates the parent's `statements`
-(old − removed + added), re-runs the enrichment, logs a `## Delta build`
-section, and deletes the delta file and entry; a failed delete skips the
-scope with nothing appended. `--force` = rebuild in place: `deleteAll` on
+(`deltaOf`) first relabels each renamed file in place (`update_statements`,
+old category → new; `relabelled N statements a -> b`), then calls
+`delete_statements` on the parent graph with the delta's
+`replaceCategories` (`deleteAll` for `replaceAll`), prints the removed
+count, then appends the delta, updates the parent's `statements` (old −
+removed + added; renames leave it unchanged), re-runs the enrichment,
+logs a `## Delta build` section (`renamed: a -> b (N statements)` lines
+included), and deletes the delta file and entry; a failed relabel or
+delete skips the scope with nothing appended. `--force` = rebuild in
+place: `deleteAll` on
 the scope's graph, then the upload under the same name (`wikilinksMode`
 and `maxNodes` bind at first creation and persist; a new graph name is
 needed to change them). Digest entries with `supersedes` get those graphs

@@ -85,7 +85,12 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   from a saved graph with `delete_statements` (by category, exact text,
   query, date, ids, or all — `confirm: false` is a dry run that lists the
   matches; the repo/vault update flow uses it to replace changed files in
-  place).
+  place); edit statements IN PLACE (id, date, order kept) with
+  `update_statements` — `edits: [{match, content}]` to correct individual
+  lines (a digest principle, a memory item), or one selector plus `set`
+  (add/remove categories, timestamp) / `replace: {pattern, with}` to
+  relabel a source or rename a `[[concept]]` across a graph; same dry
+  run → `confirm: true` contract.
 - What's missing / ideation: `generate_content_gaps` →
   `generate_research_questions` / `generate_research_ideas`;
   `develop_text_tool` for the combined pipeline.
@@ -124,9 +129,13 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    "Rebuild a scope in place", "Add a new scope", "Full rebuild". Update =
    `repo2statements.py . --update [--scope X]` → `upload_scopes.py .`
    (the uploader deletes the changed files' old statements by category
-   with `delete_statements`, then appends the delta to the same graph);
-   rebuild = re-extract → `upload_scopes.py . --force` (clears the graph
-   first, same name). No changes → offer query mode.
+   with `delete_statements`, then appends the delta to the same graph;
+   files that only moved — same content, new path — are relabelled in
+   place with `update_statements`, nothing re-extracted); rebuild =
+   re-extract → `upload_scopes.py . --force` (clears the graph first,
+   same name). No changes → offer query mode. Correcting a few lines of
+   the authored digest = edit the file + `update_statements` edits, not a
+   rebuild (repo-graph.md, Digest step 4).
 2. On a bare launch with no manifest (no target named), inventory the folder, then
    AskUserQuestion what to build: full graph (recommended) / a specific
    folder / docs containing certain terms / one document (see the runbook

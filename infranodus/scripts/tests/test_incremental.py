@@ -112,6 +112,11 @@ class FakeClient:
         self.calls.append((name, json.loads(json.dumps(arguments))))
         g = arguments.get("graphName", "")
         url = f"https://infranodus.com/acct/{g}"
+        if name == "update_statements":
+            return "ok", json.dumps({"updated": 3, "changes": [],
+                                     "unchanged": 0, "unmatched": 0,
+                                     "rejected": 0, "graphName": g,
+                                     "graphUrl": url})
         if name == "delete_statements":
             if arguments.get("deleteAll"):
                 return "ok", json.dumps({"deleted": 7, "removedIds": [],
@@ -213,11 +218,12 @@ class IncrementalFlow(unittest.TestCase):
         self.assertEqual(report["repo-docs-ontology.md"],
                          {"status": "changed", "new": ["docs/new.md"],
                           "modified": ["docs/api.md"],
-                          "deleted": ["docs/setup.md"]})
+                          "deleted": ["docs/setup.md"], "renamed": []})
         self.assertEqual(report["repo-code-rationale-ontology.md"]["status"],
                          "clean")
         self.assertEqual(report["repo-history-ontology.md"]["newCommits"], 1)
-        self.assertIn("docs: +1 new / 1 modified / 1 deleted", err)
+        self.assertIn("docs: +1 new / 1 modified / 1 deleted / 0 renamed",
+                      err)
 
         code, out, _ = run_r2s(self.r2s, self.root, "--update")
         self.assertEqual(code, 0)
@@ -275,6 +281,98 @@ class IncrementalFlow(unittest.TestCase):
         self.assertIn("Delta build", (self.root / "infranodus" /
                                       "INFRANODUS_REPORT.md").read_text())
         self.assertIn("removed 4 statement(s)", log)
+
+    def test_rename_is_relabelled_in_place(self):
+        self.build_and_fake_upload()
+        old_hash = manifest(self.root)["scopes"]["repo-docs-ontology.md"][
+            "files"]["docs/setup.md"]
+        git(self.root, "mv", "docs/setup.md", "docs/install.md")
+        git(self.root, "commit", "-q", "-m", "docs: rename setup to install")
+
+        code, out, err = run_r2s(self.r2s, self.root, "--detect")
+        self.assertEqual(code, 0)
+        report = json.loads(out)
+        self.assertEqual(report["repo-docs-ontology.md"],
+                         {"status": "changed", "new": [], "modified": [],
+                          "deleted": [],
+                          "renamed": [{"from": "docs/setup.md",
+                                       "to": "docs/install.md"}]})
+        self.assertIn("docs: +0 new / 0 modified / 0 deleted / 1 renamed",
+                      err)
+
+        code, out, _ = run_r2s(self.r2s, self.root, "--update")
+        self.assertEqual(code, 0)
+        delta = self.root / "infranodus" / "repo-docs-delta-ontology.md"
+        self.assertTrue(delta.exists())
+        fm = self.up.parse_frontmatter(delta)
+        self.assertEqual(fm["renameFrom"], ["docs/setup.md"])
+        self.assertEqual(fm["renameTo"], ["docs/install.md"])
+        self.assertEqual(fm["replaceCategories"], [])
+        self.assertEqual(self.up.strip_frontmatter(delta).strip(), "")
+        m = manifest(self.root)
+        entry = m["scopes"]["repo-docs-delta-ontology.md"]
+        self.assertEqual(entry["statements"], 0)
+        self.assertEqual(entry["renameCategories"],
+                         [{"from": "docs/setup.md", "to": "docs/install.md"}])
+        docs = m["scopes"]["repo-docs-ontology.md"]
+        self.assertEqual(docs["files"]["docs/install.md"], old_hash)
+        self.assertNotIn("docs/setup.md", docs["files"])
+        before = docs["statements"]
+
+        client, log = run_uploader(self.up, self.root)
+        docs_calls = [(n, a) for n, a in client.calls
+                      if a.get("graphName") == "repo-tinyrepo-docs"]
+        updates = [a for n, a in docs_calls if n == "update_statements"]
+        self.assertEqual(updates, [{
+            "graphName": "repo-tinyrepo-docs",
+            "categories": ["docs/setup.md"],
+            "set": {"removeCategories": ["docs/setup.md"],
+                    "addCategories": ["docs/install.md"]},
+            "confirm": True}])
+        self.assertEqual([n for n, _ in client.calls
+                          if n == "delete_statements"], [])
+        self.assertNotIn("create_knowledge_graph",
+                         [n for n, _ in docs_calls])
+        self.assertIn("relabelled 3 statements docs/setup.md -> "
+                      "docs/install.md", log)
+        m = manifest(self.root)
+        self.assertNotIn("repo-docs-delta-ontology.md", m["scopes"])
+        docs = m["scopes"]["repo-docs-ontology.md"]
+        self.assertEqual(docs["statements"], before)
+        self.assertEqual(docs["files"]["docs/install.md"], old_hash)
+        self.assertFalse(delta.exists())
+        self.assertIn("renamed: docs/setup.md -> docs/install.md "
+                      "(3 statements)",
+                      (self.root / "infranodus" /
+                       "INFRANODUS_REPORT.md").read_text())
+
+    def test_moved_and_edited_file_is_delete_plus_add(self):
+        self.build_and_fake_upload()
+        git(self.root, "mv", "docs/setup.md", "docs/install.md")
+        with (self.root / "docs" / "install.md").open("a") as f:
+            f.write("\nThe install step also creates the local cache "
+                    "directory next to the configuration.\n")
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "-q", "-m", "docs: move and edit setup")
+        _, out, err = run_r2s(self.r2s, self.root, "--detect")
+        report = json.loads(out)
+        self.assertEqual(report["repo-docs-ontology.md"],
+                         {"status": "changed", "new": ["docs/install.md"],
+                          "modified": [], "deleted": ["docs/setup.md"],
+                          "renamed": []})
+        self.assertIn("docs: +1 new / 0 modified / 1 deleted / 0 renamed",
+                      err)
+        run_r2s(self.r2s, self.root, "--update")
+        delta = self.root / "infranodus" / "repo-docs-delta-ontology.md"
+        fm = self.up.parse_frontmatter(delta)
+        self.assertNotIn("renameFrom", fm)
+        self.assertEqual(fm["replaceCategories"], ["docs/setup.md"])
+        self.assertIn("## [[docs/install.md]]",
+                      self.up.strip_frontmatter(delta))
+        client, _ = run_uploader(self.up, self.root)
+        names = [n for n, _ in client.calls]
+        self.assertNotIn("update_statements", names)
+        self.assertIn("delete_statements", names)
 
     def test_force_clears_graph_first(self):
         code, _, _ = run_r2s(self.r2s, self.root)
