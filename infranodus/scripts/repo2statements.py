@@ -30,6 +30,7 @@ Principles mode (--principles), the conceptual digest:
   - main ideas: the first sentence under each heading -> "#idea"
   - connections: [[wikilinks]] in those sentences, verbatim
                                        -> repo-principles-ontology.md
+                                          (vault-principles-ontology.md in a vault)
   Feed the uploaded graph to optimize_knowledge_base (focus: codebase |
   vault | procedural) for structural feedback on the rule set.
 
@@ -777,8 +778,9 @@ def main() -> int:
     ap.add_argument("--principles", action="store_true",
                     help="conceptual digest only (rules, frameworks as "
                          "headings, main ideas, their [[wikilinks]]) -> "
-                         "repo-principles-ontology.md; feed the graph to "
-                         "optimize_knowledge_base for structural feedback")
+                         "repo-principles-ontology.md (vault-… in a vault); "
+                         "feed the graph to optimize_knowledge_base for "
+                         "structural feedback")
     ap.add_argument("--structure", action="store_true",
                     help="DEFERRED: code-structure extraction (not in v1)")
     ap.add_argument("--no-git", action="store_true")
@@ -829,7 +831,13 @@ def main() -> int:
     if args.digest:
         keep("repo-digest-ontology.md", mine_digest(root), "repo")
     elif args.principles:
-        keep("repo-principles-ontology.md", mine_principles(root), "repo")
+        # A vault gets the vault- prefix so upload_scopes.py names the graph
+        # vault-<p>-principles (what the runbook's Step 6 table expects) even
+        # when no vault-links scope exists in the manifest yet.
+        if is_vault(root):
+            keep("vault-principles-ontology.md", mine_principles(root), "vault")
+        else:
+            keep("repo-principles-ontology.md", mine_principles(root), "repo")
     elif args.vault:
         # explicit --vault: map the vault structure ONLY
         keep("vault-links-ontology.md", mine_vault_links(root), "vault")
