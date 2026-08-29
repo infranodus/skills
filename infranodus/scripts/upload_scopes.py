@@ -1038,6 +1038,18 @@ def main():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     scopes = manifest.get("scopes", {})
 
+    # An agent-written principles digest that was never registered (the
+    # second `repo2statements.py --principles` run was skipped) would be
+    # silently ignored below — say so, loudly, and keep going.
+    unregistered = sorted(
+        p.name for p in (root / "infranodus").glob("*-principles*-ontology.md")
+        if re.match(r"^(repo|vault)-principles(-.+)?-ontology\.md$", p.name)
+        and p.name not in scopes)
+    for name in unregistered:
+        print(f"WARNING: infranodus/{name} is not registered and will NOT be "
+              "uploaded — run `repo2statements.py . --principles` (same "
+              "scope flags) first, then re-run this script", file=sys.stderr)
+
     if args.register_project:
         action, path = write_claude_md_block(root)
         print(f"CLAUDE.md {action}: {path}")

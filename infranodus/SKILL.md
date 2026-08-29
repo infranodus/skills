@@ -127,10 +127,12 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    **ontology** (the server distils entities and typed relations from the
    digest or docs graph into `onto-<project>` — how the parts fit together;
    costs server LLM tokens). Principles is for reviewing and improving the
-   project; ontology is for navigating it; they do not depend on each other.
+   project; ontology is for navigating it. Ontology needs a digest or docs
+   upload to exist first; principles needs nothing.
 3. Build: `python3 scripts/repo2statements.py .` (full), `... --digest`,
-   and/or `... --principles` (prints the reading list and the format; write
-   `infranodus/repo-principles-ontology.md`; run it again to register) →
+   and/or `... --principles` (prints the reading list and the format, exit
+   code 2 = "now write the file", not an error; write the file it names;
+   run it again with the same flags to register) — one flag per run →
    `python3 scripts/upload_scopes.py .`
    (upload, run in background — records routing metadata into the
    manifest, appends a dated section to the append-only

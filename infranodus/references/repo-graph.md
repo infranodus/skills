@@ -211,27 +211,39 @@ The script does not mine anything here; it lists what to read and
 registers what you wrote:
 
 1. `python3 <SKILL_DIR>/scripts/repo2statements.py . <scope flags> --principles`
-   → prints the reading list (every file in the target: docs first, then
-   code, then the rest) and the output format, exit code 2.
-2. Read the listed files — all of them. If the list is too long to read,
-   narrow the target with `--include` / `--term` and tell the user what
-   was left out. Then write
-   `infranodus/repo-principles[-<suffix>]-ontology.md`
-   (`vault-principles-…` in a vault; the script prints the exact name):
-   one simple statement per line describing how something works, in your
-   own words — not copied sentences — grouped under `## [[Topic]]`
-   headings, `[[wikilinks]]` on the modules, concepts, tools, and files a
-   statement is about, one tag per line (`#principle` why it is done this
-   way, `#rule` what must / must not happen, `#procedure` when X do Y then
-   Z, `#handoff` where one part passes to another, `#idea` a main idea,
-   `#gap` something the content leaves unexplained). One to three hundred
-   lines; every listed file covered at least once.
-3. Run the same command again → it adds the frontmatter if missing and
-   registers the scope in the manifest with `policy: authored`.
-4. `upload_scopes.py .` as usual. Authored scopes are **kept** after upload
-   (unlike generated ones) so the user can read and edit the digest; a
-   later `--principles` run re-registers the existing file rather than
-   overwriting it — delete the file first to rewrite it.
+   → prints the reading list (docs first, then code, then the main config
+   files of the target; lock files, minified bundles, licences, dotfiles
+   left out; capped at 200 — if it says "and N more", narrow the target
+   with `--include` / `--term` and tell the user what was left out) and the
+   output format, then exits with code **2 — that is not an error, it means
+   "now write the file"**. The exact filename is printed
+   (`infranodus/repo-principles[-<suffix>]-ontology.md`, `vault-…` in a
+   vault). Same scope flags on every run: the filename depends on them.
+2. Read the listed files and write the digest: one simple statement per
+   line describing how something works, in your own words — not copied
+   sentences — grouped under `## [[Topic]]` headings (a subsystem,
+   workflow, framework, theme), `[[wikilinks]]` on the modules, concepts,
+   tools, and files a statement is about. Write principles (why it is
+   done this way), rules (what must / must not happen), procedures (when X
+   do Y then Z), hand-offs (where one part passes to another), main ideas,
+   and gaps (what the content leaves unexplained — `#gap` is the only tag
+   allowed, and only on those lines: a tag on every line becomes the
+   graph's most connected node and distorts the structural analysis).
+   Cover every area of the target; skip files that add nothing. 100–300
+   lines — under 100 the diversity diagnosis is unreliable.
+3. Run the same command again → it normalises the frontmatter and
+   registers the scope in the manifest with `policy: authored`. It refuses
+   a file with no statements. If the project had a principles graph from
+   the earlier extractor-based version of this mode, the script drops that
+   manifest entry and tells you to delete the old graph on the server
+   first — uploads append to an existing graph name.
+4. `upload_scopes.py .` as usual (it warns if a digest is on disk but not
+   registered). Authored scopes are **kept** after upload, on both upload
+   paths, so the user can read and edit the digest. To update it: edit in
+   place and run steps 3–4 again (the upload is skipped while the manifest
+   has a `graphName` — delete the graph on the server and clear `graphName`
+   in the manifest, or pass `--force`, which appends). To rewrite from
+   scratch, delete the file and start at step 1.
 
 ## Step 3 — Upload (one graph per scope)
 
@@ -286,8 +298,9 @@ The contract mirrors the script exactly:
    described below, with `transport: "session-mcp"`, the connector's name
    as `endpoint` (e.g. `claude.ai InfraNodus connector -> infranodus.com`),
    the `account` segment parsed from the returned graph URL, and today's
-   date as `verified`. Then delete the scope file (or keep on
-   user request).
+   date as `verified`. Then delete the scope file — unless its manifest
+   entry says `policy: authored` (the principles digest): those are kept,
+   they cannot be regenerated (or keep any scope on user request).
 
 Path B does the same with `upload_scopes.py . --ontology` (or
 `--ontology-from docs`).
