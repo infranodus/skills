@@ -22,6 +22,16 @@ Digest mode (--digest), a condensed structural map instead of the prose:
   upload_scopes.py --ontology) and is the architecture layer the
   rationale scopes lack. Runs alone; combine with a full run by
   running the script twice (scopes are independent files).
+Principles mode (--principles), the conceptual digest:
+  - rules: sentences in docs/notes/agent instruction files with
+    imperative or modal markers (must, never, always, should, do not,
+    required, only) -> "#rule"
+  - frameworks: headings, kept as [[parent]] pages over their rules/ideas
+  - main ideas: the first sentence under each heading -> "#idea"
+  - connections: [[wikilinks]] in those sentences, verbatim
+                                       -> repo-principles-ontology.md
+  Feed the uploaded graph to optimize_knowledge_base (focus: codebase |
+  vault | procedural) for structural feedback on the rule set.
 
 Vault mode (--vault):
   - [[wikilink]] / [md](links) between pages -> vault-links-ontology.md
@@ -468,6 +478,84 @@ def scope_wikilinks_mode(name: str) -> str:
             else "parentAndConcepts")
 
 
+# --------------------------------------------------------- principles pass
+
+RULE_MARKER_RE = re.compile(
+    r"\b(must(?: not)?|never|always|should(?: not)?|shall|do not|don't|"
+    r"required|only|forbidden|prohibited|avoid|ensure|make sure|"
+    r"never ever|is not allowed|are not allowed|MUST|NEVER|ALWAYS)\b")
+INSTRUCTION_FILE_RE = re.compile(
+    r"(^|/)(CLAUDE|AGENTS|GEMINI|CONTRIBUTING|CONVENTIONS|RULES|STYLE)"
+    r"(\.md)?$|(^|/)\.cursorrules$|(^|/)\.github/copilot-instructions\.md$"
+    r"|(^|/)\.claude/.*\.md$|(^|/)SKILL\.md$", re.I)
+PRINCIPLES_MAX_RULES_PER_SECTION = 12
+PRINCIPLES_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[])")
+
+
+def _split_sentences(paragraph: str) -> list[str]:
+    return [s.strip() for s in PRINCIPLES_SENTENCE_RE.split(paragraph)
+            if s.strip()]
+
+
+def mine_principles(root: Path) -> list[str]:
+    """Conceptual digest of a repo or vault: for every markdown/text document
+    (agent instruction files included, wherever they live), one
+    `## [[<doc>#<heading>]]` section per heading with the section's main
+    idea (first sentence) tagged #idea and its rules (sentences carrying an
+    imperative/modal marker) tagged #rule. [[wikilinks]] are kept verbatim.
+    Deterministic; roughly one to a dozen statements per section."""
+    statements: list[str] = []
+    for p in iter_files(root):
+        rel = p.relative_to(root).as_posix()
+        if p.suffix.lower() not in DOC_EXTS and not INSTRUCTION_FILE_RE.search(rel):
+            continue
+        src = read_text(p)
+        if not src:
+            continue
+        src = re.sub(r"^---\n.*?\n---\n", "", src, count=1, flags=re.S)  # frontmatter
+        src = re.sub(r"```.*?```", "", src, flags=re.S)                   # code blocks
+        heading = None
+        sections: list[tuple[str, list[str]]] = []
+        buf: list[str] = []
+        for line in src.splitlines():
+            m = re.match(r"^\s*#{1,6}\s+(.+?)\s*#*\s*$", line)
+            if m:
+                if buf:
+                    sections.append((heading or "", buf))
+                heading = one_line(re.sub(r"\[\[|\]\]", "", m.group(1)))[:80]
+                buf = []
+            else:
+                buf.append(line)
+        if buf:
+            sections.append((heading or "", buf))
+
+        for heading, lines in sections:
+            text = "\n".join(lines)
+            paragraphs = [one_line(par) for par in re.split(r"\n\s*\n", text)
+                          if par.strip()]
+            paragraphs = [par for par in paragraphs
+                          if len(par) >= 25 and not par.startswith(("|", "<!--"))]
+            if not paragraphs:
+                continue
+            sentences = [s for par in paragraphs for s in _split_sentences(par)]
+            idea = next((s for s in sentences if len(s) >= 25), None)
+            if idea and len(idea) > 300:
+                idea = idea[:297].rstrip() + "…"
+            rules = [s for s in sentences
+                     if RULE_MARKER_RE.search(s) and 20 <= len(s) <= 400
+                     and s != idea][:PRINCIPLES_MAX_RULES_PER_SECTION]
+            if not idea and not rules:
+                continue
+            label = f"{rel}#{heading}" if heading else rel
+            statements.append(f"## [[{label}]]")
+            if idea:
+                statements.append(f"{idea} #idea")
+            for r in rules:
+                statements.append(f"{r} #rule")
+            statements.append("")
+    return statements
+
+
 # ------------------------------------------------------------- digest pass
 
 TS_IMPORT_RE = re.compile(
@@ -686,6 +774,11 @@ def main() -> int:
                          "exports, docstring headlines, manifests) -> "
                          "repo-digest-ontology.md; run again without it "
                          "for the full prose scan")
+    ap.add_argument("--principles", action="store_true",
+                    help="conceptual digest only (rules, frameworks as "
+                         "headings, main ideas, their [[wikilinks]]) -> "
+                         "repo-principles-ontology.md; feed the graph to "
+                         "optimize_knowledge_base for structural feedback")
     ap.add_argument("--structure", action="store_true",
                     help="DEFERRED: code-structure extraction (not in v1)")
     ap.add_argument("--no-git", action="store_true")
@@ -735,6 +828,8 @@ def main() -> int:
 
     if args.digest:
         keep("repo-digest-ontology.md", mine_digest(root), "repo")
+    elif args.principles:
+        keep("repo-principles-ontology.md", mine_principles(root), "repo")
     elif args.vault:
         # explicit --vault: map the vault structure ONLY
         keep("vault-links-ontology.md", mine_vault_links(root), "vault")

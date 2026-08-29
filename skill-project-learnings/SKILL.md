@@ -169,6 +169,13 @@ any saved graph work on `learn-<project>` too:
   `type: "approach"` for what worked and what to do differently.
 - `analyze_existing_graph_by_name` on the graph name → clusters, gaps, and
   the most influential entities across all learnings.
+- `optimize_knowledge_base` with `graphName: "learn-<project>"` and
+  `focus: "codebase"` (or `"procedural"` for a rule-heavy project) →
+  structural feedback on the learnings themselves: which areas of the
+  project dominate what was learned, which are under-developed, which
+  clusters of learnings never connect. Add `compareWith: ["repo-<project>-digest"]`
+  when the infranodus skill built one to see the parts of the code base no
+  learning has touched.
 - If the **infranodus** skill has built `repo-<project>-*` graphs,
   `difference_between_texts` with `{graphName}` contexts shows modules that
   have code but no learnings — unexplored territory — and the learnings
