@@ -39,6 +39,29 @@ Digest mode (--digest), the LLM-written digest:
 Vault mode (--vault):
   - [[wikilink]] / [md](links) between pages -> vault-links-ontology.md
 
+Change tracking (--detect / --update), for scopes that are already uploaded:
+  Every generated scope entry in the manifest records the git commit it was
+  built at (`builtAtCommit`), the --include/--term filters that defined it
+  (`filters`), and a per-file index (`files`: heading prefix -> sha1 of the
+  EXTRACTED text, so formatting-only edits do not register). The history
+  scope records cursors instead (`history`: lastCommit / lastPr /
+  lastIssue). The heading prefix (`## [[docs/api.md]]`) is what the MCP
+  server stores as each statement's category under parentAndConcepts, so
+  the index keys are exactly what `delete_statements({categories})` needs
+  to remove one file's statements from the graph.
+  --detect  re-walks each scope with its stored filters and prints, per
+            scope, the new / modified / deleted files (JSON on stdout, a
+            one-line summary per scope on stderr). No writes.
+  --update  extracts the new and modified files (and history past the
+            cursors) into infranodus/<scope>-delta-ontology.md, whose
+            frontmatter names the target graph and the categories to
+            replace; upload_scopes.py deletes those categories' statements
+            and appends the delta to the same graph. Deleted files are
+            listed for removal only. Link scopes (wikilinksOnly, no
+            categories) are re-uploaded whole with `replaceAll: true`.
+  A scope built before change tracking has no index: rebuild it once
+  (plain run, then `upload_scopes.py --force`) to enable updates.
+
 Stdlib only. No LLM. Same input -> same output (modulo git/gh history).
 
 PDFs: extraction is DETERMINISTIC text-layer extraction (what the PDF
@@ -54,10 +77,13 @@ written into the project.
 Usage:
   repo2statements.py [PATH] [--vault] [--max-commits N] [--max-prs N]
                      [--max-issues N] [--no-git] [--no-gh]
+  repo2statements.py [PATH] --detect [--scope NAME] [--path RELPATH]
+  repo2statements.py [PATH] --update [--scope NAME] [--path RELPATH]
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -150,6 +176,55 @@ def read_text(p: Path) -> str:
         return ""
 
 
+# ------------------------------------------------------------------ sections
+
+# A mined unit is a Section: (prefix, relpath, statements). `prefix` is the
+# `## [[prefix]]` heading its statements are grouped under — the file's
+# relative POSIX path in repo mode, the page stem in a vault, the directory
+# (`src/`) in the structure map, the source page in the link scan. Under
+# parentAndConcepts the MCP server stores that heading as a per-statement
+# category, so the prefix is also the key `delete_statements({categories})`
+# needs to remove exactly this file's statements later — the manifest's
+# `files` index is keyed by it, verbatim.
+Section = tuple
+
+
+def sha1_text(text: str) -> str:
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()
+
+
+def flatten_sections(sections: list[Section], headed: bool = True) -> list[str]:
+    """Sections -> statement lines. Headed scopes get the `## [[prefix]]`
+    heading + blank separator per section; link scopes are bare lines."""
+    out: list[str] = []
+    for prefix, _rel, stmts in sections:
+        if not stmts:
+            continue
+        if headed:
+            out.append(f"## [[{prefix}]]")
+            out.extend(stmts)
+            out.append("")
+        else:
+            out.extend(stmts)
+    return out
+
+
+def hash_sections(sections: list[Section]) -> dict[str, str]:
+    """prefix -> sha1 of the extracted text (two files sharing a prefix —
+    same page stem in two vault folders — hash together, as they share a
+    category on the server)."""
+    by_prefix: dict[str, list[str]] = {}
+    for prefix, _rel, stmts in sections:
+        if stmts:
+            by_prefix.setdefault(prefix, []).extend(stmts)
+    return {k: sha1_text("\n".join(v)) for k, v in by_prefix.items()}
+
+
+def git_head(root: Path) -> str | None:
+    out = run(["git", "rev-parse", "HEAD"], root).strip()
+    return out or None
+
+
 # ---------------------------------------------------------------- docs pass
 
 def paragraphs_from_markdown(src: str):
@@ -184,7 +259,7 @@ def paragraphs_from_markdown(src: str):
         yield " ".join(buf)
 
 
-def mine_docs(root: Path, stem_prefix: bool = False) -> list[str]:
+def mine_docs(root: Path, stem_prefix: bool = False) -> list[Section]:
     """stem_prefix=True (vault case) names sections after the Obsidian page
     ([[Page A]]) instead of the file path, so content statements share node
     names with in-text wikilinks and the vault link scan.
@@ -194,11 +269,12 @@ def mine_docs(root: Path, stem_prefix: bool = False) -> list[str]:
     heading sets the parent for the statements below it, keeping the parent
     OUT of the statement text (an inline [[page]] prefix would suppress all
     non-wikilink words of the statement during processing)."""
-    statements = []
+    sections: list[Section] = []
     for p in iter_files(root):
         if p.suffix.lower() not in DOC_EXTS:
             continue
-        prefix = p.stem if stem_prefix else p.relative_to(root).as_posix()
+        rel = p.relative_to(root).as_posix()
+        prefix = p.stem if stem_prefix else rel
         page_paras = []
         for para in paragraphs_from_markdown(read_text(p)):
             para = one_line(para)
@@ -207,10 +283,8 @@ def mine_docs(root: Path, stem_prefix: bool = False) -> list[str]:
                 continue
             page_paras.append(para)
         if page_paras:
-            statements.append(f"## [[{prefix}]]")
-            statements.extend(page_paras)
-            statements.append("")
-    return statements
+            sections.append((prefix, rel, page_paras))
+    return sections
 
 
 # ---------------------------------------------------------------- pdfs pass
@@ -299,11 +373,11 @@ def letters_ratio(s: str) -> float:
     return sum(c.isalpha() or c.isspace() for c in s) / max(len(s), 1)
 
 
-def mine_pdfs(root: Path, extract, vault: bool) -> tuple[list[str], list[str]]:
-    """(statements, no_text_layer_files). Grouped under `## [[<path>]]`
+def mine_pdfs(root: Path, extract, vault: bool) -> tuple[list[Section], list[str]]:
+    """(sections, no_text_layer_files). Grouped under `## [[<path>]]`
     headings — same parent-page contract as mine_docs. Section names follow
     the docs pass: page stem in a vault, relative path otherwise."""
-    statements: list[str] = []
+    sections: list[Section] = []
     no_text: list[str] = []
     for p in iter_pdfs(root):
         rel = p.relative_to(root).as_posix()
@@ -319,10 +393,36 @@ def mine_pdfs(root: Path, extract, vault: bool) -> tuple[list[str], list[str]]:
         if not paras:
             no_text.append(rel)
             continue
-        statements.append(f"## [[{p.stem if vault else rel}]]")
-        statements.extend(paras)
-        statements.append("")
-    return statements, no_text
+        sections.append((p.stem if vault else rel, rel, paras))
+    return sections, no_text
+
+
+def mine_pdf_sections(root: Path, vault: bool, quiet: bool = False) -> list[Section]:
+    """The PDF pass as the build runs it: find the converter, extract, and
+    (unless quiet) print the notes about missing converters and PDFs with no
+    text layer. Empty when there are no PDFs or no converter."""
+    pdfs = list(iter_pdfs(root))
+    if not pdfs:
+        return []
+    conv = find_pdf_converter()
+    if conv is None:
+        if not quiet:
+            print(f"NOTE: {len(pdfs)} PDF(s) found but no converter "
+                  "installed — skipped. Install poppler for "
+                  "deterministic PDF mining (`brew install poppler` / "
+                  "`apt install poppler-utils`), or use the llm-wiki "
+                  "skill for LLM-authored summarization.")
+        return []
+    _conv_name, extract = conv
+    sections, no_text = mine_pdfs(root, extract, vault)
+    if no_text and not quiet:
+        shown = ", ".join(no_text[:5])
+        more = " …" if len(no_text) > 5 else ""
+        print(f"NOTE: {len(no_text)} PDF(s) with no extractable "
+              f"text layer (scanned images?) — OCR is out of "
+              f"scope here; the llm-wiki skill can handle "
+              f"those: {shown}{more}")
+    return sections
 
 
 def is_vault(root: Path) -> bool:
@@ -341,10 +441,10 @@ def is_vault(root: Path) -> bool:
 
 # ------------------------------------------------------- code-rationale pass
 
-def mine_code_rationale(root: Path) -> list[str]:
+def mine_code_rationale(root: Path) -> list[Section]:
     """Grouped under `## [[<filepath>]]` headings — same parent-page contract
     as mine_docs, so file provenance never suppresses the prose."""
-    statements = []
+    sections: list[Section] = []
     for p in iter_files(root):
         if p.suffix.lower() not in CODE_EXTS:
             continue
@@ -377,10 +477,8 @@ def mine_code_rationale(root: Path) -> list[str]:
                 file_statements.append(f"{text} #{tag}")
 
         if file_statements:
-            statements.append(f"## [[{rel}]]")
-            statements.extend(file_statements)
-            statements.append("")
-    return statements
+            sections.append((rel, rel, file_statements))
+    return sections
 
 
 # ------------------------------------------------------------- history pass
@@ -396,9 +494,14 @@ def run(cmd: list[str], cwd: Path, timeout: int = 60) -> str:
 
 
 def mine_git(root: Path, max_commits: int,
-             paths: list[str] | None = None) -> list[str]:
+             paths: list[str] | None = None,
+             since: str | None = None) -> list[str]:
+    """Commit statements, newest first. `since` (a commit hash) restricts
+    the walk to `since..HEAD` — the history scope's update cursor."""
     cmd = ["git", "log", "--no-merges", f"-{max_commits}",
            "--format=%s%x1f%b%x1e"]
+    if since:
+        cmd.append(f"{since}..HEAD")
     if paths:
         cmd += ["--"] + paths
     raw = run(cmd, root)
@@ -419,7 +522,27 @@ def mine_git(root: Path, max_commits: int,
     return statements
 
 
-def mine_gh(root: Path, kind: str, limit: int) -> list[str]:
+def gh_numbers(root: Path, kind: str, limit: int) -> list[int] | None:
+    """Numbers of the newest `limit` PRs/issues, or None when gh is not
+    installed / not authenticated (the caller cannot tell "none" from
+    "unknown" otherwise)."""
+    if not shutil.which("gh"):
+        return None
+    raw = run(["gh", kind, "list", "--state", "all", "--limit", str(limit),
+               "--json", "number"], root, timeout=120)
+    if not raw:
+        return None
+    try:
+        return [int(i["number"]) for i in json.loads(raw) if "number" in i]
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None
+
+
+def mine_gh(root: Path, kind: str, limit: int,
+            after: int | None = None) -> tuple[list[str], int | None]:
+    """(statements, highest number seen). `after` skips items numbered at
+    or below the history scope's cursor, so an update mines only what is
+    new since the last build."""
     raw = run(
         ["gh", kind, "list", "--state", "all", "--limit", str(limit),
          "--json", "number,title,body"],
@@ -427,15 +550,23 @@ def mine_gh(root: Path, kind: str, limit: int) -> list[str]:
         timeout=120,
     )
     if not raw:
-        return []
+        return [], None
     try:
         items = json.loads(raw)
     except json.JSONDecodeError:
-        return []
+        return [], None
     tag = "#pr" if kind == "pr" else "#issue"
     label = "PR" if kind == "pr" else "Issue"
     statements = []
+    highest: int | None = None
     for item in items:
+        try:
+            number = int(item["number"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        highest = number if highest is None else max(highest, number)
+        if after is not None and number <= after:
+            continue
         title = one_line(item.get("title") or "")
         body = item.get("body") or ""
         paras = [one_line(x) for x in re.split(r"\n\s*\n", body)]
@@ -446,27 +577,108 @@ def mine_gh(root: Path, kind: str, limit: int) -> list[str]:
             statements.append(
                 f"{label} #{item['number']} ({title}): {para} {tag}"
             )
-    return statements
+    return statements, highest
+
+
+def mine_history(root: Path, opts: dict, cursors: dict | None = None
+                 ) -> tuple[list[str], dict]:
+    """The history scope: commit bodies via git, PRs/issues via gh, past the
+    given cursors when there are any. Returns (statements, new cursors).
+    opts: max_commits, max_prs, max_issues, no_git, no_gh. A term filter
+    disables history (it is not file-scoped); a folder filter is honoured
+    by git's pathspec and disables the gh part."""
+    cursors = dict(cursors or {})
+    new = {"lastCommit": cursors.get("lastCommit"),
+           "lastPr": cursors.get("lastPr"),
+           "lastIssue": cursors.get("lastIssue")}
+    statements: list[str] = []
+    if TERMS:
+        return statements, new
+    if not opts.get("no_git"):
+        head = git_head(root)
+        since = cursors.get("lastCommit")
+        if head and since != head:
+            statements += mine_git(root, opts["max_commits"],
+                                   paths=INCLUDE_PREFIXES or None,
+                                   since=since)
+        if head:
+            new["lastCommit"] = head
+    if not opts.get("no_gh") and not INCLUDE_PREFIXES:
+        for kind, key, limit in (("pr", "lastPr", opts["max_prs"]),
+                                 ("issue", "lastIssue", opts["max_issues"])):
+            stmts, highest = mine_gh(root, kind, limit, after=cursors.get(key))
+            statements += stmts
+            if highest is not None:
+                old = cursors.get(key)
+                new[key] = highest if old is None else max(old, highest)
+    return statements, new
+
+
+def cursor_is_reachable(root: Path, commit: str) -> bool:
+    res = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+                         cwd=root, capture_output=True)
+    return res.returncode == 0
+
+
+def detect_history(root: Path, cursors: dict, opts: dict) -> dict:
+    """Count commits / PRs / issues past the stored cursors without
+    extracting anything. gh is consulted only when installed."""
+    res: dict = {"newCommits": 0, "newPrs": 0, "newIssues": 0}
+    if not opts.get("no_git") and cursors.get("lastCommit"):
+        last = cursors["lastCommit"]
+        if not cursor_is_reachable(root, last):
+            return {"status": "unknown",
+                    "reason": f"history cursor {last[:12]} is no longer on "
+                              "this branch (rebase?); rebuild the history "
+                              "scope with --force"}
+        cmd = ["git", "rev-list", "--count", "--no-merges", f"{last}..HEAD"]
+        if INCLUDE_PREFIXES:
+            cmd += ["--"] + INCLUDE_PREFIXES
+        out = run(cmd, root).strip()
+        res["newCommits"] = int(out) if out.isdigit() else 0
+    if not opts.get("no_gh") and not INCLUDE_PREFIXES:
+        for kind, key, out_key, limit in (
+                ("pr", "lastPr", "newPrs", opts["max_prs"]),
+                ("issue", "lastIssue", "newIssues", opts["max_issues"])):
+            numbers = gh_numbers(root, kind, limit)
+            if numbers is None:
+                continue
+            last = cursors.get(key)
+            res[out_key] = (len(numbers) if last is None
+                            else sum(1 for n in numbers if n > last))
+    res["status"] = ("changed" if any(res[k] for k in
+                                      ("newCommits", "newPrs", "newIssues"))
+                     else "clean")
+    return res
 
 
 # --------------------------------------------------------------- vault pass
 
-def mine_vault_links(root: Path) -> list[str]:
-    pairs = set()
+def mine_vault_links(root: Path) -> list[Section]:
+    """One section per source page: its `[[A]] links to [[B]]` lines. The
+    scope is uploaded wikilinksOnly (no headings, no categories), so the
+    per-page grouping only serves change detection."""
+    seen: set[tuple[str, str]] = set()
+    sections: list[Section] = []
     for p in iter_files(root):
         if p.suffix.lower() != ".md":
             continue
         src_page = p.stem
+        rel = p.relative_to(root).as_posix()
         text = read_text(p)
         targets = set()
         for m in WIKILINK_RE.finditer(text):
             targets.add(m.group(1).strip())
         for m in MDLINK_RE.finditer(text):
             targets.add(Path(m.group(1)).stem)
-        for tgt in targets:
-            if tgt and tgt != src_page:
-                pairs.add((src_page, tgt))
-    return [f"[[{a}]] links to [[{b}]]" for a, b in sorted(pairs)]
+        lines = []
+        for tgt in sorted(targets):
+            if tgt and tgt != src_page and (src_page, tgt) not in seen:
+                seen.add((src_page, tgt))
+                lines.append(f"[[{src_page}]] links to [[{tgt}]]")
+        if lines:
+            sections.append((src_page, rel, lines))
+    return sections
 
 
 # ------------------------------------------------------------------- output
@@ -585,20 +797,21 @@ def adopt_legacy_digest(out_dir: Path, fname: str) -> None:
               "now called digest)")
 
 
-def retire_old_digest(out_dir: Path, fname: str) -> None:
+def retire_old_digest(out_dir: Path, fname: str) -> list[str]:
     """Before registering an agent-written digest, drop stale manifest
     entries for the same target: the script-generated structure map that
     used to carry the digest name (source repo2statements), and any entry
-    under the old principles name. Their graphs hold other content, and
-    uploads append, so the user must delete those graphs on the server
-    before the new digest goes up."""
+    under the old principles name. Their graphs hold other content, so
+    their graph names are returned: the new entry records them as
+    `supersedes` and the uploader clears each one (delete_statements
+    deleteAll) before the digest goes up."""
     manifest_path = out_dir / "manifest.json"
     if not manifest_path.exists():
-        return
+        return []
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        return
+        return []
     scopes = manifest.get("scopes", {})
     suffix_part = DIGEST_FNAME_RE.match(fname).group(2) or ""
     stale = []
@@ -611,17 +824,20 @@ def retire_old_digest(out_dir: Path, fname: str) -> None:
         m = LEGACY_PRINCIPLES_RE.match(k)
         if m and (m.group(2) or "") == suffix_part:
             stale.append((k, "the earlier principles version of this mode"))
+    superseded: list[str] = []
     for k, why in stale:
         entry = scopes.pop(k)
         if entry.get("graphName"):
+            superseded.append(entry["graphName"])
             print(f"NOTE: {k} was {why} and is uploaded as "
-                  f"{entry['graphName']}; delete that graph on the server "
-                  f"before uploading (uploads append to an existing graph).")
+                  f"{entry['graphName']}; the uploader will clear that "
+                  f"graph before uploading the digest.")
         if k != fname and (out_dir / k).exists():
             (out_dir / k).unlink()
     if stale:
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
                                  encoding="utf-8")
+    return superseded
 
 
 # ---------------------------------------------------------- structure pass
@@ -675,12 +891,13 @@ def _first_docstring_line(src: str, suffix: str) -> str:
     return first[:STRUCTURE_HEADLINE_CHARS]
 
 
-def mine_structure(root: Path) -> list[str]:
+def mine_structure(root: Path) -> list[Section]:
     """Condensed structural map: one `## [[dir/]]` section per directory,
     then per file its imports (local paths resolved, packages by name),
     exported symbols, and the first docstring line. Every statement carries
     [[wikilinks]], so under parentAndConcepts only real entities become
-    nodes. Deterministic; a few statements per file."""
+    nodes. Deterministic; a few statements per file. Sections (and so the
+    change index and the replace categories) are per directory."""
     files = [p for p in iter_files(root) if p.suffix.lower() in CODE_EXTS]
     known = {p.relative_to(root).as_posix() for p in files}
     by_dir: dict[str, list[str]] = {}
@@ -768,15 +985,11 @@ def mine_structure(root: Path) -> list[str]:
     if manifest_stmts:
         by_dir.setdefault("", []).extend(manifest_stmts)
 
-    statements: list[str] = []
-    for d in sorted(by_dir):
-        statements.append(f"## [[{d + '/' if d else '/'}]]")
-        statements.extend(by_dir[d])
-        statements.append("")
-    return statements
+    return [(d + "/" if d else "/", d, by_dir[d]) for d in sorted(by_dir)]
 
 
 HEADING_LINE_RE = re.compile(r"^\s*#{1,6}\s")
+SECTION_HEADING_RE = re.compile(r"^##\s*\[\[(.+?)\]\]\s*$")
 
 
 def count_statements(statements: list[str]) -> int:
@@ -808,7 +1021,12 @@ def write_scope(out_dir: Path, name: str, statements: list[str],
     return path
 
 
-def update_manifest(out_dir: Path, written: dict[str, int]) -> None:
+def update_manifest(out_dir: Path, written: dict[str, dict]) -> None:
+    """written: scope filename -> the entry fields this build produced
+    (statements, builtAtCommit, filters, files | history, supersedes).
+    Existing routing/provenance fields (graphName, url, hint, ...) are
+    kept: a rebuilt scope keeps its graph identity, and the uploader's
+    --force clears that graph before re-uploading it."""
     manifest_path = out_dir / "manifest.json"
     manifest = {}
     if manifest_path.exists():
@@ -817,20 +1035,338 @@ def update_manifest(out_dir: Path, written: dict[str, int]) -> None:
         except json.JSONDecodeError:
             manifest = {}
     scopes = manifest.setdefault("scopes", {})
-    for fname, count in written.items():
+    for fname, fields in written.items():
         entry = scopes.setdefault(fname, {})
         authored = bool(DIGEST_FNAME_RE.match(fname))
         entry.update({
             "file": f"infranodus/{fname}",
             "policy": "authored" if authored else "generated",
             "source": "agent" if authored else "repo2statements",
-            "statements": count,
             "updated": date.today().isoformat(),
         })
+        entry.update(fields)
         entry.setdefault("graphName", None)  # filled in after upload
         entry.setdefault("url", None)
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
                              encoding="utf-8")
+
+
+# ------------------------------------------------------ change tracking
+
+SCOPE_FNAME_RE = re.compile(
+    r"^(?P<mode>repo|vault)-"
+    r"(?P<kind>docs|pdfs|code-rationale|history|links|structure|digest)"
+    r"(?:-(?P<suffix>.+?))?(?P<delta>-delta)?-ontology\.md$")
+
+
+def scope_kind(fname: str) -> tuple[str | None, str | None, bool]:
+    """(kind, mode, is_delta) for a scope filename; kind None when the
+    name is not one of ours."""
+    m = SCOPE_FNAME_RE.match(fname)
+    if not m:
+        return None, None, False
+    return m.group("kind"), m.group("mode"), bool(m.group("delta"))
+
+
+def scope_label(fname: str) -> str:
+    """Short name for messages: repo-docs-auth-ontology.md -> docs-auth."""
+    return re.sub(r"^(repo|vault)-|-ontology\.md$", "", fname)
+
+
+def match_scope(fname: str, entry: dict, wanted: str) -> bool:
+    return wanted in (fname, scope_label(fname), entry.get("graphName"))
+
+
+def apply_filters(entry: dict) -> None:
+    """Re-apply the --include / --term filters a scope was built with."""
+    global INCLUDE_PREFIXES, TERMS
+    f = entry.get("filters") or {}
+    INCLUDE_PREFIXES = [x for x in (f.get("include") or []) if x]
+    TERMS = [x for x in (f.get("terms") or []) if x]
+
+
+def mine_scope(kind: str, root: Path, vault: bool, hist_opts: dict,
+               cursors: dict | None = None, quiet: bool = False):
+    """Re-run one scope's pass -> (sections, history_statements,
+    new_cursors). File-based kinds fill sections; history the other two."""
+    if kind == "docs":
+        return mine_docs(root, stem_prefix=vault), [], None
+    if kind == "pdfs":
+        return mine_pdf_sections(root, vault, quiet=quiet), [], None
+    if kind == "code-rationale":
+        return mine_code_rationale(root), [], None
+    if kind == "structure":
+        return mine_structure(root), [], None
+    if kind == "links":
+        return mine_vault_links(root), [], None
+    if kind == "history":
+        stmts, cur = mine_history(root, hist_opts, cursors)
+        return [], stmts, cur
+    raise ValueError(f"unknown scope kind {kind}")
+
+
+def under_path(rel_or_prefix: str, path: str | None) -> bool:
+    if not path:
+        return True
+    p = path.strip("/")
+    x = rel_or_prefix.strip("/")
+    return bool(p) and (x == p or x.startswith(p + "/"))
+
+
+def diff_index(stored: dict[str, str], sections: list[Section],
+               path: str | None = None):
+    """(new, modified, deleted, current_index) of prefixes against the
+    stored index. --path narrows the lists to files under it: new/modified
+    by their real path, deleted by their prefix (a deleted vault page is
+    known only by its stem, so it matches only when --path names it)."""
+    current = hash_sections(sections)
+    rel_of: dict[str, str] = {}
+    for prefix, rel, stmts in sections:
+        if stmts:
+            rel_of.setdefault(prefix, rel)
+    new = [k for k in current if k not in stored]
+    modified = [k for k in current if k in stored and stored[k] != current[k]]
+    deleted = [k for k in stored if k not in current]
+    if path:
+        def keep(k: str) -> bool:
+            return under_path(rel_of.get(k, k), path) or under_path(k, path)
+        new = [k for k in new if keep(k)]
+        modified = [k for k in modified if keep(k)]
+        deleted = [k for k in deleted if under_path(k, path)]
+    return sorted(new), sorted(modified), sorted(deleted), current
+
+
+UNTRACKED_REASON = ("built before change tracking; rebuild once "
+                    "(repo2statements.py with the same flags, then "
+                    "upload_scopes.py --force) to enable updates")
+
+
+def trackable(fname: str, entry: dict) -> tuple[str | None, dict | None]:
+    """(kind, None) when the entry can be diffed, else (kind, report)
+    explaining why not — pending delta, authored, untracked, foreign."""
+    if entry.get("deltaOf"):
+        return None, {"status": "pending",
+                      "reason": f"delta of {entry['deltaOf']} awaiting upload "
+                                f"({entry.get('statements', 0)} statements) "
+                                "— run upload_scopes.py"}
+    if entry.get("policy") == "authored":
+        return None, {"status": "authored",
+                      "reason": "agent-written scope: edit it in place and "
+                                "re-upload with --force (the uploader clears "
+                                "the graph first)"}
+    if entry.get("policy") != "generated" or "file" not in entry:
+        return None, None
+    kind, _mode, is_delta = scope_kind(fname)
+    if kind is None or is_delta or kind == "digest":
+        return None, None
+    if (kind == "history" and not entry.get("history")) or \
+            (kind != "history" and "files" not in entry):
+        return kind, {"status": "unknown", "reason": UNTRACKED_REASON}
+    return kind, None
+
+
+def detect_changes(root: Path, scopes: dict, hist_opts: dict, vault: bool,
+                   only: str | None = None, path: str | None = None) -> dict:
+    """--detect: per scope, what changed since it was built. No writes."""
+    report: dict = {}
+    for fname, entry in scopes.items():
+        if only and not match_scope(fname, entry, only):
+            continue
+        kind, problem = trackable(fname, entry)
+        if problem:
+            report[fname] = problem
+            continue
+        if kind is None:
+            continue
+        apply_filters(entry)
+        if kind == "history":
+            report[fname] = detect_history(root, entry["history"], hist_opts)
+            continue
+        sections, _, _ = mine_scope(kind, root, vault, hist_opts, quiet=True)
+        new, modified, deleted, _ = diff_index(entry["files"], sections, path)
+        report[fname] = {
+            "status": "changed" if (new or modified or deleted) else "clean",
+            "new": new, "modified": modified, "deleted": deleted,
+        }
+    return report
+
+
+def summarize(fname: str, r: dict) -> str:
+    label = scope_label(fname)
+    st = r.get("status")
+    if st == "clean":
+        return f"{label}: clean"
+    if st == "changed" and "new" in r:
+        return (f"{label}: +{len(r['new'])} new / {len(r['modified'])} "
+                f"modified / {len(r['deleted'])} deleted")
+    if st == "changed":
+        parts = [f"{r['newCommits']} new commits" if r.get("newCommits") else "",
+                 f"{r['newPrs']} new PRs" if r.get("newPrs") else "",
+                 f"{r['newIssues']} new issues" if r.get("newIssues") else ""]
+        return f"{label}: " + ", ".join(p for p in parts if p)
+    return f"{label}: {st} — {r.get('reason', '')}"
+
+
+def write_delta(out_dir: Path, name: str, statements: list[str], mode: str,
+                graph_name: str, parent: str, replace_categories: list[str],
+                replace_all: bool) -> Path:
+    """A delta scope file: same frontmatter contract as a scope, plus the
+    upload instructions — the graph to append to, the parent scope, and
+    the categories whose statements the uploader deletes first
+    (`replaceAll: true` for link scopes, which carry no categories)."""
+    path = out_dir / name
+    lines = ["---", "generated: true", "generator: repo2statements",
+             f"mode: {mode}", f"wikilinksMode: {scope_wikilinks_mode(name)}",
+             f"updated: {date.today().isoformat()}", "delta: true",
+             f"graphName: {json.dumps(graph_name)}",
+             f"deltaOf: {json.dumps(parent)}"]
+    if replace_all:
+        lines.append("replaceAll: true")
+    if replace_categories:
+        lines.append("replaceCategories:")
+        lines += [f"  - {json.dumps(c)}" for c in replace_categories]
+    else:
+        lines.append("replaceCategories: []")
+    lines += ["---", ""]
+    path.write_text("\n".join(lines) + "\n" + "\n".join(statements) + "\n",
+                    encoding="utf-8")
+    return path
+
+
+def read_delta(path: Path) -> tuple[list[Section], list[str]]:
+    """(sections, loose statements) of a pending delta file, so a second
+    --update before the upload merges into it instead of losing it."""
+    text = path.read_text(encoding="utf-8")
+    m = FRONTMATTER_RE.match(text)
+    body = text[m.end():] if m else text
+    sections: list[Section] = []
+    loose: list[str] = []
+    cur: list[str] | None = None
+    for line in body.splitlines():
+        if not line.strip():
+            continue
+        h = SECTION_HEADING_RE.match(line)
+        if h:
+            cur = []
+            sections.append((h.group(1), h.group(1), cur))
+            continue
+        (loose if cur is None else cur).append(line)
+    return sections, loose
+
+
+def update_scopes(root: Path, out_dir: Path, manifest: dict, hist_opts: dict,
+                  vault: bool, only: str | None = None,
+                  path: str | None = None) -> list[str]:
+    """--update: write a delta file per changed scope and advance the
+    manifest (index merged, deleted keys dropped, cursors moved). Returns
+    the delta filenames written."""
+    scopes = manifest.setdefault("scopes", {})
+    today = date.today().isoformat()
+    head = git_head(root)
+    written: list[str] = []
+    for fname, entry in list(scopes.items()):
+        if only and not match_scope(fname, entry, only):
+            continue
+        kind, problem = trackable(fname, entry)
+        if problem:
+            if problem["status"] != "pending":
+                print(f"{scope_label(fname)}: {problem['status']} — "
+                      f"{problem['reason']}", file=sys.stderr)
+            continue
+        if kind is None:
+            continue
+        label = scope_label(fname)
+        if not entry.get("graphName"):
+            print(f"{label}: not uploaded yet — nothing to update; upload "
+                  "it (upload_scopes.py) or run the build again",
+                  file=sys.stderr)
+            continue
+        apply_filters(entry)
+        _k, mode, _d = scope_kind(fname)
+        delta_name = fname.replace("-ontology.md", "-delta-ontology.md")
+        delta_path = out_dir / delta_name
+        pending = scopes.get(delta_name) or {}
+        pending_sections: list[Section] = []
+        pending_loose: list[str] = []
+        if pending and delta_path.exists():
+            pending_sections, pending_loose = read_delta(delta_path)
+        replace_cats = sorted(set(pending.get("replaceCategories") or []))
+        replace_all = bool(pending.get("replaceAll"))
+
+        if kind == "history":
+            cur = entry["history"]
+            last = cur.get("lastCommit")
+            if last and not hist_opts.get("no_git") \
+                    and not cursor_is_reachable(root, last):
+                print(f"{label}: history cursor {last[:12]} is no longer on "
+                      "this branch (rebase?) — rebuild the history scope "
+                      "with --force", file=sys.stderr)
+                continue
+            new_stmts, cursors = mine_history(root, hist_opts, cur)
+            if not new_stmts:
+                print(f"{label}: no changes", file=sys.stderr)
+                continue
+            statements = pending_loose + new_stmts
+            entry["history"] = cursors
+            summary = f"{len(new_stmts)} new history statements"
+        else:
+            sections, _, _ = mine_scope(kind, root, vault, hist_opts,
+                                        quiet=True)
+            new, modified, deleted, current = diff_index(
+                entry["files"], sections, path)
+            if not (new or modified or deleted):
+                print(f"{label}: no changes", file=sys.stderr)
+                continue
+            changed = set(new) | set(modified)
+            if kind == "links":
+                # wikilinksOnly: no categories to replace — the whole scope
+                # goes up again after the graph is cleared.
+                delta_sections = sections
+                replace_all, replace_cats = True, []
+            else:
+                gone = changed | set(deleted)
+                delta_sections = [s for s in pending_sections
+                                  if s[0] not in gone]
+                delta_sections += [s for s in sections if s[0] in changed]
+                replace_cats = sorted(set(replace_cats) | set(modified)
+                                      | set(deleted))
+            statements = flatten_sections(delta_sections,
+                                          headed=(kind != "links"))
+            files = dict(entry["files"])
+            for k in changed:
+                files[k] = current[k]
+            for k in deleted:
+                files.pop(k, None)
+            entry["files"] = files
+            summary = (f"+{len(new)} new / {len(modified)} modified / "
+                       f"{len(deleted)} deleted")
+
+        write_delta(out_dir, delta_name, statements, mode or "repo",
+                    entry["graphName"], fname, replace_cats, replace_all)
+        entry["updated"] = today
+        entry["builtAtCommit"] = head
+        count = count_statements(statements)
+        scopes[delta_name] = {
+            "file": f"infranodus/{delta_name}",
+            "policy": "generated",
+            "source": "repo2statements",
+            "statements": count,
+            "updated": today,
+            "deltaOf": fname,
+            "replaceCategories": replace_cats,
+            "replaceAll": replace_all,
+            "graphName": None,
+            "url": None,
+        }
+        written.append(delta_name)
+        print(f"infranodus/{delta_name}: {count} statements ({summary}"
+              + (f"; replaces {len(replace_cats)} file(s)" if replace_cats
+                 else "; replaces the whole graph" if replace_all else "")
+              + f") -> {entry['graphName']}")
+    if written:
+        (out_dir / "manifest.json").write_text(
+            json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return written
 
 
 def main() -> int:
@@ -849,6 +1385,24 @@ def main() -> int:
                          "for infranodus/repo-digest-ontology.md "
                          "(vault-… in a vault); once the agent has written "
                          "it, the same command registers it in the manifest")
+    ap.add_argument("--detect", action="store_true",
+                    help="no extraction: compare each uploaded scope with "
+                         "the working tree (its stored filters re-applied) "
+                         "and print new / modified / deleted files as JSON "
+                         "(stdout) plus a one-line summary per scope (stderr)")
+    ap.add_argument("--update", action="store_true",
+                    help="extract only what changed since the last build "
+                         "into infranodus/<scope>-delta-ontology.md and "
+                         "advance the manifest; upload_scopes.py then "
+                         "replaces the changed files' statements in place")
+    ap.add_argument("--scope", default=None, metavar="NAME",
+                    help="with --detect/--update: only this scope (manifest "
+                         "filename, short name such as docs or docs-auth, "
+                         "or graphName)")
+    ap.add_argument("--path", dest="only_path", default=None,
+                    metavar="RELPATH",
+                    help="with --detect/--update: only files under this "
+                         "path (relative to PATH)")
     ap.add_argument("--no-git", action="store_true")
     ap.add_argument("--no-gh", action="store_true")
     ap.add_argument("--max-commits", type=int, default=200)
@@ -873,6 +1427,50 @@ def main() -> int:
     out_dir = root / "infranodus"
     out_dir.mkdir(exist_ok=True)
 
+    hist_opts = {"max_commits": args.max_commits, "max_prs": args.max_prs,
+                 "max_issues": args.max_issues, "no_git": args.no_git,
+                 "no_gh": args.no_gh}
+
+    if args.detect or args.update:
+        if args.detect and args.update:
+            print("--detect and --update are separate runs", file=sys.stderr)
+            return 1
+        if args.include or args.term:
+            print("NOTE: --include/--term are ignored with --detect/--update "
+                  "— each scope re-applies the filters it was built with",
+                  file=sys.stderr)
+        manifest_path = out_dir / "manifest.json"
+        if not manifest_path.exists():
+            print("no infranodus/manifest.json — nothing to update; run a "
+                  "build first", file=sys.stderr)
+            return 1
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            print("infranodus/manifest.json is not valid JSON", file=sys.stderr)
+            return 1
+        scopes = manifest.get("scopes", {})
+        vault = is_vault(root)   # whole folder, before any scope filter
+        if args.detect:
+            report = detect_changes(root, scopes, hist_opts, vault,
+                                    only=args.scope, path=args.only_path)
+            for fname, r in report.items():
+                print(summarize(fname, r), file=sys.stderr)
+            if not report:
+                print("no trackable scopes in the manifest"
+                      + (f" matching {args.scope}" if args.scope else ""),
+                      file=sys.stderr)
+            print(json.dumps(report, indent=2))
+            return 0
+        written_deltas = update_scopes(root, out_dir, manifest, hist_opts,
+                                       vault, only=args.scope, path=args.only_path)
+        if not written_deltas:
+            print("no changes")
+            return 0
+        print("next: python3 upload_scopes.py <path>  (replaces the changed "
+              "files' statements in the existing graphs)")
+        return 0
+
     if sum(map(bool, (args.structure, args.digest, args.vault))) > 1:
         print("--structure, --digest and --vault are separate runs; "
               "run them one at a time (scopes share the manifest)",
@@ -891,21 +1489,32 @@ def main() -> int:
         raw = (INCLUDE_PREFIXES or TERMS)[0]
         suffix = re.sub(r"[^a-z0-9]+", "-", raw.lower()).strip("-")[:30]
 
-    written: dict[str, int] = {}
+    # Change-tracking foundation, recorded per scope so --detect/--update
+    # can re-walk exactly this scope later.
+    built_at = git_head(root)
+    filters = {"include": list(INCLUDE_PREFIXES), "terms": list(TERMS)}
+    written: dict[str, dict] = {}
 
-    def keep(name: str, statements: list[str], mode: str) -> None:
+    def keep(name: str, sections: list[Section], mode: str,
+             headed: bool = True) -> None:
+        statements = flatten_sections(sections, headed)
         path = write_scope(out_dir, name, statements, mode, suffix=suffix)
         if path:
-            written[path.name] = count_statements(statements)
+            written[path.name] = {
+                "statements": count_statements(statements),
+                "builtAtCommit": built_at,
+                "filters": filters,
+                "files": hash_sections(sections),
+            }
 
     if args.structure:
-        stmts = mine_structure(root)
-        if not stmts:
+        sections = mine_structure(root)
+        if not sections:
             print("--structure maps code (imports, exports, docstrings) and "
                   "found no code files here; a vault's structure is its "
                   "link map: use --vault", file=sys.stderr)
             return 1
-        keep("repo-structure-ontology.md", stmts, "repo")
+        keep("repo-structure-ontology.md", sections, "repo")
     elif args.digest:
         # The agent writes this scope; the script only lists what to read
         # and registers the result. A vault gets the vault- prefix so the
@@ -937,68 +1546,52 @@ def main() -> int:
             print(f"infranodus/{fname} has no statements (headings and "
                   "blank lines only) — not registered", file=sys.stderr)
             return 1
-        retire_old_digest(out_dir, fname)
-        written[fname] = count
+        superseded = retire_old_digest(out_dir, fname)
+        written[fname] = {"statements": count, "builtAtCommit": built_at,
+                          "filters": filters}
+        if superseded:
+            written[fname]["supersedes"] = superseded
         print(f"registered infranodus/{fname}: {count} statement(s) — "
               "edit it in place and run again to re-register, or delete it "
               "to get the reading list and rewrite it")
     elif args.vault:
         # explicit --vault: map the vault structure ONLY
-        keep("vault-links-ontology.md", mine_vault_links(root), "vault")
+        keep("vault-links-ontology.md", mine_vault_links(root), "vault",
+             headed=False)
     else:
         keep("repo-docs-ontology.md", mine_docs(root, stem_prefix=vault),
              "repo")
-
-        pdfs = list(iter_pdfs(root))
-        if pdfs:
-            conv = find_pdf_converter()
-            if conv is None:
-                print(f"NOTE: {len(pdfs)} PDF(s) found but no converter "
-                      "installed — skipped. Install poppler for "
-                      "deterministic PDF mining (`brew install poppler` / "
-                      "`apt install poppler-utils`), or use the llm-wiki "
-                      "skill for LLM-authored summarization.")
-            else:
-                conv_name, extract = conv
-                pdf_statements, no_text = mine_pdfs(root, extract, vault)
-                if no_text:
-                    shown = ", ".join(no_text[:5])
-                    more = " …" if len(no_text) > 5 else ""
-                    print(f"NOTE: {len(no_text)} PDF(s) with no extractable "
-                          f"text layer (scanned images?) — OCR is out of "
-                          f"scope here; the llm-wiki skill can handle "
-                          f"those: {shown}{more}")
-                keep("repo-pdfs-ontology.md", pdf_statements, "repo")
+        keep("repo-pdfs-ontology.md", mine_pdf_sections(root, vault), "repo")
 
         if vault:
             # bare launch in a vault/md folder: content AND link structure
-            keep("vault-links-ontology.md", mine_vault_links(root), "vault")
+            keep("vault-links-ontology.md", mine_vault_links(root), "vault",
+                 headed=False)
 
         keep("repo-code-rationale-ontology.md", mine_code_rationale(root),
              "repo")
 
-        # History is not file-scoped, so a filtered scan skips it — except
-        # a pure folder filter, which git can honor via pathspec.
-        history: list[str] = []
-        if not TERMS:
-            if not args.no_git:
-                if INCLUDE_PREFIXES:
-                    history += mine_git(root, args.max_commits,
-                                        paths=INCLUDE_PREFIXES)
-                else:
-                    history += mine_git(root, args.max_commits)
-            if not args.no_gh and not INCLUDE_PREFIXES:
-                history += mine_gh(root, "pr", args.max_prs)
-                history += mine_gh(root, "issue", args.max_issues)
-        keep("repo-history-ontology.md", history, "repo")
+        # History is not file-scoped: a term filter skips it, a folder
+        # filter is honoured via git's pathspec (see mine_history). The
+        # scope records cursors instead of a file index.
+        history, cursors = mine_history(root, hist_opts)
+        path = write_scope(out_dir, "repo-history-ontology.md", history,
+                           "repo", suffix=suffix)
+        if path:
+            written[path.name] = {
+                "statements": count_statements(history),
+                "builtAtCommit": built_at,
+                "filters": filters,
+                "history": cursors,
+            }
 
     if not written:
         print("no statements extracted (empty corpus?)")
         return 1
 
     update_manifest(out_dir, written)
-    for fname, count in written.items():
-        print(f"infranodus/{fname}: {count} statements")
+    for fname, fields in written.items():
+        print(f"infranodus/{fname}: {fields['statements']} statements")
     print("next: python3 upload_scopes.py <path>  (uploads each scope and "
           "records graphName + url in infranodus/manifest.json)")
     return 0

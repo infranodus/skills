@@ -54,10 +54,59 @@ guess them):
 - "what is missing / what should we work on" → `generate_content_gaps`,
   then optionally `generate_research_questions`
 
-Rebuild only when the user says so ("rebuild", "refresh", "--update") or
-when the repo clearly changed since `manifest.json`'s `updated` dates.
+Build/update intent with a manifest present ("rebuild", "refresh",
+"update", bare `/infranodus`) goes to Step 1's update flow — never
+re-extract everything by default; detect what changed and replace it.
 
 ## Step 1 — Understand the corpus, then ASK what to build
+
+### A manifest already exists — the update flow
+
+Scopes built with change tracking record per file the hash of the text
+that was extracted (`files`, keyed by the `## [[<file>]]` heading — which
+the server stores as each statement's **category**), the filters the scope
+was built with, and for history the commit/PR/issue cursors. So an update
+is exact: the changed files' old statements are deleted by category and
+the new ones appended to the same graph. Run detection first (fast, no
+writes):
+
+```bash
+python3 <SKILL_DIR>/scripts/repo2statements.py . --detect          # all scopes
+python3 <SKILL_DIR>/scripts/repo2statements.py . --detect --scope docs
+```
+
+It prints one line per scope (`docs: +3 new / 5 modified / 1 deleted`,
+`history: 12 new commits`, `docs: clean`, `pdfs: unknown — built before
+change tracking; rebuild once …`) and the same as JSON on stdout. Then
+**AskUserQuestion** (single question), options in this order:
+
+1. **Update changed scopes (Recommended)** — put the detection summary in
+   the label ("docs +3/5/1, history 12 commits"). →
+   `repo2statements.py . --update` (or `--update --scope <name>` per
+   scope) writes `infranodus/<scope>-delta-ontology.md` files, then Step 3
+   replaces in place (Path A: `delete_statements` + `create_knowledge_graph`;
+   Path B: `upload_scopes.py .`).
+2. **Rebuild a scope in place** — follow-up listing the scopes (mark the
+   `unknown` ones: they NEED this once to enable updates). → re-extract
+   with the scope's flags, then Path A rebuild or `upload_scopes.py .
+   --force`: the graph is cleared (`deleteAll`) and re-uploaded under the
+   same name — `wikilinksMode`/`maxNodes` bind at first creation, so the
+   original settings persist; changing them needs a new graph name.
+3. **Add a new scope** — the folder / terms / document questionnaire
+   below, unchanged.
+4. **Full rebuild** — every scope re-extracted, `upload_scopes.py . --force`.
+
+Free text "update just this folder/document" → match the path against each
+scope's `filters.include` and `files` keys in the manifest to find the
+owning scope → `repo2statements.py . --update --scope <owner> --path
+<path>` (`--path` narrows the delta to files under it). A path no scope
+covers → offer to add it as a new filtered scope (option 3 with
+`--include <path>`). Detection reporting everything clean → say so and
+offer query mode or a new scope instead of an empty update.
+
+Skip this section when there is no manifest.
+
+### No manifest yet — the build questionnaire
 
 On a bare launch (user asked to graph/analyze the project without naming a
 target), do a quick inventory first — top-level folders, md/code file
@@ -237,15 +286,17 @@ registers what you wrote:
    a file with no statements. If the project has a `repo-<p>-digest` graph
    from the earlier script-generated structure map, or a `-principles`
    graph from the earlier version of this mode, the script drops those
-   manifest entries and tells you to delete the old graphs on the server
-   first — uploads append to an existing graph name.
+   manifest entries and records their graph names as `supersedes` on the
+   digest entry; the uploader clears each of them (`delete_statements`
+   `deleteAll`) before the digest goes up. On Path A do the same yourself.
 4. `upload_scopes.py .` as usual (it warns if a digest is on disk but not
    registered). Authored scopes are **kept** after upload, on both upload
    paths, so the user can read and edit the digest. To update it: edit in
-   place and run steps 3–4 again (the upload is skipped while the manifest
-   has a `graphName` — delete the graph on the server and clear `graphName`
-   in the manifest, or pass `--force`, which appends). To rewrite from
-   scratch, delete the file and start at step 1.
+   place and run steps 3–4 again with `--force` (the upload is skipped
+   while the manifest has a `graphName`; `--force` clears the graph and
+   re-uploads it under the same name — Path A: `deleteAll`, then
+   re-upload). To rewrite from scratch, delete the file and start at
+   step 1.
 
 ## Step 3 — Upload (one graph per scope)
 
@@ -304,15 +355,47 @@ The contract mirrors the script exactly:
    entry says `policy: authored` (the digest): those are kept,
    they cannot be regenerated (or keep any scope on user request).
 
+5. **Updating a graph in place (delta files from `--update`).** A delta
+   scope file (`infranodus/<scope>-delta-ontology.md`; manifest entry
+   `deltaOf: <parent>`) declares in its frontmatter `graphName` (the
+   parent's graph), `replaceCategories` (the modified + deleted files'
+   heading prefixes — the categories the server stored) or `replaceAll:
+   true` (link scopes). Apply it in this order:
+   1. `delete_statements({graphName, categories: <replaceCategories>,
+      confirm: false})` — a dry run: show the user the matched statements
+      (count + a few `content` lines) and ask to confirm. With
+      `replaceAll`, `deleteAll: true` instead. Skip when
+      `replaceCategories` is empty (a history delta only appends).
+   2. `delete_statements({…same selector…, confirm: true})` → note the
+      `deleted` count. An `isError` reply is fatal for that scope: append
+      nothing, keep the delta file, report the error.
+   3. `create_knowledge_graph` with the delta's chunks (step 1's chunker
+      on the delta file) to the SAME `graphName`, same `wikilinksMode` —
+      appending is the intent here, no warning.
+   4. Bookkeeping: parent `statements` = old − deleted + delta count,
+      `updated` today, re-run the two enrichment calls for the parent,
+      append a dated `## Delta build` section to `INFRANODUS_REPORT.md`
+      (replaced files, new files, counts), delete the delta file and its
+      manifest entry.
+6. **Rebuilding a scope in place.** `delete_statements({graphName,
+   deleteAll: true, confirm: false})` → show the count → `confirm: true`
+   → upload the re-extracted scope's chunks to the same `graphName` as in
+   step 2. Never upload on top of a graph that was not cleared, and never
+   clear a graph the manifest does not own (curated `wiki-*` graphs,
+   `learn-*` graphs). `wikilinksMode`/`maxNodes` stay as first created; to
+   change them upload under a new name and update the manifest.
+
 Path B does the same with `upload_scopes.py . --ontology` (or
-`--ontology-from docs`).
+`--ontology-from docs`), `upload_scopes.py .` for deltas, and
+`upload_scopes.py . --force` for rebuilds.
 
 ### Path B — the bundled script (fallback: no InfraNodus tools in session)
 
 ```bash
 python3 <SKILL_DIR>/scripts/upload_scopes.py .            # long-running: use run_in_background
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --prefix repo-myproject
-python3 <SKILL_DIR>/scripts/upload_scopes.py . --force    # re-upload (APPENDS — see below)
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --force    # rebuild in place (clears the graph first)
+python3 <SKILL_DIR>/scripts/upload_scopes.py .            # also applies pending *-delta-ontology.md files
 ```
 
 Do NOT hand-roll ad-hoc upload loops outside these two paths — Path A
@@ -337,10 +420,18 @@ when the graph is FIRST created), and then, per scope:
   suggestions, in collapsible blocks);
 - deletes the scope file (see Step 2; `--keep-scopes` retains it).
 
-**Append rule:** uploads to an existing `graphName` APPEND statements
-server-side. A clean rebuild of an already-uploaded scope = delete the
-graph in InfraNodus first, then `--force`. `--force` without deleting
-duplicates every statement.
+**Replace rule:** uploads to an existing `graphName` append server-side,
+so the script never uploads on top of what is already there. A delta entry
+(`deltaOf`) first calls `delete_statements` on the parent graph with the
+delta's `replaceCategories` (`deleteAll` for `replaceAll`), prints the
+removed count, then appends the delta, updates the parent's `statements`
+(old − removed + added), re-runs the enrichment, logs a `## Delta build`
+section, and deletes the delta file and entry; a failed delete skips the
+scope with nothing appended. `--force` = rebuild in place: `deleteAll` on
+the scope's graph, then the upload under the same name (`wikilinksMode`
+and `maxNodes` bind at first creation and persist; a new graph name is
+needed to change them). Digest entries with `supersedes` get those graphs
+cleared first.
 
 `--save-graph` additionally exports `infranodus/<scope>-graph.json` per
 scope — opt-in only, for offline/renderable copies; the server is the

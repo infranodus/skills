@@ -9,7 +9,8 @@ description: >
   code repos and Obsidian vaults: invoked in a project folder ("graph this
   repo", "analyze this vault", "/infranodus") it mines docs, PDF text,
   docstrings, WHY/NOTE comments, and commit/PR/issue history into saved
-  graphs with a report. When infranodus/manifest.json exists in the project root, answer
+  graphs with a report, and keeps them current by detecting changed files
+  and replacing their statements in place. When infranodus/manifest.json exists in the project root, answer
   questions about themes, decisions, rationale, or gaps by querying the
   existing graphs FIRST, before reading files. For building and maintaining
   an LLM-authored knowledge base from sources (wiki pages, curated
@@ -80,7 +81,11 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 
 - Structural overview of a text/URL/graph: `generate_knowledge_graph`,
   `generate_topical_clusters`; persist with `create_knowledge_graph`
-  (uploads to the same `graphName` APPEND statements).
+  (uploads to the same `graphName` append statements); remove statements
+  from a saved graph with `delete_statements` (by category, exact text,
+  query, date, ids, or all — `confirm: false` is a dry run that lists the
+  matches; the repo/vault update flow uses it to replace changed files in
+  place).
 - What's missing / ideation: `generate_content_gaps` →
   `generate_research_questions` / `generate_research_ideas`;
   `develop_text_tool` for the combined pipeline.
@@ -113,7 +118,16 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    via the manifest (each graph records its `purpose` and `topics`) and
    query the graphs; do NOT re-extract. The content lives only in the
    graphs — there are no local content files.
-2. On a bare launch (no target named), inventory the folder, then
+   Manifest exists + build/update intent (or bare `/infranodus`) → run
+   `python3 scripts/repo2statements.py . --detect` first and lead the
+   AskUserQuestion with "Update changed scopes (<its summary>)", then
+   "Rebuild a scope in place", "Add a new scope", "Full rebuild". Update =
+   `repo2statements.py . --update [--scope X]` → `upload_scopes.py .`
+   (the uploader deletes the changed files' old statements by category
+   with `delete_statements`, then appends the delta to the same graph);
+   rebuild = re-extract → `upload_scopes.py . --force` (clears the graph
+   first, same name). No changes → offer query mode.
+2. On a bare launch with no manifest (no target named), inventory the folder, then
    AskUserQuestion what to build: full graph (recommended) / a specific
    folder / docs containing certain terms / one document (see the runbook
    for the follow-up questions). Skip that question when the user already

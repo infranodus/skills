@@ -31,9 +31,26 @@ file — scope files are build intermediates (kept on failure/skip, with
 --keep-scopes, or when not marked policy "generated"); the content's home
 is the graphs.
 
-NOTE: uploads to an existing graphName APPEND statements server-side. A
-clean rebuild of an already-uploaded scope requires deleting the graph in
-InfraNodus first, then re-running with --force (which warns about this).
+Uploads to an existing graphName APPEND statements server-side; the
+server's delete_statements tool is what makes replacement possible:
+
+  - Delta scopes (written by `repo2statements.py --update`; manifest entry
+    `deltaOf: <parent>`, frontmatter `delta: true`) update a graph IN
+    PLACE: the uploader first calls delete_statements on the parent's
+    graphName with the delta's `replaceCategories` (each `## [[file]]`
+    heading is stored as a per-statement category, so this removes exactly
+    the modified and deleted files' statements) — or `deleteAll` when the
+    delta says `replaceAll` (link scopes carry no categories) — then
+    appends the delta's chunks to the same graph, re-runs the enrichment
+    calls for the parent, logs a "delta build" section, and deletes the
+    delta file and its manifest entry.
+  - --force rebuilds an already-uploaded scope IN PLACE: delete_statements
+    with deleteAll on its graphName, then the upload as usual under the
+    SAME name. wikilinksMode and maxNodes bind when a graph is first
+    created, so a rebuild keeps the original settings; to change them,
+    upload under a new name (--prefix).
+  - A digest that supersedes older graphs (manifest `supersedes`) gets
+    those cleared the same way before it goes up.
 
 The graphs live on the server and are queried there (via the MCP tools
 analyze_existing_graph_by_name, retrieve_from_knowledge_base), so no local
@@ -47,8 +64,9 @@ Usage:
   python3 upload_scopes.py --register-global
 
   --prefix           graph name prefix (default: <vault|repo>-<dir slug>)
-  --force            re-upload scopes that already have a graphName
-                     (APPENDS to the existing graph — see NOTE above)
+  --force            rebuild scopes that already have a graphName: clear
+                     the graph (delete_statements deleteAll), then upload
+                     under the same name
   --save-graph       also fetch each uploaded graph and save it as
                      infranodus/<scope>-graph.json (opt-in)
   --keep-scopes      keep the scope .md files after a successful upload
@@ -584,6 +602,99 @@ def upload_chunk(client, graph_name, chunk, wikilinks_mode="default"):
     raise RuntimeError(f"gave up after {MAX_RETRIES} rate-limit retries")
 
 
+def call_paced(client, tool, arguments, what):
+    """One tool call through the same 429 backoff loop as upload_chunk
+    (no bisection — the payload is tiny). Returns (status, text)."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        status, out = client.call_tool(tool, arguments)
+        if status != "429":
+            return status, out
+        print(f"    429 rate-limited on {what} (attempt {attempt}/"
+              f"{MAX_RETRIES}), waiting {BACKOFF_SECONDS}s", flush=True)
+        time.sleep(BACKOFF_SECONDS)
+    return "429", f"gave up after {MAX_RETRIES} rate-limit retries"
+
+
+def delete_statements(client, graph_name, categories=None, delete_all=False):
+    """Remove statements from a graph via the server's delete_statements
+    tool (confirm: true — the dry run is the agent's Path A affordance, a
+    script has nothing to show). Exactly one selector: `categories` (the
+    `## [[file]]` headings the server stored per statement) or
+    `deleteAll`. Returns the number removed; raises RuntimeError on an
+    error response so a failed delete never turns into a duplicating
+    append."""
+    arguments = {"graphName": graph_name, "confirm": True}
+    if delete_all:
+        arguments["deleteAll"] = True
+        what = f"delete_statements deleteAll {graph_name}"
+    else:
+        arguments["categories"] = list(categories or [])
+        what = (f"delete_statements {len(arguments['categories'])} "
+                f"categor(ies) in {graph_name}")
+    status, out = call_paced(client, "delete_statements", arguments, what)
+    if status != "ok":
+        raise RuntimeError(f"{what} failed: {(out or '')[:500]}")
+    try:
+        data = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        data = {}
+    if isinstance(data, dict):
+        try:
+            return int(data.get("deleted") or 0)
+        except (TypeError, ValueError):
+            return 0
+    return 0
+
+
+def _yaml_scalar(value):
+    v = value.strip()
+    if v in ("true", "True"):
+        return True
+    if v in ("false", "False"):
+        return False
+    if v in ("null", "~", ""):
+        return None
+    if v == "[]":
+        return []
+    if v.startswith('"'):
+        try:
+            return json.loads(v)
+        except json.JSONDecodeError:
+            return v.strip('"')
+    return v
+
+
+def parse_frontmatter(path):
+    """The scope file's frontmatter as a dict — the subset the generator
+    writes: `key: scalar` lines and `key:` followed by `  - item` lines
+    (items JSON-quoted). Returns {} without a frontmatter block."""
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    m = re.match(r"^---\r?\n(.*?)\r?\n---", raw, re.S)
+    if not m:
+        return {}
+    out, key = {}, None
+    for line in m.group(1).splitlines():
+        if not line.strip():
+            continue
+        if line[:1] in (" ", "\t") and line.strip().startswith("- ") and key:
+            if not isinstance(out.get(key), list):
+                out[key] = []
+            out[key].append(_yaml_scalar(line.strip()[2:]))
+            continue
+        if ":" not in line:
+            continue
+        key, _, val = line.partition(":")
+        key = key.strip()
+        out[key] = [] if val.strip() == "" else _yaml_scalar(val)
+    return out
+
+
+SECTION_HEADING_RE = re.compile(r"^##\s*\[\[(.+?)\]\]\s*$", re.M)
+
+
 def graph_location(response_text, graph_name):
     """Return (url, account) for an uploaded graph.
 
@@ -751,16 +862,21 @@ delete existing entries — the history IS the value.
 """
 
 
-def append_build_log(root, project, entries):
-    """Append one dated build section to infranodus/INFRANODUS_REPORT.md."""
+def append_build_log(root, project, entries, title="Build"):
+    """Append one dated section to infranodus/INFRANODUS_REPORT.md —
+    `## Build <date>` for uploads, `## Delta build <date>` for in-place
+    updates (entries may carry extra `notes` lines: replaced files,
+    counts)."""
     if not entries:
         return
     path = root / "infranodus" / "INFRANODUS_REPORT.md"
-    lines = [f"\n## Build {date.today().isoformat()}\n"]
+    lines = [f"\n## {title} {date.today().isoformat()}\n"]
     for e in entries:
         lines.append(f"### {e['graphName']}" +
                      (f" — {e['url']}" if e.get("url") else ""))
         lines.append(f"- purpose: {e['purpose']}")
+        for note in e.get("notes") or []:
+            lines.append(f"- {note}")
         if e.get("endpoint"):
             loc = f"- server: {e.get('transport', '?')} {e['endpoint']}"
             if e.get("account"):
@@ -862,8 +978,11 @@ Rules:
   For files, symbols, and call paths use the code-graph tool if one is
   installed (e.g. graphify) — the two are complementary, not competing.
 - After adding or substantially editing content, re-run `/infranodus` to
-  refresh the affected scope (delete the old graph in InfraNodus first —
-  uploads to an existing graphName append).
+  refresh the affected scope: `repo2statements.py . --detect` lists the
+  new / modified / deleted files per scope, `--update` extracts only those
+  into a delta, and the uploader replaces their statements in place
+  (`delete_statements` by file category, then append) — no graph is
+  deleted or duplicated.
 {CLAUDE_MD_END}
 """
 
@@ -948,6 +1067,116 @@ def scope_wikilinks_mode(fname, path=None):
             else "parentAndConcepts")
 
 
+def enrich_graph(client, spec, graph_name, meta):
+    """The two best-effort enrichment calls, paced: the structural overview
+    (`hint`) and the structure/development diagnosis (`diversity`,
+    `develop`), written into the scope's manifest entry. Both READ the
+    saved graph back, so either succeeding marks the graph `verified` —
+    proof it is retrievable through this server with this credential, not
+    merely that an upload returned 200. Returns (hint, structure)."""
+    time.sleep(PACE_SECONDS)
+    hint = fetch_hint(client, graph_name)
+    time.sleep(PACE_SECONDS)
+    structure = fetch_structure(client, graph_name)
+    if hint:
+        meta["hint"] = hint.strip()
+    if structure:
+        if structure.get("diversity"):
+            meta["diversity"] = structure["diversity"]
+        if structure.get("suggestions"):
+            meta["develop"] = [condense(s)
+                               for s in structure["suggestions"][:2]]
+    if hint or structure:
+        meta["verified"] = date.today().isoformat()
+    else:
+        print(f"  WARNING: {graph_name} uploaded but could not be read "
+              f"back from {spec.endpoint()} — not marking it verified",
+              file=sys.stderr, flush=True)
+    return hint, structure
+
+
+def upload_delta(client, spec, fname, meta, parent_name, parent, path,
+                 log_entries):
+    """Apply one delta scope to its parent's graph IN PLACE: delete the
+    statements of the replaced files (by category) — or everything, for
+    a link scope — then append the delta's chunks to the same graphName
+    and refresh the parent's routing metadata. Returns True when fully
+    applied; on a failed delete nothing is appended (the delta file and
+    its manifest entry stay for a re-run)."""
+    graph_name = parent["graphName"]
+    fm = parse_frontmatter(path)
+    if fm.get("graphName") and fm["graphName"] != graph_name:
+        print(f"skip {fname}: its frontmatter targets {fm['graphName']} but "
+              f"{parent_name} is uploaded as {graph_name} — re-run "
+              "repo2statements.py --update", file=sys.stderr)
+        return False
+    categories = list(meta.get("replaceCategories")
+                      or fm.get("replaceCategories") or [])
+    replace_all = bool(meta.get("replaceAll") or fm.get("replaceAll"))
+
+    removed = 0
+    try:
+        if replace_all:
+            print(f"{fname} -> {graph_name}: clearing the graph (replaceAll)",
+                  flush=True)
+            removed = delete_statements(client, graph_name, delete_all=True)
+        elif categories:
+            print(f"{fname} -> {graph_name}: replacing {len(categories)} "
+                  "file(s)", flush=True)
+            removed = delete_statements(client, graph_name,
+                                        categories=categories)
+        if replace_all or categories:
+            print(f"  removed {removed} statement(s)", flush=True)
+            time.sleep(PACE_SECONDS)
+    except RuntimeError as e:
+        print(f"  ERROR: {e}\n  {fname} kept — nothing appended; fix and "
+              "re-run", file=sys.stderr, flush=True)
+        return False
+
+    text = strip_frontmatter(path)
+    chunks = chunk_text(text)
+    mode = scope_wikilinks_mode(fname, path)
+    print(f"  appending {len(chunks)} chunk(s) to {graph_name}", flush=True)
+    last = None
+    for i, chunk in enumerate(chunks):
+        print(f"  chunk {i + 1}/{len(chunks)}", flush=True)
+        last = upload_chunk(client, graph_name, chunk, mode)
+        time.sleep(PACE_SECONDS)
+
+    added = int(meta.get("statements") or 0)
+    parent["statements"] = max(
+        0, int(parent.get("statements") or 0) - removed) + added
+    parent["updated"] = date.today().isoformat()
+    summary = harvest_summary(last or "")
+    if summary.get("topics"):
+        parent["topics"] = summary["topics"]
+    if summary.get("gaps"):
+        parent["gaps"] = summary["gaps"]
+    hint, structure = enrich_graph(client, spec, graph_name, parent)
+
+    headings = SECTION_HEADING_RE.findall(text)
+    new_files = [h for h in dict.fromkeys(headings) if h not in categories]
+    notes = [f"delta of {parent_name}: {added} statement(s) appended, "
+             f"{removed} removed"]
+    if replace_all:
+        notes.append("replaced: the whole graph (link scope, no categories)")
+    elif categories:
+        notes.append("replaced files: " + ", ".join(categories))
+    if new_files and not replace_all:
+        notes.append("new files: " + ", ".join(new_files))
+    log_entries.append({"graphName": graph_name, "url": parent.get("url"),
+                        "purpose": parent.get("purpose", "project content"),
+                        "notes": notes,
+                        "endpoint": spec.endpoint(),
+                        "transport": spec.transport,
+                        "account": parent.get("account"),
+                        "verified": parent.get("verified"),
+                        "topics": summary.get("topics"),
+                        "gaps": summary.get("gaps"),
+                        "hint": hint, "structure": structure})
+    return True
+
+
 # --------------------------------------------------------------------- main
 
 def connect_to_configured_server(root):
@@ -993,8 +1222,9 @@ def main():
     ap.add_argument("--prefix", metavar="NAME",
                     help="graph name prefix (default: <vault|repo>-<dir slug>)")
     ap.add_argument("--force", action="store_true",
-                    help="re-upload scopes that already have a graphName "
-                         "(APPENDS to the existing graph)")
+                    help="rebuild scopes that already have a graphName in "
+                         "place: clear the graph (delete_statements "
+                         "deleteAll), then upload under the same name")
     ap.add_argument("--save-graph", action="store_true",
                     help="also save infranodus/<scope>-graph.json per scope")
     ap.add_argument("--ontology", action="store_true",
@@ -1068,8 +1298,14 @@ def main():
         kind = "vault" if any(k.startswith("vault-") for k in scopes) else "repo"
         prefix = f"{kind}-{project}"
 
+    def save_manifest():
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
+                                 encoding="utf-8")
+
     log_entries = []
-    for fname, meta in scopes.items():
+    delta_entries = []
+    rebuilt = set()   # scopes cleared and re-uploaded by --force this run
+    for fname, meta in list(scopes.items()):
         # Curated scopes (llm-wiki ontologies etc. sharing this manifest)
         # are owned by their authoring skill: never claim them by uploading
         # under this run's prefix or rewriting their graphName/url — even
@@ -1077,24 +1313,89 @@ def main():
         if meta.get("policy") == "curated":
             print(f"skip {fname} (curated — owned by its authoring skill)")
             continue
-        if meta.get("graphName") and not args.force:
-            print(f"skip {fname} (already uploaded: {meta['graphName']})")
-            continue
         if "file" not in meta:
             # External entries (e.g. graphs exported from the VSCode
             # extension) register a graph without a local scope file —
             # they are query-only here, never uploaded or deleted.
             print(f"skip {fname} (external entry, no scope file)")
             continue
-        if meta.get("graphName") and args.force:
-            print(f"WARNING: {fname} re-uploads to existing graph "
-                  f"{meta['graphName']} — statements APPEND; for a clean "
-                  f"rebuild delete the graph in InfraNodus first.")
-        scope, graph_name = scope_graph_name(prefix, fname)
         path = root / meta["file"]
+
+        if meta.get("deltaOf"):
+            # A delta (repo2statements.py --update) updates its parent's
+            # graph in place — no --force needed, appending is the intent.
+            parent_name = meta["deltaOf"]
+            parent = scopes.get(parent_name)
+            if parent_name in rebuilt:
+                print(f"drop {fname} ({parent_name} was rebuilt in this run "
+                      "— its content is in the fresh upload)")
+                scopes.pop(fname, None)
+                if path.exists():
+                    path.unlink()
+                save_manifest()
+                continue
+            if not parent or not parent.get("graphName"):
+                print(f"skip {fname} (delta of {parent_name}, which has no "
+                      "graph to update — upload or rebuild it first)",
+                      file=sys.stderr)
+                continue
+            if not path.exists():
+                print(f"skip {fname} (delta file missing; re-run "
+                      "repo2statements.py --update)", file=sys.stderr)
+                scopes.pop(fname, None)
+                save_manifest()
+                continue
+            if upload_delta(client, spec, fname, meta, parent_name, parent,
+                            path, delta_entries):
+                scopes.pop(fname, None)
+                if not args.keep_scopes:
+                    path.unlink()
+                    print(f"  removed {meta['file']} (applied to "
+                          f"{parent['graphName']})", flush=True)
+                save_manifest()
+            continue
+
+        if meta.get("graphName") and not args.force:
+            print(f"skip {fname} (already uploaded: {meta['graphName']})")
+            continue
+        scope, graph_name = scope_graph_name(prefix, fname)
         if not path.exists():
             sys.exit(f"scope file missing: {meta['file']} — scope files are "
                      "build intermediates; re-run repo2statements.py first")
+
+        # In-place rebuild (--force) and superseded graphs: clear the
+        # graph(s) first, so the upload below replaces instead of appends.
+        # A failed clear skips the scope — nothing is uploaded on top of
+        # content that is still there.
+        to_clear = []
+        if meta.get("graphName") and args.force:
+            if meta["graphName"] == graph_name:
+                to_clear.append(graph_name)
+            else:
+                print(f"NOTE: {fname} moves from {meta['graphName']} to "
+                      f"{graph_name}; the old graph is left in place")
+        for g in meta.get("supersedes") or []:
+            if g and g not in to_clear:
+                to_clear.append(g)
+        cleared = True
+        for g in to_clear:
+            print(f"{fname}: clearing {g} (delete_statements deleteAll)",
+                  flush=True)
+            try:
+                removed = delete_statements(client, g, delete_all=True)
+            except RuntimeError as e:
+                print(f"  ERROR: {e}\n  skipping {fname} — nothing uploaded, "
+                      "scope file kept", file=sys.stderr, flush=True)
+                cleared = False
+                break
+            print(f"  removed {removed} statement(s) from {g}", flush=True)
+            time.sleep(PACE_SECONDS)
+        if not cleared:
+            continue
+        meta.pop("supersedes", None)
+        if graph_name in to_clear:
+            rebuilt.add(fname)
+
         text = strip_frontmatter(path)
         chunks = chunk_text(text)
         print(f"{fname} -> {graph_name} ({len(chunks)} chunk(s))", flush=True)
@@ -1126,35 +1427,14 @@ def main():
             meta["gaps"] = summary["gaps"]
         # First manifest write right away — the graph identity must survive
         # even if the enrichment calls below fail or get rate-limited.
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
-                                 encoding="utf-8")
+        save_manifest()
 
         # Enrichment (best-effort, one paced call each): the structural
         # overview and the structure/development diagnosis — summaries that
         # tell a future agent WHICH graph to query and HOW to develop it.
-        time.sleep(PACE_SECONDS)
-        hint = fetch_hint(client, graph_name)
-        time.sleep(PACE_SECONDS)
-        structure = fetch_structure(client, graph_name)
-        if hint:
-            meta["hint"] = hint.strip()
-        if structure:
-            if structure.get("diversity"):
-                meta["diversity"] = structure["diversity"]
-            if structure.get("suggestions"):
-                meta["develop"] = [condense(s)
-                                   for s in structure["suggestions"][:2]]
+        hint, structure = enrich_graph(client, spec, graph_name, meta)
         if hint or structure:
-            # Both enrichment calls READ the saved graph back, so either one
-            # succeeding proves the graph is retrievable through this server
-            # with this credential — not merely that the upload returned 200.
-            meta["verified"] = date.today().isoformat()
-            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n",
-                                     encoding="utf-8")
-        else:
-            print(f"  WARNING: {graph_name} uploaded but could not be read "
-                  f"back from {spec.endpoint()} — not marking it verified",
-                  file=sys.stderr, flush=True)
+            save_manifest()
         log_entries.append({"graphName": graph_name, "url": meta["url"],
                             "purpose": meta["purpose"],
                             "endpoint": spec.endpoint(),
@@ -1253,6 +1533,7 @@ def main():
                 print(f"  {onto_name}: {url or 'saved'}", flush=True)
 
     append_build_log(root, root.name, log_entries)
+    append_build_log(root, root.name, delta_entries, title="Delta build")
     print("all scopes uploaded; manifest updated")
     if not (root / "CLAUDE.md").exists() or CLAUDE_MD_BEGIN not in (
             root / "CLAUDE.md").read_text(encoding="utf-8"):
