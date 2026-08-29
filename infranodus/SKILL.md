@@ -118,19 +118,20 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    folder / docs containing certain terms / one document (see the runbook
    for the follow-up questions). Skip that question when the user already
    named the target. Then ALWAYS ask the build mode (multi-select): **full
-   ingestion** (all prose scopes, no LLM), **digest** (condensed structural
-   map: tree, imports, exports, docstring headlines — cheap, no LLM),
-   **principles digest + structural feedback** (YOU read the target and
+   ingestion** (all prose scopes, no LLM), **structure map** (deterministic:
+   tree, imports, exports, docstring headlines in a repo, page links in a
+   vault — cheap, no LLM),
+   **digest + structural feedback** (YOU read the target and
    write simple statements on how it works — principles, rules, procedures,
    hand-offs — then `optimize_knowledge_base` on the uploaded graph: what
    dominates, what is under-developed, which clusters never connect), and/or
    **ontology** (the server distils entities and typed relations from the
-   digest or docs graph into `onto-<project>` — how the parts fit together;
-   costs server LLM tokens). Principles is for reviewing and improving the
-   project; ontology is for navigating it. Ontology needs a digest or docs
-   upload to exist first; principles needs nothing.
-3. Build: `python3 scripts/repo2statements.py .` (full), `... --digest`,
-   and/or `... --principles` (prints the reading list and the format, exit
+   structure or docs graph into `onto-<project>` — how the parts fit together;
+   costs server LLM tokens). The digest is for reviewing and improving the
+   project; ontology is for navigating it. Ontology needs a structure or docs
+   upload to exist first; the digest needs nothing.
+3. Build: `python3 scripts/repo2statements.py .` (full), `... --structure`,
+   and/or `... --digest` (prints the reading list and the format, exit
    code 2 = "now write the file", not an error; write the file it names;
    run it again with the same flags to register) — one flag per run →
    `python3 scripts/upload_scopes.py .`

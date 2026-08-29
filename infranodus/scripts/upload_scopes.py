@@ -56,7 +56,7 @@ Usage:
   --ontology         after the uploads, ask the server to generate an
                      AI ontology graph (onto-<prefix>) from an uploaded
                      scope via generate_ontology_graph(sourceGraphName)
-                     — from the digest scope when present (codebase mode),
+                     — from the structure scope when present (codebase mode),
                      else from docs (general mode); --ontology-from SCOPE
                      picks one explicitly. Costs LLM tokens.
   --register-project no upload: write the "## infranodus" always-on block
@@ -618,7 +618,7 @@ def generate_ontology(client, prefix, source_graph, source_scope):
     args = {
         "sourceGraphName": source_graph,
         "graphName": graph_name,
-        "ontologyMode": "codebase" if source_scope.startswith("digest")
+        "ontologyMode": "codebase" if source_scope.startswith("structure")
                         else "general",
         "saveGraph": True,
         "includeGraph": False,
@@ -646,15 +646,15 @@ SCOPE_PURPOSES = {
                "changed, when, and the discussion around it",
     "vault-links": "the vault's page-link structure — how notes reference "
                    "each other",
-    "digest": "condensed structural map — directories, file imports and "
+    "structure": "condensed structural map — directories, file imports and "
               "dependencies, exported symbols, docstring headlines: how the "
               "project is organised",
-    "principles": "LLM-written digest of how the project works — "
+    "digest": "LLM-written digest of how the project works — "
                   "principles, rules, procedures, hand-offs, main ideas and "
                   "gaps, in the agent's own words from the target files; "
                   "feed to optimize_knowledge_base for structural feedback",
     "onto": "AI-generated ontology of the project (entities and typed "
-            "relations condensed from the digest or the full text): how "
+            "relations condensed from the structure map or the full text): how "
             "the parts fit together",
 }
 
@@ -999,9 +999,9 @@ def main():
                     help="also save infranodus/<scope>-graph.json per scope")
     ap.add_argument("--ontology", action="store_true",
                     help="also generate onto-<prefix> from an uploaded "
-                         "scope (digest if present, else docs)")
+                         "scope (structure if present, else docs)")
     ap.add_argument("--ontology-from", default=None, metavar="SCOPE",
-                    help="scope to build the ontology from (e.g. digest, "
+                    help="scope to build the ontology from (e.g. structure, "
                          "docs); implies --ontology")
     ap.add_argument("--keep-scopes", action="store_true",
                     help="keep the scope .md files after a successful upload "
@@ -1038,16 +1038,16 @@ def main():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     scopes = manifest.get("scopes", {})
 
-    # An agent-written principles digest that was never registered (the
-    # second `repo2statements.py --principles` run was skipped) would be
+    # An agent-written digest that was never registered (the second
+    # `repo2statements.py --digest` run was skipped) would be
     # silently ignored below — say so, loudly, and keep going.
     unregistered = sorted(
-        p.name for p in (root / "infranodus").glob("*-principles*-ontology.md")
-        if re.match(r"^(repo|vault)-principles(-.+)?-ontology\.md$", p.name)
+        p.name for p in (root / "infranodus").glob("*-digest*-ontology.md")
+        if re.match(r"^(repo|vault)-digest(-.+)?-ontology\.md$", p.name)
         and p.name not in scopes)
     for name in unregistered:
         print(f"WARNING: infranodus/{name} is not registered and will NOT be "
-              "uploaded — run `repo2statements.py . --principles` (same "
+              "uploaded — run `repo2statements.py . --digest` (same "
               "scope flags) first, then re-run this script", file=sys.stderr)
 
     if args.register_project:
@@ -1199,7 +1199,7 @@ def main():
                 if sc == args.ontology_from and meta.get("graphName"):
                     chosen = (sc, meta["graphName"])
         else:
-            for preferred in ("digest", "docs"):
+            for preferred in ("structure", "docs"):
                 for fname, meta in scopes.items():
                     sc, _ = scope_graph_name(prefix, fname)
                     if sc == preferred and meta.get("graphName"):
@@ -1208,8 +1208,8 @@ def main():
                 if chosen:
                     break
         if not chosen:
-            print("ontology: no uploaded digest/docs scope to build from "
-                  "(run repo2statements.py --digest first)", file=sys.stderr)
+            print("ontology: no uploaded structure/docs scope to build from "
+                  "(run repo2statements.py --structure first)", file=sys.stderr)
         else:
             source_scope, source_graph = chosen
             print(f"ontology from {source_graph} -> onto graph", flush=True)

@@ -6,7 +6,7 @@ Turns a repo's natural-language layer into InfraNodus statement files
 <path>/infranodus/ with `generated: true` frontmatter and registered in
 <path>/infranodus/manifest.json.
 
-v1 mines rationale/prose only — code-structure extraction (--structure)
+v1 mines rationale/prose only — deep code-structure extraction
 is deferred by design (see docs/todo-graph-repo.md in InfraNodus-Skills).
 
 Sources (repo mode, default):
@@ -14,20 +14,20 @@ Sources (repo mode, default):
   - *.pdf text layer (see below)      -> repo-pdfs-ontology.md
   - docstrings + WHY:/NOTE:/TODO:/... -> repo-code-rationale-ontology.md
   - git commit bodies, gh PRs/issues  -> repo-history-ontology.md
-Digest mode (--digest), a condensed structural map instead of the prose:
+Structure mode (--structure), a condensed structural map instead of the prose:
   - directory tree, file -> imports (local deps + packages),
     file -> exported symbols, first docstring line per file,
-    package manifests -> dependencies    -> repo-digest-ontology.md
-  The digest is small enough to feed generate_ontology_graph (see
+    package manifests -> dependencies    -> repo-structure-ontology.md
+  The structure map is small enough to feed generate_ontology_graph (see
   upload_scopes.py --ontology) and is the architecture layer the
   rationale scopes lack. Runs alone; combine with a full run by
   running the script twice (scopes are independent files).
-Principles mode (--principles), the LLM-written digest:
+Digest mode (--digest), the LLM-written digest:
   The agent (not this script) reads the target and writes simple statements
   describing how things work — principles, rules, procedures, main ideas —
   in its own words, one per line with [[wikilinks]], grouped under
-  `## [[Topic]]` headings, into infranodus/repo-principles-ontology.md
-  (vault-principles-ontology.md in a vault). Run with --principles BEFORE
+  `## [[Topic]]` headings, into infranodus/repo-digest-ontology.md
+  (vault-digest-ontology.md in a vault). Run with --digest BEFORE
   writing to get the reading list (every file in the target, honouring
   --include / --term; docs, code, and main config files only, capped) and
   the format; run it AGAIN after writing to normalise the frontmatter and
@@ -474,15 +474,15 @@ def scope_wikilinks_mode(name: str) -> str:
     """Processing mode a scope file should be uploaded with (declared in its
     frontmatter so any later consumer knows without heuristics). Link scopes
     are pure [[A]] links to [[B]] statements -> wikilinksOnly; prose scopes
-    (and the digest, whose statements all carry [[wikilinks]] under
+    (and the structure map, whose statements all carry [[wikilinks]] under
     ## [[dir/]] headings) use parentAndConcepts."""
     return ("wikilinksOnly" if name.startswith("vault-links")
             else "parentAndConcepts")
 
 
-# --------------------------------------------------------- principles pass
+# ------------------------------------------------------------- digest pass
 
-PRINCIPLES_FORMAT = """\
+DIGEST_FORMAT = """\
 Write infranodus/{fname} — a digest of how this project works, in your own
 words, from the files listed above (read them; do not paraphrase file names).
 One simple statement per line, grouped under `## [[Topic]]` headings (a
@@ -504,19 +504,19 @@ Nothing says how a tool should report partial progress to the [[MCP client]]. #g
 
 Then run this command again to register the file, and upload_scopes.py.
 """
-PRINCIPLES_LIST_CAP = 200
-PRINCIPLES_CONFIG_NAMES = {
+DIGEST_LIST_CAP = 200
+DIGEST_CONFIG_NAMES = {
     "package.json", "pyproject.toml", "setup.py", "setup.cfg", "Cargo.toml",
     "go.mod", "Gemfile", "composer.json", "Dockerfile", "Makefile",
     "docker-compose.yml", "docker-compose.yaml", "tsconfig.json",
 }
-PRINCIPLES_SKIP_RE = re.compile(
+DIGEST_SKIP_RE = re.compile(
     r"(\.lock$|-lock\.(json|yaml|yml)$|\.min\.(js|css)$|^LICENSE|^llms.*\.txt$)",
     re.I)
-PRINCIPLES_FNAME_RE = re.compile(r"^(repo|vault)-principles(-.+)?-ontology\.md$")
+DIGEST_FNAME_RE = re.compile(r"^(repo|vault)-digest(-.+)?-ontology\.md$")
 
 
-def principles_reading_list(root: Path) -> list[str]:
+def digest_reading_list(root: Path) -> list[str]:
     """Files worth reading in the target (honours --include / --term):
     documents first, then code, then the recognised config files. Lock
     files, minified bundles, licences, binaries, and dotfiles are left
@@ -524,14 +524,14 @@ def principles_reading_list(root: Path) -> list[str]:
     docs, code, conf = [], [], []
     for p in iter_files(root):
         rel = p.relative_to(root).as_posix()
-        if PRINCIPLES_SKIP_RE.search(p.name) or p.name.startswith("."):
+        if DIGEST_SKIP_RE.search(p.name) or p.name.startswith("."):
             continue
         ext = p.suffix.lower()
         if ext in DOC_EXTS:
             docs.append(rel)
         elif ext in CODE_EXTS:
             code.append(rel)
-        elif p.name in PRINCIPLES_CONFIG_NAMES:
+        elif p.name in DIGEST_CONFIG_NAMES:
             conf.append(rel)
     return docs + code + conf
 
@@ -539,7 +539,7 @@ def principles_reading_list(root: Path) -> list[str]:
 FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n", re.S)
 
 
-def register_principles(out_dir: Path, fname: str, mode: str) -> int | None:
+def register_digest(out_dir: Path, fname: str, mode: str) -> int | None:
     """Normalise the agent-written digest's frontmatter (BOM stripped;
     generated/generator/mode/wikilinksMode/updated set by the script, any
     other keys the agent wrote kept) and return its statement count. None
@@ -568,7 +568,7 @@ def register_principles(out_dir: Path, fname: str, mode: str) -> int | None:
     return count_statements(body.splitlines())
 
 
-def retire_old_principles(out_dir: Path, fname: str) -> None:
+def retire_old_digest(out_dir: Path, fname: str) -> None:
     """Before registering an agent-written digest, drop manifest entries
     for the SAME principles scope left by the old regex extractor (source
     repo2statements — possibly under the repo- name in a vault). Their
@@ -582,9 +582,9 @@ def retire_old_principles(out_dir: Path, fname: str) -> None:
     except json.JSONDecodeError:
         return
     scopes = manifest.get("scopes", {})
-    suffix_part = PRINCIPLES_FNAME_RE.match(fname).group(2) or ""
+    suffix_part = DIGEST_FNAME_RE.match(fname).group(2) or ""
     stale = [k for k, v in scopes.items()
-             if (mm := PRINCIPLES_FNAME_RE.match(k))
+             if (mm := DIGEST_FNAME_RE.match(k))
              and (mm.group(2) or "") == suffix_part
              and v.get("source") == "repo2statements"]
     for k in stale:
@@ -600,7 +600,7 @@ def retire_old_principles(out_dir: Path, fname: str) -> None:
                                  encoding="utf-8")
 
 
-# ------------------------------------------------------------- digest pass
+# ---------------------------------------------------------- structure pass
 
 TS_IMPORT_RE = re.compile(
     r'^\s*(?:import|export)\s+(?:[^\'"\n]*?\s+from\s+)?[\'"]([^\'"\n]+)[\'"]',
@@ -613,9 +613,9 @@ TS_EXPORT_RE = re.compile(
 PY_IMPORT_RE = re.compile(r'^\s*(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))',
                           re.M)
 PY_DEF_RE = re.compile(r'^(?:def|class)\s+([A-Za-z_]\w*)', re.M)
-DIGEST_MAX_EXPORTS = 25
-DIGEST_MAX_IMPORTS = 25
-DIGEST_HEADLINE_CHARS = 160
+STRUCTURE_MAX_EXPORTS = 25
+STRUCTURE_MAX_IMPORTS = 25
+STRUCTURE_HEADLINE_CHARS = 160
 
 
 def _resolve_local_import(from_file: Path, spec: str, root: Path,
@@ -648,10 +648,10 @@ def _first_docstring_line(src: str, suffix: str) -> str:
     body = m.group(1) or (m.group(2) if m.lastindex and m.lastindex >= 2 else "")
     body = re.sub(r"^\s*\*\s?", "", body or "", flags=re.M)
     first = one_line(body.strip().split("\n\n")[0])
-    return first[:DIGEST_HEADLINE_CHARS]
+    return first[:STRUCTURE_HEADLINE_CHARS]
 
 
-def mine_digest(root: Path) -> list[str]:
+def mine_structure(root: Path) -> list[str]:
     """Condensed structural map: one `## [[dir/]]` section per directory,
     then per file its imports (local paths resolved, packages by name),
     exported symbols, and the first docstring line. Every statement carries
@@ -698,7 +698,7 @@ def mine_digest(root: Path) -> list[str]:
         for imp in imports:
             if imp not in seen and imp != rel:
                 seen.append(imp)
-        for imp in seen[:DIGEST_MAX_IMPORTS]:
+        for imp in seen[:STRUCTURE_MAX_IMPORTS]:
             stmts.append(f"[[{rel}]] imports [[{imp}]]")
 
         exports = (PY_DEF_RE.findall(src) if suffix == ".py"
@@ -708,7 +708,7 @@ def mine_digest(root: Path) -> list[str]:
             if e not in uniq and not e.startswith("_"):
                 uniq.append(e)
         if uniq:
-            names = ", ".join(f"[[{e}]]" for e in uniq[:DIGEST_MAX_EXPORTS])
+            names = ", ".join(f"[[{e}]]" for e in uniq[:STRUCTURE_MAX_EXPORTS])
             stmts.append(f"[[{rel}]] exports {names}")
 
         headline = _first_docstring_line(src, suffix)
@@ -795,7 +795,7 @@ def update_manifest(out_dir: Path, written: dict[str, int]) -> None:
     scopes = manifest.setdefault("scopes", {})
     for fname, count in written.items():
         entry = scopes.setdefault(fname, {})
-        authored = bool(PRINCIPLES_FNAME_RE.match(fname))
+        authored = bool(DIGEST_FNAME_RE.match(fname))
         entry.update({
             "file": f"infranodus/{fname}",
             "policy": "authored" if authored else "generated",
@@ -814,19 +814,17 @@ def main() -> int:
     ap.add_argument("path", nargs="?", default=".")
     ap.add_argument("--vault", action="store_true",
                     help="page-link scan for an Obsidian/md vault")
-    ap.add_argument("--digest", action="store_true",
+    ap.add_argument("--structure", action="store_true",
                     help="condensed structural map only (tree, imports, "
                          "exports, docstring headlines, manifests) -> "
-                         "repo-digest-ontology.md; run again without it "
-                         "for the full prose scan")
-    ap.add_argument("--principles", action="store_true",
+                         "repo-structure-ontology.md; code repos only — a "
+                         "vault's structure is its link map (--vault)")
+    ap.add_argument("--digest", action="store_true",
                     help="LLM-written digest of how the project works: "
                          "first run prints the reading list and the format "
-                         "for infranodus/repo-principles-ontology.md "
+                         "for infranodus/repo-digest-ontology.md "
                          "(vault-… in a vault); once the agent has written "
                          "it, the same command registers it in the manifest")
-    ap.add_argument("--structure", action="store_true",
-                    help="DEFERRED: code-structure extraction (not in v1)")
     ap.add_argument("--no-git", action="store_true")
     ap.add_argument("--no-gh", action="store_true")
     ap.add_argument("--max-commits", type=int, default=200)
@@ -844,11 +842,6 @@ def main() -> int:
                          "(auto-derived from --include/--term if omitted)")
     args = ap.parse_args()
 
-    if args.structure:
-        print("--structure is deferred to a later version (v1 mines "
-              "rationale only). See InfraNodus-Skills/docs/todo-graph-repo.md")
-        return 2
-
     root = Path(args.path).resolve()
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)
@@ -856,8 +849,8 @@ def main() -> int:
     out_dir = root / "infranodus"
     out_dir.mkdir(exist_ok=True)
 
-    if sum(map(bool, (args.digest, args.principles, args.vault))) > 1:
-        print("--digest, --principles and --vault are separate runs; "
+    if sum(map(bool, (args.structure, args.principles, args.vault))) > 1:
+        print("--structure, --digest and --vault are separate runs; "
               "run them one at a time (scopes share the manifest)",
               file=sys.stderr)
         return 1
@@ -881,25 +874,30 @@ def main() -> int:
         if path:
             written[path.name] = count_statements(statements)
 
-    if args.digest:
-        keep("repo-digest-ontology.md", mine_digest(root), "repo")
+    if args.structure:
+        if is_vault(root):
+            print("--structure maps code (imports, exports, docstrings); a "
+                  "vault's structure is its link map: use --vault",
+                  file=sys.stderr)
+            return 1
+        keep("repo-structure-ontology.md", mine_structure(root), "repo")
     elif args.principles:
         # The agent writes this scope; the script only lists what to read
         # and registers the result. A vault gets the vault- prefix so the
-        # graph is named vault-<p>-principles (Step 6 of the runbook).
+        # graph is named vault-<p>-digest (Step 6 of the runbook).
         mode = "vault" if vault else "repo"
-        fname = f"{mode}-principles-ontology.md"
+        fname = f"{mode}-digest-ontology.md"
         if suffix:
             fname = fname.replace("-ontology.md", f"-{suffix}-ontology.md")
-        count = register_principles(out_dir, fname, mode)
+        count = register_digest(out_dir, fname, mode)
         if count is None:
-            files = principles_reading_list(root)
+            files = digest_reading_list(root)
             if not files:
-                print("principles digest: nothing to read in this target",
+                print("digest: nothing to read in this target",
                       file=sys.stderr)
                 return 1
-            shown = files[:PRINCIPLES_LIST_CAP]
-            print(f"principles digest: {len(files)} file(s) to read"
+            shown = files[:DIGEST_LIST_CAP]
+            print(f"digest: {len(files)} file(s) to read"
                   + (f" (filtered: {suffix})" if suffix else "") + "\n")
             for rel in shown:
                 print(f"  {rel}")
@@ -907,13 +905,13 @@ def main() -> int:
                 print(f"  … and {len(files) - len(shown)} more: narrow the "
                       "target with --include / --term (one digest per "
                       "target) and tell the user what was left out")
-            print("\n" + PRINCIPLES_FORMAT.format(fname=fname))
+            print("\n" + DIGEST_FORMAT.format(fname=fname))
             return 2
         if count == 0:
             print(f"infranodus/{fname} has no statements (headings and "
                   "blank lines only) — not registered", file=sys.stderr)
             return 1
-        retire_old_principles(out_dir, fname)
+        retire_old_digest(out_dir, fname)
         written[fname] = count
         print(f"registered infranodus/{fname}: {count} statement(s) — "
               "edit it in place and run again to re-register, or delete it "
