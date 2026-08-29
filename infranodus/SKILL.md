@@ -118,16 +118,20 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    folder / docs containing certain terms / one document (see the runbook
    for the follow-up questions). Skip that question when the user already
    named the target. Then ALWAYS ask the build mode (multi-select): **full
-   ingestion** (all prose scopes), **digest** (condensed structural map:
-   tree, imports, exports, docstring headlines — cheap, no LLM),
-   **principles digest + structural feedback** (rules, frameworks, main
-   ideas from docs/notes/agent instruction files → `optimize_knowledge_base`
-   on the uploaded graph: what dominates, what is under-developed, which
-   clusters never connect), and/or **ontology** (AI-condensed
-   `onto-<project>` graph generated from the digest or the docs graph —
-   costs LLM tokens).
+   ingestion** (all prose scopes, no LLM), **digest** (condensed structural
+   map: tree, imports, exports, docstring headlines — cheap, no LLM),
+   **principles digest + structural feedback** (YOU read the target and
+   write simple statements on how it works — principles, rules, procedures,
+   hand-offs — then `optimize_knowledge_base` on the uploaded graph: what
+   dominates, what is under-developed, which clusters never connect), and/or
+   **ontology** (the server distils entities and typed relations from the
+   digest or docs graph into `onto-<project>` — how the parts fit together;
+   costs server LLM tokens). Principles is for reviewing and improving the
+   project; ontology is for navigating it; they do not depend on each other.
 3. Build: `python3 scripts/repo2statements.py .` (full), `... --digest`,
-   and/or `... --principles` (deterministic extraction) → `python3 scripts/upload_scopes.py .`
+   and/or `... --principles` (prints the reading list and the format; write
+   `infranodus/repo-principles-ontology.md`; run it again to register) →
+   `python3 scripts/upload_scopes.py .`
    (upload, run in background — records routing metadata into the
    manifest, appends a dated section to the append-only
    `INFRANODUS_REPORT.md` log, deletes the intermediate scope files; add

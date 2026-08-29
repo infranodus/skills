@@ -649,10 +649,10 @@ SCOPE_PURPOSES = {
     "digest": "condensed structural map — directories, file imports and "
               "dependencies, exported symbols, docstring headlines: how the "
               "project is organised",
-    "principles": "the project's rules, frameworks (headings), and main "
-                  "ideas mined from docs, notes, and agent instruction files "
-                  "— what the project says one must/should do and why; feed "
-                  "to optimize_knowledge_base for structural feedback",
+    "principles": "LLM-written digest of how the project works — "
+                  "principles, rules, procedures, hand-offs, main ideas and "
+                  "gaps, in the agent's own words from the target files; "
+                  "feed to optimize_knowledge_base for structural feedback",
     "onto": "AI-generated ontology of the project (entities and typed "
             "relations condensed from the digest or the full text): how "
             "the parts fit together",

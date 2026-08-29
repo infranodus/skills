@@ -22,17 +22,17 @@ Digest mode (--digest), a condensed structural map instead of the prose:
   upload_scopes.py --ontology) and is the architecture layer the
   rationale scopes lack. Runs alone; combine with a full run by
   running the script twice (scopes are independent files).
-Principles mode (--principles), the conceptual digest:
-  - rules: sentences in docs/notes/agent instruction files with
-    imperative or modal markers (must, never, always, should, do not,
-    required, only) -> "#rule"
-  - frameworks: headings, kept as [[parent]] pages over their rules/ideas
-  - main ideas: the first sentence under each heading -> "#idea"
-  - connections: [[wikilinks]] in those sentences, verbatim
-                                       -> repo-principles-ontology.md
-                                          (vault-principles-ontology.md in a vault)
-  Feed the uploaded graph to optimize_knowledge_base (focus: codebase |
-  vault | procedural) for structural feedback on the rule set.
+Principles mode (--principles), the LLM-written digest:
+  The agent (not this script) reads the target and writes simple statements
+  describing how things work — principles, rules, procedures, main ideas —
+  in its own words, one per line with [[wikilinks]], grouped under
+  `## [[Topic]]` headings, into infranodus/repo-principles-ontology.md
+  (vault-principles-ontology.md in a vault). Run with --principles BEFORE
+  writing to get the reading list (every file in the target, honouring
+  --include / --term) and the format; run it AGAIN after writing to add the
+  frontmatter and register the scope in the manifest (policy "authored":
+  the uploader keeps the file). Feed the uploaded graph to
+  optimize_knowledge_base (focus: codebase | vault | procedural).
 
 Vault mode (--vault):
   - [[wikilink]] / [md](links) between pages -> vault-links-ontology.md
@@ -481,80 +481,61 @@ def scope_wikilinks_mode(name: str) -> str:
 
 # --------------------------------------------------------- principles pass
 
-RULE_MARKER_RE = re.compile(
-    r"\b(must(?: not)?|never|always|should(?: not)?|shall|do not|don't|"
-    r"required|only|forbidden|prohibited|avoid|ensure|make sure|"
-    r"never ever|is not allowed|are not allowed|MUST|NEVER|ALWAYS)\b")
-INSTRUCTION_FILE_RE = re.compile(
-    r"(^|/)(CLAUDE|AGENTS|GEMINI|CONTRIBUTING|CONVENTIONS|RULES|STYLE)"
-    r"(\.md)?$|(^|/)\.cursorrules$|(^|/)\.github/copilot-instructions\.md$"
-    r"|(^|/)\.claude/.*\.md$|(^|/)SKILL\.md$", re.I)
-PRINCIPLES_MAX_RULES_PER_SECTION = 12
-PRINCIPLES_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[])")
+PRINCIPLES_FORMAT = """\
+Write infranodus/{fname} — a digest of how this project works, in your own
+words, from the files listed above (read them; do not paraphrase file names).
+One simple statement per line; group them under `## [[Topic]]` headings (a
+subsystem, workflow, framework, or theme); put [[wikilinks]] on the modules,
+concepts, tools, and files a statement is about; end each line with one tag:
+#principle (why it is done this way), #rule (what must / must not happen),
+#procedure (when X, do Y, then Z), #handoff (where one part passes control or
+data to another), #idea (a main idea of the content), #gap (something the
+content leaves unexplained). Aim for one to three hundred lines; cover every
+listed file at least once. Example:
+
+## [[Adding a tool]]
+Every tool is a schema in [[src/schemas]], a handler in [[src/tools]], and a registration in [[src/index.ts]]. #procedure
+Handlers return an error content block instead of throwing so the [[MCP client]] can show the message. #rule
+
+Then run this command again to register the file, and upload_scopes.py.
+"""
 
 
-def _split_sentences(paragraph: str) -> list[str]:
-    return [s.strip() for s in PRINCIPLES_SENTENCE_RE.split(paragraph)
-            if s.strip()]
-
-
-def mine_principles(root: Path) -> list[str]:
-    """Conceptual digest of a repo or vault: for every markdown/text document
-    (agent instruction files included, wherever they live), one
-    `## [[<doc>#<heading>]]` section per heading with the section's main
-    idea (first sentence) tagged #idea and its rules (sentences carrying an
-    imperative/modal marker) tagged #rule. [[wikilinks]] are kept verbatim.
-    Deterministic; roughly one to a dozen statements per section."""
-    statements: list[str] = []
+def principles_reading_list(root: Path) -> list[str]:
+    """Every file in the target (honours --include / --term), documents
+    first, then code, then the rest — the agent reads these and writes
+    the digest."""
+    docs, code, other = [], [], []
     for p in iter_files(root):
         rel = p.relative_to(root).as_posix()
-        if p.suffix.lower() not in DOC_EXTS and not INSTRUCTION_FILE_RE.search(rel):
+        if rel.startswith("infranodus/"):
             continue
-        src = read_text(p)
-        if not src:
-            continue
-        src = re.sub(r"^---\n.*?\n---\n", "", src, count=1, flags=re.S)  # frontmatter
-        src = re.sub(r"```.*?```", "", src, flags=re.S)                   # code blocks
-        heading = None
-        sections: list[tuple[str, list[str]]] = []
-        buf: list[str] = []
-        for line in src.splitlines():
-            m = re.match(r"^\s*#{1,6}\s+(.+?)\s*#*\s*$", line)
-            if m:
-                if buf:
-                    sections.append((heading or "", buf))
-                heading = one_line(re.sub(r"\[\[|\]\]", "", m.group(1)))[:80]
-                buf = []
-            else:
-                buf.append(line)
-        if buf:
-            sections.append((heading or "", buf))
+        ext = p.suffix.lower()
+        (docs if ext in DOC_EXTS else code if ext in CODE_EXTS else other
+         ).append(rel)
+    return docs + code + other
 
-        for heading, lines in sections:
-            text = "\n".join(lines)
-            paragraphs = [one_line(par) for par in re.split(r"\n\s*\n", text)
-                          if par.strip()]
-            paragraphs = [par for par in paragraphs
-                          if len(par) >= 25 and not par.startswith(("|", "<!--"))]
-            if not paragraphs:
-                continue
-            sentences = [s for par in paragraphs for s in _split_sentences(par)]
-            idea = next((s for s in sentences if len(s) >= 25), None)
-            if idea and len(idea) > 300:
-                idea = idea[:297].rstrip() + "…"
-            rules = [s for s in sentences
-                     if RULE_MARKER_RE.search(s) and 20 <= len(s) <= 400
-                     and s != idea][:PRINCIPLES_MAX_RULES_PER_SECTION]
-            if not idea and not rules:
-                continue
-            label = f"{rel}#{heading}" if heading else rel
-            statements.append(f"## [[{label}]]")
-            if idea:
-                statements.append(f"{idea} #idea")
-            for r in rules:
-                statements.append(f"{r} #rule")
-            statements.append("")
-    return statements
+
+def register_principles(out_dir: Path, fname: str, mode: str) -> int | None:
+    """Add frontmatter to the agent-written digest if it has none and
+    return its statement count (None when the file does not exist)."""
+    path = out_dir / fname
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        text = (
+            "---\n"
+            "generated: false\n"
+            "generator: agent\n"
+            f"mode: {mode}\n"
+            "wikilinksMode: parentAndConcepts\n"
+            f"updated: {date.today().isoformat()}\n"
+            "---\n\n" + text
+        )
+        path.write_text(text, encoding="utf-8")
+    body = re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.S)
+    return count_statements(body.splitlines())
 
 
 # ------------------------------------------------------------- digest pass
@@ -752,10 +733,11 @@ def update_manifest(out_dir: Path, written: dict[str, int]) -> None:
     scopes = manifest.setdefault("scopes", {})
     for fname, count in written.items():
         entry = scopes.setdefault(fname, {})
+        authored = "-principles" in fname
         entry.update({
             "file": f"infranodus/{fname}",
-            "policy": "generated",
-            "source": "repo2statements",
+            "policy": "authored" if authored else "generated",
+            "source": "agent" if authored else "repo2statements",
             "statements": count,
             "updated": date.today().isoformat(),
         })
@@ -776,11 +758,11 @@ def main() -> int:
                          "repo-digest-ontology.md; run again without it "
                          "for the full prose scan")
     ap.add_argument("--principles", action="store_true",
-                    help="conceptual digest only (rules, frameworks as "
-                         "headings, main ideas, their [[wikilinks]]) -> "
-                         "repo-principles-ontology.md (vault-… in a vault); "
-                         "feed the graph to optimize_knowledge_base for "
-                         "structural feedback")
+                    help="LLM-written digest of how the project works: "
+                         "first run prints the reading list and the format "
+                         "for infranodus/repo-principles-ontology.md "
+                         "(vault-… in a vault); once the agent has written "
+                         "it, the same command registers it in the manifest")
     ap.add_argument("--structure", action="store_true",
                     help="DEFERRED: code-structure extraction (not in v1)")
     ap.add_argument("--no-git", action="store_true")
@@ -831,13 +813,24 @@ def main() -> int:
     if args.digest:
         keep("repo-digest-ontology.md", mine_digest(root), "repo")
     elif args.principles:
-        # A vault gets the vault- prefix so upload_scopes.py names the graph
-        # vault-<p>-principles (what the runbook's Step 6 table expects) even
-        # when no vault-links scope exists in the manifest yet.
-        if is_vault(root):
-            keep("vault-principles-ontology.md", mine_principles(root), "vault")
-        else:
-            keep("repo-principles-ontology.md", mine_principles(root), "repo")
+        # The agent writes this scope; the script only lists what to read
+        # and registers the result. A vault gets the vault- prefix so the
+        # graph is named vault-<p>-principles (Step 6 of the runbook).
+        mode = "vault" if is_vault(root) else "repo"
+        fname = f"{mode}-principles-ontology.md"
+        if suffix:
+            fname = fname.replace("-ontology.md", f"-{suffix}-ontology.md")
+        count = register_principles(out_dir, fname, mode)
+        if count is None:
+            files = principles_reading_list(root)
+            print(f"principles digest: {len(files)} file(s) to read"
+                  + (f" (filtered: {suffix})" if suffix else "") + "\n")
+            for rel in files:
+                print(f"  {rel}")
+            print("\n" + PRINCIPLES_FORMAT.format(fname=fname))
+            return 2
+        written[fname] = count
+        print(f"registered infranodus/{fname}: {count} statement(s)")
     elif args.vault:
         # explicit --vault: map the vault structure ONLY
         keep("vault-links-ontology.md", mine_vault_links(root), "vault")
