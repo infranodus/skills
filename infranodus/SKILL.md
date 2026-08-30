@@ -9,7 +9,8 @@ description: >
   code repos and Obsidian vaults: invoked in a project folder ("graph this
   repo", "analyze this vault", "/infranodus") it mines docs, PDF text,
   docstrings, WHY/NOTE comments, and commit/PR/issue history into saved
-  graphs with a report. When infranodus/manifest.json exists in the project root, answer
+  graphs with a report, and keeps them current by detecting changed files
+  and replacing their statements in place. When infranodus/manifest.json exists in the project root, answer
   questions about themes, decisions, rationale, or gaps by querying the
   existing graphs FIRST, before reading files. For building and maintaining
   an LLM-authored knowledge base from sources (wiki pages, curated
@@ -80,7 +81,16 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 
 - Structural overview of a text/URL/graph: `generate_knowledge_graph`,
   `generate_topical_clusters`; persist with `create_knowledge_graph`
-  (uploads to the same `graphName` APPEND statements).
+  (uploads to the same `graphName` append statements); remove statements
+  from a saved graph with `delete_statements` (by category, exact text,
+  query, date, ids, or all — `confirm: false` is a dry run that lists the
+  matches; the repo/vault update flow uses it to replace changed files in
+  place); edit statements IN PLACE (id, date, order kept) with
+  `update_statements` — `edits: [{match, content}]` to correct individual
+  lines (a digest principle, a memory item), or one selector plus `set`
+  (add/remove categories, timestamp) / `replace: {pattern, with}` to
+  relabel a source or rename a `[[concept]]` across a graph; same dry
+  run → `confirm: true` contract.
 - What's missing / ideation: `generate_content_gaps` →
   `generate_research_questions` / `generate_research_ideas`;
   `develop_text_tool` for the combined pipeline.
@@ -113,16 +123,47 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    via the manifest (each graph records its `purpose` and `topics`) and
    query the graphs; do NOT re-extract. The content lives only in the
    graphs — there are no local content files.
-2. On a bare launch (no target named), inventory the folder, then
+   Manifest exists + build/update intent (or bare `/infranodus`) → run
+   `python3 scripts/repo2statements.py . --detect` first and lead the
+   AskUserQuestion with "Update changed scopes (<its summary>)", then
+   "Rebuild a scope in place", "Add a new scope", "Full rebuild". Update =
+   `repo2statements.py . --update [--scope X]` → `upload_scopes.py .`
+   (the uploader deletes the changed files' old statements by category
+   with `delete_statements`, then appends the delta to the same graph;
+   files that only moved — same content, new path — are relabelled in
+   place with `update_statements`, nothing re-extracted); rebuild =
+   re-extract → `upload_scopes.py . --force` (clears the graph first,
+   same name). No changes → offer query mode. Correcting a few lines of
+   the authored digest = edit the file + `update_statements` edits, not a
+   rebuild (repo-graph.md, Digest step 4).
+2. On a bare launch with no manifest (no target named), inventory the folder, then
    AskUserQuestion what to build: full graph (recommended) / a specific
    folder / docs containing certain terms / one document (see the runbook
-   for the follow-up questions). Skip the question when the user already
-   named the target.
-3. Build: `python3 scripts/repo2statements.py .` (deterministic extraction)
-   → `python3 scripts/upload_scopes.py .` (upload, run in background —
-   records routing metadata into the manifest, appends a dated section to
-   the append-only `INFRANODUS_REPORT.md` log, deletes the intermediate
-   scope files) → `upload_scopes.py . --register-project` (once).
+   for the follow-up questions). Skip that question when the user already
+   named the target. Then ALWAYS ask the build mode (multi-select): **full
+   ingestion** (all prose scopes, no LLM), **structure map** (deterministic:
+   tree, imports, exports, docstring headlines in a repo, page links in a
+   vault — cheap, no LLM), **digest + structural feedback** (YOU read the
+   target and write simple statements on how it works — principles, rules,
+   procedures, hand-offs — then `optimize_knowledge_base` on the uploaded
+   graph: what dominates, what is under-developed, which clusters never
+   connect), and/or
+   **ontology** (the server distils entities and typed relations from the
+   structure or docs graph into `onto-<project>` — how the parts fit together;
+   costs server LLM tokens). The digest is for reviewing and improving the
+   project; ontology is for navigating it. Ontology needs a structure or docs
+   upload to exist first; the digest needs nothing.
+3. Build: `python3 scripts/repo2statements.py .` (full), `... --structure`,
+   and/or `... --digest` (prints the reading list and the format, exit
+   code 2 = "now write the file", not an error; write the file it names;
+   run it again with the same flags to register) — one flag per run →
+   `python3 scripts/upload_scopes.py .`
+   (upload, run in background — records routing metadata into the
+   manifest, appends a dated section to the append-only
+   `INFRANODUS_REPORT.md` log, deletes the intermediate scope files; add
+   `--ontology` for the ontology layer, or call `generate_ontology_graph`
+   with `sourceGraphName` yourself on Path A) →
+   `upload_scopes.py . --register-project` (once).
 
 ## Companion skills
 
@@ -141,6 +182,14 @@ Knowledge-base workflows:
   This skill maps what exists; llm-wiki writes new knowledge on top. Its
   curated scopes share the same `infranodus/` manifest and their `wiki-*`
   graphs are equally queryable (see the runbook's policy rules).
+- **project-learnings** — what agents *learned operating in* a project
+  (traps, conventions, where things live, decisions), saved to an opt-in
+  `learn-<project>` graph via the server's `get_project_learnings` /
+  `add_project_learnings` tools. This skill maps what a repo contains; that
+  one records what working in it taught the agent. Same entity names, so
+  the graphs compose (`difference_between_texts` between them shows modules
+  with code but no learnings). Route there at the start/end of substantive
+  tasks and on "save what you learned" — never enable it unasked.
 - **ontology-creator** — LLM-generated `[[wikilinks]]` ontology with
   `[relationCode]` tags from a topic or text. Offer it when the user
   wants semantic relations (X causes Y) rather than this skill's

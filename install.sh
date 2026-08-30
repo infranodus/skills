@@ -11,7 +11,7 @@
 #   ./install.sh --project       # copy into ./.claude/skills/ (current project)
 #   ./install.sh --symlink       # symlink instead of copy (dev mode: edits in
 #                                # this repo apply instantly, no re-install)
-#   ./install.sh --core-only     # only infranodus (skip llm-wiki, ontology-generator)
+#   ./install.sh --core-only     # only infranodus (skip llm-wiki, ontology-generator, project-learnings)
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,7 +32,7 @@ done
 # repo folder -> installed name (= slash command / registry name)
 SKILLS=("infranodus:infranodus")
 if [ "$CORE_ONLY" -eq 0 ]; then
-  SKILLS+=("skill-ontology-creator:ontology-generator" "skill-llm-wiki:llm-wiki")
+  SKILLS+=("skill-ontology-creator:ontology-generator" "skill-llm-wiki:llm-wiki" "skill-project-learnings:project-learnings")
 fi
 
 mkdir -p "$TARGET_BASE"
