@@ -1,6 +1,6 @@
 ---
 name: shopping-assistant
-description: >
+description: >-
   An intelligent shopping research assistant that helps users find the best product to buy through systematic comparison, review analysis, and value assessment. Use this skill whenever the user wants to buy something, is comparing products, asks "what should I buy", "help me choose", "best X for Y", mentions shopping, purchasing decisions, product comparisons, or needs help deciding between options. Also trigger when users mention wanting to research a product category, check reviews, or find the best deal. This skill uses web search extensively to gather real product data, ratings, reviews, and prices.
 ---
 

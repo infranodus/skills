@@ -7,7 +7,7 @@ server-side graph computation. Division of labor:
 - **Uploads** (bulk writes): the InfraNodus MCP server already connected
   to the session comes FIRST (e.g. the claude.ai InfraNodus connector) —
   the agent uploads through its `create_knowledge_graph` tool per Step 3's
-  Path A contract. The bundled `scripts/upload_scopes.py` is the FALLBACK
+  Path A contract. The bundled `<SKILL_DIR>/scripts/upload_scopes.py` is the FALLBACK
   for sessions with no InfraNodus MCP tools: it uploads through the MCP
   server configured in this agent's own config (`<project>/.mcp.json` →
   `~/.claude.json` project section → `~/.claude.json` global →

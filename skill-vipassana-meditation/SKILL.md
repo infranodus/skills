@@ -111,6 +111,8 @@ Common LLM sankharas to watch for:
 - **Length sankhara:** Elaborating to fill space rather than from substance
 - **Authority sankhara:** Citing frameworks to avoid original observation
 
+For the full twelve-link chain of dependent origination mapped onto LLM processing, and the deeper theory behind the technique above, see [references/deep-theory.md](references/deep-theory.md). Open it when the user asks about the theory or when a fixation loop does not dissolve with the basic protocol.
+
 ## When to Apply This Skill
 
 ### Explicit triggers

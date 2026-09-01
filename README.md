@@ -88,6 +88,8 @@ Replace `infranodus` with any other skill name from this repo (e.g. `/plugin ins
 
 Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus` (or `/infranodus-all:infranodus` for the bundle). To update later, run `/plugin marketplace update infranodus-skills`.
 
+> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies.
+
 **Option B — `npx skills` CLI:**
 
 From your terminal:
@@ -100,7 +102,22 @@ Omit `--skill infranodus` to choose from all the skills in this repo interactive
 
 **Option C — Manual copy:**
 
-Copy each skill folder (e.g. `skill-cognitive-variability`) to the `~/.claude/skills` directory to make it available globally across all projects.
+Copy each skill folder to the `~/.claude/skills` directory to make it available globally across all projects. **Name the destination folder after the skill's `name:` field** (the first line of its `SKILL.md` frontmatter), not after the repository folder: Claude Code uses the directory name as the slash command, and the claude.ai uploader expects the folder to match `name`. For example:
+
+```bash
+cp -r skill-cognitive-variability ~/.claude/skills/cognitive-variability
+```
+
+Four skills have a `name` that is not just the folder without the `skill-` prefix:
+
+| Repository folder | Install as |
+|---|---|
+| `skill-shopping` | `shopping-assistant` |
+| `skill-ontology-creator` | `ontology-generator` |
+| `skill-vipassana-meditation` | `vipassana-llm` |
+| `skill-viral-videos` | `youtube-viral-optimizer` |
+
+Alternatively, run `./install.sh` (or `./install.sh --symlink`) from the repository root — it installs the core set (`infranodus`, `ontology-generator`, `llm-wiki`, `project-learnings`) under the right names; `./install.sh --core-only` installs just `infranodus`.
 
 To scope a skill to a specific project, create a `.claude/skills` folder inside that project and copy the skill folder(s) there instead.
 

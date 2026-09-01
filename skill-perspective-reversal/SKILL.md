@@ -1,6 +1,6 @@
 ---
 name: perspective-reversal
-description: >
+description: >-
   Flip any conflict, negotiation, or difficult situation to the opponent's perspective to extract superior tactical advice. Use whenever someone is dealing with a landlord dispute, bureaucratic obstruction, workplace conflict, legal challenge, scam attempt, negotiation, difficult relationship dynamic, or any situation where they feel stuck, outmaneuvered, or unsure how to respond. Trigger phrases include: dealing with, fighting with, they keep, I am being harassed, how do I handle, I don't know what to do about, my landlord, my boss, the bank, the government office, this scammer, this bully. Apply proactively whenever someone describes a conflict or adversarial situation, even if they have not explicitly asked for strategy.
 ---
 

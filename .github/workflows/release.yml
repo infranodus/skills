@@ -22,16 +22,26 @@ jobs:
           # Create a directory for all skill packages
           mkdir -p skill-packages
 
-          # Find all skill directories and create zip files
+          # Find all skill directories and create zip files.
+          # Each zip contains a single top-level folder named after the
+          # skill's frontmatter `name` (which is also the slash command), so
+          # the archive unpacks as <name>/SKILL.md as the Agent Skills spec
+          # expects (claude.ai upload, OpenClaw, manual copy).
           for dir in skill-*/ infranodus/; do
-            if [ -d "$dir" ]; then
-              skill_name=$(basename "$dir")
-              echo "Creating package for $skill_name..."
+            if [ -f "$dir/SKILL.md" ]; then
+              skill_name=$(awk 'NR==1 && $0!="---"{exit} NR>1 && $0=="---"{exit} /^name:/{sub(/^name:[ \t]*/,""); gsub(/["\x27]/,""); print; exit}' "$dir/SKILL.md")
+              if [ -z "$skill_name" ]; then
+                echo "::error::No name: field in ${dir}SKILL.md"; exit 1
+              fi
+              echo "Creating package for $skill_name (from $dir)..."
 
-              # Create a zip file with the contents of the skill folder
-              cd "$dir"
-              zip -r "../skill-packages/${skill_name}.zip" . -x "*.DS_Store" -x "__MACOSX/*"
-              cd ..
+              stage="skill-packages/stage"
+              rm -rf "$stage" && mkdir -p "$stage/$skill_name"
+              # Copy the skill, dropping OS junk, caches and tests
+              rsync -a --exclude '.DS_Store' --exclude '__MACOSX' --exclude '__pycache__' \
+                --exclude 'scripts/tests' "$dir" "$stage/$skill_name/"
+              (cd "$stage" && zip -qr "../${skill_name}.zip" "$skill_name")
+              rm -rf "$stage"
 
               echo "✓ Created ${skill_name}.zip"
             fi

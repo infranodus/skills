@@ -1,26 +1,20 @@
 ---
 name: writing-assistant
 description: "Refine texts in any language: perfect grammar and spelling, paraphrase ideas, avoid AI detection while maintaining authentic voice. Detects grammatical patterns that signal cognitive states or structural issues—acting as a sensory system for deeper strategic insights."
-homepage: https://infranodus.com
 metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "✍️",
-        "requires": { "bins": ["mcporter"], "env": ["INFRANODUS_API_KEY"] },
-        "primaryEnv": "INFRANODUS_API_KEY",
-        "install":
-          [
-            {
-              "id": "mcporter",
-              "kind": "node",
-              "package": "mcporter",
-              "bins": ["mcporter"],
-              "label": "Install mcporter (node)",
-            },
-          ],
-      },
-  }
+  homepage: https://infranodus.com
+  openclaw:
+    emoji: "✍️"
+    requires:
+      bins: ["mcporter"]
+      env: ["INFRANODUS_API_KEY"]
+    primaryEnv: INFRANODUS_API_KEY
+    install:
+      - id: mcporter
+        kind: node
+        package: mcporter
+        bins: ["mcporter"]
+        label: Install mcporter (node)
 ---
 
 # Writing Assistant Skill

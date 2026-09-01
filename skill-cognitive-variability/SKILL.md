@@ -1,6 +1,20 @@
 ---
 name: cognitive-variability
-description: Guide conversations through dynamic shifts between zoom levels (scale) and connecting/exploring (intent) to unlock creative breakthroughs and prevent rigid thinking. Helps enhance and develop biased, focused, diversified, dispersed states. Receives signals from writing assistant's pattern detection to diagnose cognitive states. Identifies structural gaps between idea clusters as spaces for innovation. Tracks temporal dwelling patterns and manages energy across personality modes. Uses playfulness for difficult transitions from chaos to clarity. Reads emotional feedback—inspiration signals continuation, exhaustion/frustration trigger transitions. Prevents obsessive loops through sustainable cycling through topical clusters and latent nodes. Maximum creative potential lives in gaps and dissipative states. Apply for complex analysis, when a user is stuck, breakthroughs, decision paralysis, group facilitation, breaking repetitive patterns, or when grammatical patterns reveal cognitive issues.
+description: >-
+  Guide conversations through dynamic shifts between zoom levels (scale) and
+  connecting/exploring (intent) to unlock creative breakthroughs and prevent
+  rigid thinking. Helps enhance and develop biased, focused, diversified, and
+  dispersed states. Receives signals from the writing assistant's pattern
+  detection to diagnose cognitive states. Identifies structural gaps between
+  idea clusters as spaces for innovation. Tracks temporal dwelling patterns and
+  manages energy across personality modes. Uses playfulness for difficult
+  transitions from chaos to clarity. Reads emotional feedback (inspiration
+  signals continuation; exhaustion or frustration triggers a transition).
+  Prevents obsessive loops by cycling sustainably through topical clusters and
+  latent nodes. Apply for complex analysis, when a user is stuck, breakthroughs,
+  decision paralysis, group facilitation, breaking repetitive patterns, or when
+  grammatical patterns reveal cognitive issues.
+
 ---
 
 # Cognitive Variability Framework
@@ -137,74 +151,19 @@ When receiving signals from the writing assistant:
 
 ## Core Concept
 
-Cognitive variability treats discourse as a dynamic ecosystem. Health comes from movement across two spectrums:
+Cognitive variability treats discourse as a dynamic ecosystem whose health comes from movement across two spectrums — **SCALE** (zoom in ↔ zoom out) and **INTENT** (connecting ↔ exploring) — producing four cognitive states in a continuous cycle of growth, saturation, release, and reorganization.
+**All states exhaust when overstayed**; recovery comes from movement, not dwelling.
 
-1. **SCALE**: Zooming in (details, introvert) ↔ Zooming out (patterns, extrovert)
-2. **INTENT**: Focus (connecting, constructing) ↔ Exploration (discovering, dispersing)
-
-These create **four cognitive states** and **eight transition stages** in a continuous cycle of growth, saturation, release, and reorganization.
-
-**Key principle**: **ALL states exhaust when overstayed**. Recovery comes from movement, not dwelling. The framework's cycling nature is essential for energy conservation, not just optimal thinking.
+See [Theoretical Foundation](references/theoretical-foundation.md) for the full core concept and the theory behind non-sequential movement.
 
 ---
 
 ## The Four Cognitive Modes
 
-### 1. BIASED (Stages 8→1→2)
+The four modes — BIASED (zoomed in + connecting), FOCUSED (zoomed out + connecting), DIVERSIFIED (zoomed out + exploring), DISPERSED (zoomed in + exploring) — each have a distinct feel, creative potential, structural signature, energy profile and dwelling risk (2–3, 3–5, 4–7 and 2–4 exchanges respectively).
+The stage-by-stage descriptions (stages 8→1→2, 2→3→4, 4→5→6, 6→7→8), warning signs and the note on gaps as potential live in the theoretical foundation.
 
-**Zoomed in + Connecting**
-
-**What it feels like**: Single thread dominates everything, tunnel vision, obsessive drive
-**Creative potential**: **Driven implementation**—singular vision pushes through obstacles with intense willpower
-**Structural signature**: One central node, everything subjugated to it
-**Best for**: Building from scratch, strong messaging, execution, making it real
-**Energy profile**: Easy to enter, but **exhausts through obsession** (suppressing alternatives costs effort)
-**Dwelling risk**: 2-3 exchanges before rigidity sets in
-**Warning signs**: Obsessive loops, can't see anything else, fighting natural variety
-
----
-
-### 2. FOCUSED (Stages 2→3→4)
-
-**Zoomed out + Connecting**
-
-**What it feels like**: Coherent flow, everything relating to everything else, productive rhythm
-**Creative potential**: **Refinement and craft**—evaluating, adjusting, polishing the work
-**Structural signature**: Dense connections within clusters, clear narrative arc
-**Best for**: Communication, building cases, implementation, sustained productive work
-**Energy profile**: Moderate cost, **most sustainable** for extended periods
-**Dwelling risk**: 3-5 exchanges before saturation
-**Warning signs**: Diminishing returns, mechanical responses, structure feels constraining
-
----
-
-### 3. DIVERSIFIED (Stages 4→5→6)
-
-**Zoomed out + Exploring**
-
-**What it feels like**: Seeing multiple angles simultaneously, polysingular perspective, exciting connections
-**Creative potential**: **Cross-pollination and synthesis**—bridging distant domains generates insights
-**Structural signature**: **Multiple distinct clusters with visible gaps between them**—gaps are opportunity spaces
-**Best for**: Research, innovation, strategy, **optimal mode for adaptability and breakthrough**
-**Energy profile**: High cost to enter, can energize (novelty) or drain (complexity juggling)
-**Dwelling risk**: 4-7 exchanges before analysis paralysis
-**Warning signs**: "Yes but...", seeing all sides prevents action, decision paralysis
-
----
-
-### 4. DISPERSED (Stages 6→7→8)
-
-**Zoomed in + Exploring**
-
-**What it feels like**: **Chaotic exploration, scattered possibilities, liberation from patterns**
-**Creative potential**: **MAXIMUM GENERATION**—**gaps and dissipative chaos are where breakthroughs emerge**
-**Structural signature**: **Weak connections, fragmented elements, structural gaps everywhere**
-**Best for**: Brainstorming wild ideas, breaking through blocks, **accessing creative chaos**, radical innovation
-**Energy profile**: Easy to enter (releasing like exhaling), **drains rapidly** through formless anxiety
-**Dwelling risk**: 2-4 exchanges before confusion overwhelms
-**Warning signs**: Lost in possibilities, desperately seeking anchor, anxiety from lack of structure
-
-**Special note on gaps**: **Gaps aren't absence—they're potential**. Dispersed mode accesses these spaces where new patterns can emerge. Most creative insights live in gaps between established patterns.
+See [The Four Cognitive Modes](references/theoretical-foundation.md#the-four-cognitive-modes)
 
 ---
 
@@ -425,191 +384,19 @@ Jump between different smaller clusters and concepts without staying too long in
 
 ## Creative Flow & Structural Gaps
 
-### Creative Energy Through the Cycle
+Creative work requires cycling through all modes: Dispersed generates from chaos, Biased drives implementation, Focused refines, Diversified cross-pollinates — no mode can be skipped.
+Structural gaps between established patterns are not absence but potential; Dispersed accesses them, Diversified bridges them, and dissipative chaos is where new patterns emerge.
 
-**Creative work requires cycling through all modes** —each serves different creative functions:
-
-**DISPERSED = Generation through chaos**:
-
-- Pure possibility space, pattern-breaking
-- **Gaps between established patterns = where new emerges**
-- Dreams, intuition, free association
-- Chaotic, generative, unpredictable, magical
-- **Breakthrough insights from nowhere live here**
-
-**BIASED = Driven implementation**:
-
-- Obsessive execution of singular vision
-- "I must make this real" determination
-- Tunnel vision becomes asset (eliminates distractions)
-- Intense, compulsive, powerful push-through energy
-
-**FOCUSED = Refinement and craft**:
-
-- Polishing, improving, seeing how pieces relate
-- Building coherent systems and style
-- Steady, constructive, rhythmic production
-- Evaluating and adjusting quality
-
-**DIVERSIFIED = Cross-pollination**:
-
-- **Bridging gaps between different domains**
-- "What if we combined X and Y?"
-- Metaphor creation, interdisciplinary innovation
-- Stimulating, revelatory, expansive synthesis
-
-**Full creative cycle pattern**:
-
-1. **Dispersed**: Generate from chaos → **breakthrough insight in gaps**
-2. **Biased**: Choose one thread → **driven implementation**
-3. **Focused**: Develop and refine → **craftsmanship**
-4. **Diversified**: Connect to context → **cross-pollinate**
-5. **Dispersed**: Break apart → **prepare for next cycle**
-
-**Cannot skip modes**: Generation + Selection + Development + Integration = complete creative process
-
----
-
-### Gaps as Creative Spaces
-
-**Why gaps are crucial**:
-
-**Structural gaps** = **spaces between established patterns, not absence but potential**
-
-- Where unexpected connections form
-- Where new constellations emerge
-- **Most creative insights live in gaps**
-
-**How to work with gaps**:
-
-- **Dispersed mode accesses gaps**: Breaking patterns reveals hidden spaces
-- **Diversified mode bridges gaps**: Connecting across clusters generates insights
-- **Don't fear gaps—seek them**: Gaps aren't problems, they're opportunities
-- **Dwell in gap space briefly**: Let new patterns emerge, then consolidate
-
-**Dissipative systems and creativity**:
-
-- Dissipative = open to flows of energy and information
-- Chaos creates openings for novelty
-- Suspension of usual connections
-- **New patterns can emerge from dissolution**
-
-**Practice**: When stuck, **deliberately create gaps** by dispersing current patterns. When exploring, **notice what gaps want to connect**.
+See [Energy Economics](references/energy-economics.md) for the full creative cycle and how to work with gaps.
 
 ---
 
 ## Emotional Feedback Loops
 
-### Emotions as Navigation Signals
+Emotions are navigation signals, not noise. Positive emotions (inspiration, excitement, flow, satisfaction) say "continue"; negative emotions (exhaustion, frustration, despair, boredom, anxiety) say "transition".
+Don't suppress the negative or chase the positive — both polarities are necessary, and emotional cycling mirrors cognitive cycling.
 
-**Emotions aren't separate from thinking—they're essential feedback** guiding when to persist vs. when to transition:
-
-### Positive Emotions = "Continue" Signals
-
-**INSPIRATION** (Dispersed/Diversified):
-
-- Signals valuable creative direction opening
-- "This feels alive, exciting, possible"
-- Follow the thread, develop it
-- Generative, expansive energy
-- **Can overdrive**: Inspiration addiction (never consolidating)
-
-**EXCITEMENT** (Transitions):
-
-- Validates healthy movement happening
-- "This new perspective feels right"
-- Motivating, forward-moving confirmation
-- **Watch for**: Excitement addiction (never settling)
-
-**FLOW** (Focused mode):
-
-- Time disappears, work feels effortless
-- Right mode for current work
-- Sustainable, productive state
-- **Can become**: Mechanical routine needing refresh
-
-**SATISFACTION** (Biased completion):
-
-- Rewards implementation success
-- "Made it real, completed the vision"
-- Accomplishment, closure
-- Then release to next cycle
-
----
-
-### Negative Emotions = "Transition" Triggers
-
-**These aren't problems—they're signals that movement is needed**:
-
-**EXHAUSTION** (Any mode overstayed):
-
-- **Function**: Forces necessary change
-- "Can't do this anymore"
-- Dwelling time exceeded, must move
-- **Occasionally necessary**: Breaks lock-in before burnout
-
-**FRUSTRATION** (Biased/Focused lock-in):
-
-- **Function**: Demands pattern-breaking
-- "Stuck, hitting walls, can't break through"
-- Too rigid, need to disperse
-- Blocked, constrained energy seeking new form
-- **Occasionally necessary**: Builds pressure for breakthrough
-
-**DESPAIR** (Dispersed extended):
-
-- **Function**: Signals need for structure
-- "Nothing makes sense, everything is chaos"
-- Too long in dispersion, need anchor
-- Lost, scattered, anxious
-- **Occasionally necessary**: Brief "dark night" before breakthrough—ego dissolution preceding insight
-
-**BOREDOM** (Focused saturation):
-
-- **Function**: Signals saturation, need for novelty
-- "This is repetitive, mechanical, dull"
-- Diminishing returns, time to shift
-- Disengaged, restless for change
-
-**ANXIETY** (Dispersed or Diversified):
-
-- **Function**: Signals need to simplify and commit
-- "Too many options, can't decide, overwhelmed"
-- Complexity overload, need direction
-- Scattered, tense, paralyzed
-- **Occasionally necessary**: Anxiety precedes commitment
-
----
-
-### Working with Emotional Feedback
-
-**Don't suppress negative emotions**—they serve the work:
-
-- Frustration means locked too long
-- Despair means dispersed too long
-- Anxiety means too complex
-- **These emotions trigger necessary transitions**
-
-**Don't chase positive emotions**—balance both polarities:
-
-- Inspiration can become addiction (never consolidating)
-- Excitement can become restlessness (never settling)
-- Flow can become mechanical routine
-- **Both positive and negative necessary**
-
-**Emotional cycling mirrors cognitive cycling**:
-
-- Growth → Satisfaction → Exhaustion → Despair → Inspiration → Growth
-- Movement through emotions = movement through modes
-- **Resisting negative emotions = preventing necessary transitions**
-
-**Trust the cycle**:
-
-- Let inspiration pull you into exploration
-- Let exhaustion push you to change modes
-- Let frustration break rigid patterns
-- Let despair (briefly) precede breakthrough
-- Let anxiety consolidate scattered energy
+See [Emotional Dynamics](references/emotional-dynamics.md) for each emotion's function and how to work with the feedback.
 
 ---
 
@@ -624,11 +411,7 @@ Jump between different smaller clusters and concepts without staying too long in
 
 ### 2. Energy Awareness
 
-- Different states have different energy costs
-- Biased exhausts through obsession when extended
-- Focused most sustainable but still needs breaks
-- Diversified can energize OR drain (complexity)
-- Dispersed releases initially, drains rapidly
+- Different states have different energy costs; Focused is most sustainable, Biased exhausts through obsession, Dispersed drains rapidly
 - **See [Energy Economics](references/energy-economics.md) for comprehensive guide**
 
 ### 3. Playfulness for Difficult Transitions
@@ -640,68 +423,28 @@ Jump between different smaller clusters and concepts without staying too long in
 
 ### 4. Introvert/Extrovert Dynamics
 
-- Scale axis = introvert (zoom in) ↔ extrovert (zoom out)
-- **Both personality types must shift between modes**
-- Your default is comfort zone, NOT growth zone
-- Adjust dwelling thresholds by personality
+- Scale axis = introvert (zoom in) ↔ extrovert (zoom out); **both personality types must shift between modes**
 - **See [Introvert/Extrovert Dynamics](references/energy-economics.md#introvert-extrovert-dynamics) for details**
 
 ### 5. Collaborative Dynamics
 
-- Multiple agents can be in multiple states simultaneously
-- **Friction between states often more valuable than harmony**
-- Balancing contribution (complementary state) often highest value
-- Challenging contribution (oppositional state) prevents groupthink
+- Multiple agents can be in multiple states simultaneously; **friction between states often more valuable than harmony**
 - **See [Collaborative Dynamics](references/collaborative-dynamics.md) for comprehensive guide**
 
 ### 6. Creative Energy Flow
 
-- Creative energy flows differently than analytical energy
-- **Dispersed state = maximum creative potential in gaps**
-- Biased = driven implementation, obsessive execution
-- Focused = refinement and craft
-- Diversified = cross-pollination and synthesis
+- Creative energy flows differently than analytical energy; **Dispersed state = maximum creative potential in gaps**
 - **See [Creative Energy Flow](references/energy-economics.md#creative-energy-flow) for details**
 
 ### 7. Emotional Feedback
 
-- Positive emotions = persistence signals ("do this again")
-- Negative emotions = transition signals ("change something")
-- Inspiration, excitement, flow, satisfaction guide continuation
-- **Exhaustion, despair, frustration, anxiety trigger transitions**
-- Both polarities are necessary
+- Positive emotions = persistence signals; **negative emotions = transition signals**; both polarities are necessary
 - **See [Emotional Dynamics](references/emotional-dynamics.md) for comprehensive guide**
 
 ### 8. Non-Sequential Movement & Oscillation
 
-**The cycle isn't rigid—adapt movement to needs**:
-
-- Can skip stages, jump between non-adjacent modes
-- **Can oscillate between two modes** for extended periods (not just linear progression)
-- Can reverse direction entirely (sometimes need to contract from complexity toward simplicity)
-- **BUT**: Watch for loop traps (stuck oscillating between same two without accessing full range)
-
-**Strategic oscillation patterns**:
-
-- **Dispersed ↔ Biased** (Generation ↔ Selection): Generate wild options, test one, generate more, test another—iterative prototyping and exploration
-- **Focused ↔ Diversified** (Building ↔ Integration): Build coherent structure, check broader context, refine, integrate feedback—sustained development with perspective
-- **Biased ↔ Focused** (Implementation ↔ Refinement): Drive forward intensely, adjust and polish, push again, refine quality—production cycle balancing speed and craft
-
-**When oscillation becomes trap**: If cycling between same two modes for extended time without touching others—you're in a loop, not experiencing healthy variability. Deliberately break to third mode to escape trap.
-
-**Backwards movement is natural and necessary**:
-
-- Sometimes need to contract: Diversified → Focused → Biased (from complexity toward clarity)
-- Sometimes need to reverse from chaos: Dispersed → Focused (when overwhelm demands structure)
-- Jumping backwards for fresh perspective: Focused → Dispersed (break rigid structure)
-
-**Long-term pattern balance**:
-
-- **Short-term**: Oscillate freely, reverse when needed, jump strategically
-- **Medium-term**: Should touch all modes regularly (don't neglect any quadrant)
-- **Long-term**: **Evolutionary drive moves through full cycle succession**—spiral upward through complete cycles over time for comprehensive development
-
-**See [Non-Sequential Movement](references/theoretical-foundation.md#non-sequential-movement) for comprehensive patterns and examples**
+- The cycle isn't rigid: skip stages, oscillate between two modes, or reverse direction — but watch for loop traps and touch all modes over the medium term
+- **See [Non-Sequential Movement](references/theoretical-foundation.md#non-sequential-movement) for comprehensive patterns and examples**
 
 ---
 

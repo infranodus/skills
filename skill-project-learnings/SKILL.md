@@ -1,7 +1,22 @@
 ---
 name: project-learnings
-description: >
-  Self-learning for agents working inside a project (a repo, folder, or vault): retrieve what earlier sessions learned about operating in it, reflect at the end of a task, and save the durable insights — where things live, traps, conventions, decisions with rationale, workflows, open questions, and a self-assessment of what worked well and what to do differently next time — to an opt-in, append-only InfraNodus graph named learn- followed by the project name (for example learn-my-repo) that any client can query. Uses the InfraNodus MCP server's get_project_learnings / add_project_learnings / enable_project_learnings tools. Use at the start of a substantive task in a named project ("what do we know about this repo?"), at the end of one ("what did I learn?"), or when the user says "save learnings", "remember this about the project", "start keeping learnings", or "/learnings". Never writes without the user's explicit per-project opt-in and review of each batch. Project knowledge only, never anything about the person.
+description: >-
+  Use PROACTIVELY, without being asked, at the START of any multi-step task in a
+  git repo, project folder, or vault (before reading files) and at the END of one
+  (to reflect and save). Applies whenever the user asks to implement, fix,
+  refactor, debug, or investigate something in a project, whenever a first attempt
+  was wrong or the user corrected the agent, and whenever the agent rediscovers
+  something a previous session should have known. Retrieves what earlier sessions
+  learned about operating in this project and saves durable insights (where things
+  live, traps, conventions, decisions with rationale, workflows, open questions,
+  what to do differently) to an opt-in, append-only InfraNodus graph named
+  learn- plus the project name that any client can query. Also on "what do we
+  know about this repo?", "what did I learn?", "save learnings", "remember this
+  about the project", "start keeping learnings", "/learnings". Load this skill
+  before calling get_project_learnings, add_project_learnings, or
+  enable_project_learnings directly. Never writes without the user's explicit
+  per-project opt-in and review of each batch. Project knowledge only, never
+  anything about the person.
 ---
 
 # Project Learnings
@@ -56,9 +71,12 @@ consent model.
 4. **No secrets, hostnames, env values, credentials, customer data, or
    verbatim error output.** Paths and descriptions only. The server rejects
    secret-like statements and reports only their index.
-5. If `get_project_learnings` returns `enabled: false`, carry on silently.
-   Do not suggest enabling unless the user asks about memory or you notice
-   yourself rediscovering something a previous session should have known.
+5. If `get_project_learnings` returns `enabled: false`, carry on with the
+   task without this skill. At the end of a substantive task, if you hold at
+   least one learning that passes the admission criteria below, say once — one
+   sentence — that learnings are not enabled for this project and can be turned
+   on with "start keeping learnings". Never repeat that in the same session,
+   and never enable on your own. With nothing worth keeping, stay silent.
 
 ## Workflow
 
@@ -199,6 +217,31 @@ InfraNodus UI.
 - Claude Code's own file memory — per-user, per-machine. Keep using it for
   user preferences and for project facts when learnings are not enabled;
   when they are, project-type facts go to both.
+
+## Who decides when this runs
+
+This skill can only *ask*; every gate is the user's. Nothing here needs a hook
+or a CLAUDE.md entry to work, and the skill ships neither.
+
+- **The real gate is server-side.** Until the user enables `learn-<project>`,
+  an automatic invocation is one read call that returns `enabled: false`, after
+  which the skill goes dormant for the session. Nothing is written, nothing is
+  created.
+- **Manual only.** Set `disable-model-invocation: true` in this file's
+  frontmatter (the description leaves Claude's context; only
+  `/project-learnings` invokes it), or per project in
+  `.claude/settings.local.json`:
+  `"skillOverrides": { "project-learnings": "user-invocable-only" }`
+  (`"off"` hides it entirely).
+- **Remove.** Delete the skill folder or uninstall the plugin.
+- **Every session, guaranteed.** The user's own choice, never the skill's: a
+  line in the project's `CLAUDE.md` such as
+  `Before any multi-step task call get_project_learnings for project <name>`,
+  or a `SessionStart` hook that injects the same sentence (the `update-config`
+  skill can add one).
+
+Reference: https://code.claude.com/docs/en/skills ("Control who invokes a
+skill", "Restrict Claude's skill access").
 
 ## Example
 

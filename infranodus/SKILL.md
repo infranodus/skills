@@ -1,6 +1,6 @@
 ---
 name: infranodus
-description: >
+description: >-
   Text network analysis and knowledge graphs via the InfraNodus MCP server:
   analyze text structure, find content gaps, generate research questions and
   ideas, compare texts, optimize content for SEO/GEO, analyze Google search
@@ -8,23 +8,20 @@ description: >
   transcription included), and saved graphs. Also builds knowledge graphs of
   code repos and Obsidian vaults: invoked in a project folder ("graph this
   repo", "analyze this vault", "/infranodus") it mines docs, PDF text,
-  docstrings, WHY/NOTE comments, and commit/PR/issue history into saved
-  graphs with a report, and keeps them current by detecting changed files
-  and replacing their statements in place. When infranodus/manifest.json exists in the project root, answer
-  questions about themes, decisions, rationale, or gaps by querying the
-  existing graphs FIRST, before reading files. For building and maintaining
-  an LLM-authored knowledge base from sources (wiki pages, curated
-  ontologies), prefer the llm-wiki skill.
-homepage: https://infranodus.com
+  docstrings, WHY/NOTE comments, and commit/PR/issue history into saved graphs
+  with a report, and keeps them current by replacing the statements of changed
+  files in place. When infranodus/manifest.json exists in the project root,
+  answer questions about themes, decisions, rationale, or gaps by querying the
+  existing graphs FIRST, before reading files. For an LLM-authored knowledge
+  base built from sources (wiki pages, curated ontologies), prefer the llm-wiki
+  skill.
 metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "🕸️",
-        "requires": { "env": ["INFRANODUS_API_KEY"] },
-        "primaryEnv": "INFRANODUS_API_KEY",
-      },
-  }
+  homepage: https://infranodus.com
+  openclaw:
+    emoji: "🕸️"
+    requires:
+      env: ["INFRANODUS_API_KEY"]
+    primaryEnv: INFRANODUS_API_KEY
 ---
 
 # InfraNodus
@@ -190,7 +187,7 @@ Knowledge-base workflows:
   the graphs compose (`difference_between_texts` between them shows modules
   with code but no learnings). Route there at the start/end of substantive
   tasks and on "save what you learned" — never enable it unasked.
-- **ontology-creator** — LLM-generated `[[wikilinks]]` ontology with
+- **ontology-generator** — LLM-generated `[[wikilinks]]` ontology with
   `[relationCode]` tags from a topic or text. Offer it when the user
   wants semantic relations (X causes Y) rather than this skill's
   deterministic co-occurrence mining; output pastes straight into

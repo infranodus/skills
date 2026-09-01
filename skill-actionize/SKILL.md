@@ -1,7 +1,6 @@
 ---
 name: actionize
-version: 1.0.0
-description: |
+description: |-
   Turn insights, findings, or research into an actionable plan with deadlines
   and scheduled Telegram reminders. Collaboratively designs the plan with the
   user via AskUserQuestion, saves it to .plan/ in the project, sets up cron
@@ -27,6 +26,8 @@ allowed-tools:
   - mcp__infranodus__difference_between_texts
   - mcp__infranodus__generate_knowledge_graph
   - mcp__infranodus__generate_research_questions
+metadata:
+  version: "1.0.0"
 ---
 
 # /actionize — Turn Insights Into Action
@@ -40,6 +41,19 @@ project, and set up Telegram reminders so nothing falls through the cracks.
 
 **Routing:** If invoked with "diagnose" (e.g., `/actionize diagnose`), skip directly
 to Phase 7 (Diagnose). If invoked with no arguments, proceed to Phase 0.
+
+---
+
+## Requirements
+
+- `python3`, `curl`, and `crontab` on the host. Cron scheduling does not work in
+  containers or WSL without a running cron daemon: if `command -v crontab` fails,
+  warn the user and offer the manual-reminder alternative (run
+  `.plan/bin/remind.sh` by hand, or from Phase 5 option D) instead of a crontab entry.
+- A Telegram bot token and chat id for reminders — see Phase 4 and
+  [Reminders setup](references/reminders-setup.md). Telegram is optional.
+- `${CLAUDE_SKILL_DIR}` in the commands below is substituted by Claude Code with the
+  skill's directory; in other clients substitute the skill's install path by hand.
 
 ---
 
@@ -79,6 +93,19 @@ If B: archive the existing plan and continue to Phase 1.
 If C: stop — skill is done.
 
 **If EXISTING_PLAN is no:** Continue to Phase 1.
+
+### Session start
+
+`bin/session-check.sh` is a compact, non-interactive version of the check above.
+It takes an optional plan directory argument (default `.plan`); if
+`.plan/.status.json` is missing, the plan is not `active`, or nothing is overdue or
+due today, it exits 0 silently. Otherwise it prints one `PLAN: {title} [{done}/{total} done]`
+line plus `OVERDUE:` and `TODAY:` lines and a hint to run `/actionize`. Use it from a
+Claude Code SessionStart hook or as the Phase 0 preamble command:
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/bin/session-check.sh" .plan
+```
 
 ---
 
@@ -275,287 +302,15 @@ fi
 
 ## Phase 4: Set Up Reminders
 
-### 4A: Telegram Bot Setup
+Summary of the steps (exact commands, prompts, and the reminder script are in the reference):
 
-Check if Telegram credentials exist:
+1. **Telegram bot (4A):** check `.env` for `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. If missing, guide the user through creating a bot with @BotFather, have them message the bot once, detect the chat id via `getUpdates`, save both to `.env`, and send a test message. Telegram is optional — the user may skip it.
+2. **Reminder script (4B):** `mkdir -p .plan/bin`, then copy `${CLAUDE_SKILL_DIR}/bin/remind.sh` to `.plan/bin/remind.sh` and `chmod +x` it (the reference also shows the script inline).
+3. **System cron (4C):** do NOT use CronCreate (session-scoped). Add a real crontab entry that runs `.plan/bin/remind.sh` daily, logging to `.plan/cron.log`. Test with `bash .plan/bin/remind.sh`.
+4. **Session-start note (4D):** append an "Active Plan" section to CLAUDE.md if not already present.
+5. **Diagnose cron:** optionally add the 3-day sync + nudge crontab entry from Phase 8.
 
-```bash
-if [ -f .env ]; then
-  TELEGRAM_BOT_TOKEN=$(grep "^TELEGRAM_BOT_TOKEN=" .env 2>/dev/null | cut -d= -f2-)
-  TELEGRAM_CHAT_ID=$(grep "^TELEGRAM_CHAT_ID=" .env 2>/dev/null | cut -d= -f2-)
-  [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ] && echo "TELEGRAM_READY" || echo "TELEGRAM_MISSING"
-else
-  echo "TELEGRAM_MISSING"
-fi
-```
-
-**If TELEGRAM_MISSING:** Guide the user through setup via AskUserQuestion:
-
-> To get daily deadline reminders on Telegram, we need a bot. Here's how to set it up
-> (takes ~2 minutes):
->
-> **Step 1:** Open Telegram and message @BotFather
-> **Step 2:** Send `/newbot` and follow the prompts to create a bot
-> **Step 3:** Copy the bot token @BotFather gives you
-> **Step 4:** Start a chat with your new bot and send any message
-> **Step 5:** We'll auto-detect your chat ID
->
-> Ready?
-
-- A) I have my bot token — let me paste it
-- B) Skip Telegram — I'll just use in-session reminders
-- C) I already have TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env
-
-If A: Ask for the token, then detect chat ID:
-
-```bash
-# After user provides token, get the chat ID from recent messages
-TOKEN="{user-provided-token}"
-RESPONSE=$(curl -s "https://api.telegram.org/bot${TOKEN}/getUpdates")
-echo "$RESPONSE" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-if data.get('result'):
-    chat_id = data['result'][-1]['message']['chat']['id']
-    print(f'CHAT_ID={chat_id}')
-else:
-    print('NO_MESSAGES')
-" 2>/dev/null || echo "PARSE_ERROR"
-```
-
-If chat ID detected, save both to `.env`:
-
-```bash
-# Append to .env (create if needed)
-echo "TELEGRAM_BOT_TOKEN={token}" >> .env
-echo "TELEGRAM_CHAT_ID={chat_id}" >> .env
-```
-
-Send a test message:
-
-```bash
-TOKEN=$(grep "^TELEGRAM_BOT_TOKEN=" .env | cut -d= -f2-)
-CHAT_ID=$(grep "^TELEGRAM_CHAT_ID=" .env | cut -d= -f2-)
-curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
-  -d chat_id="${CHAT_ID}" \
-  -d parse_mode="Markdown" \
-  -d text="*actionize* connected! You'll receive daily plan reminders here." \
-  > /dev/null 2>&1 && echo "TELEGRAM_OK" || echo "TELEGRAM_FAIL"
-```
-
-If B: Skip to 4B.
-
-**If TELEGRAM_READY:** Send a test message to confirm the connection still works,
-then proceed.
-
-### 4B: Create the Reminder Script
-
-Write the Telegram reminder script to `.plan/bin/remind.sh`:
-
-```bash
-mkdir -p .plan/bin
-```
-
-Write this script:
-
-```bash
-#!/usr/bin/env bash
-# .plan/bin/remind.sh — Send plan status to Telegram
-# Called by cron or manually
-
-set -euo pipefail
-PLAN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PROJECT_DIR="$(cd "$PLAN_DIR/.." && pwd)"
-
-# Load .env from project root
-if [ -f "$PROJECT_DIR/.env" ]; then
-  TELEGRAM_BOT_TOKEN=$(grep "^TELEGRAM_BOT_TOKEN=" "$PROJECT_DIR/.env" | cut -d= -f2-)
-  TELEGRAM_CHAT_ID=$(grep "^TELEGRAM_CHAT_ID=" "$PROJECT_DIR/.env" | cut -d= -f2-)
-fi
-
-if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-  echo "Telegram not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env"
-  exit 1
-fi
-
-if [ ! -f "$PLAN_DIR/.status.json" ]; then
-  echo "No plan found at $PLAN_DIR/.status.json"
-  exit 1
-fi
-
-TODAY=$(date +%Y-%m-%d)
-PLAN_TITLE=$(python3 -c "import json; d=json.load(open('$PLAN_DIR/.status.json')); print(d['title'])")
-
-# Build status message
-MSG=$(python3 << 'PYEOF'
-import json, sys
-from datetime import datetime, date
-
-with open("PLAN_DIR/.status.json".replace("PLAN_DIR", "PLAN_DIR_VALUE")) as f:
-    data = json.load(f)
-
-today = date.today()
-overdue = []
-due_today = []
-upcoming = []
-completed = 0
-total = len(data["tasks"])
-
-for t in data["tasks"]:
-    if t["status"] == "completed":
-        completed += 1
-        continue
-    deadline = datetime.strptime(t["deadline"], "%Y-%m-%d").date()
-    if deadline < today:
-        days_late = (today - deadline).days
-        overdue.append(f"  - {t['name']} (due {t['deadline']}, {days_late}d late)")
-    elif deadline == today:
-        due_today.append(f"  - {t['name']} ({t['effort']})")
-    elif (deadline - today).days <= 7:
-        upcoming.append(f"  - {t['name']} (due {t['deadline']})")
-
-lines = [f"*{data['title']}* — {completed}/{total} done"]
-if overdue:
-    lines.append(f"\n🔴 *Overdue ({len(overdue)}):*")
-    lines.extend(overdue)
-if due_today:
-    lines.append(f"\n🟡 *Due today ({len(due_today)}):*")
-    lines.extend(due_today)
-if upcoming:
-    lines.append(f"\n🔵 *Upcoming ({len(upcoming)}):*")
-    lines.extend(upcoming)
-if not overdue and not due_today and not upcoming:
-    if completed == total:
-        lines.append("\n✅ All tasks complete!")
-    else:
-        lines.append("\nNo tasks due this week.")
-
-print("\n".join(lines))
-PYEOF
-)
-
-# Replace PLAN_DIR_VALUE placeholder
-MSG=$(echo "$MSG" | sed "s|PLAN_DIR_VALUE|$PLAN_DIR|g")
-
-# Actually run the python with the correct path
-MSG=$(python3 << PYEOF
-import json, sys
-from datetime import datetime, date
-
-with open("$PLAN_DIR/.status.json") as f:
-    data = json.load(f)
-
-today = date.today()
-overdue = []
-due_today = []
-upcoming = []
-completed = 0
-total = len(data["tasks"])
-
-for t in data["tasks"]:
-    if t["status"] == "completed":
-        completed += 1
-        continue
-    deadline = datetime.strptime(t["deadline"], "%Y-%m-%d").date()
-    if deadline < today:
-        days_late = (today - deadline).days
-        overdue.append(f"  - {t['name']} (due {t['deadline']}, {days_late}d late)")
-    elif deadline == today:
-        due_today.append(f"  - {t['name']} ({t['effort']})")
-    elif (deadline - today).days <= 7:
-        upcoming.append(f"  - {t['name']} (due {t['deadline']})")
-
-lines = [f"*{data['title']}* \u2014 {completed}/{total} done"]
-if overdue:
-    lines.append(f"\n*Overdue ({len(overdue)}):*")
-    lines.extend(overdue)
-if due_today:
-    lines.append(f"\n*Due today ({len(due_today)}):*")
-    lines.extend(due_today)
-if upcoming:
-    lines.append(f"\n*Upcoming ({len(upcoming)}):*")
-    lines.extend(upcoming)
-if not overdue and not due_today and not upcoming:
-    if completed == total:
-        lines.append("\nAll tasks complete!")
-    else:
-        lines.append("\nNo tasks due this week.")
-
-print("\n".join(lines))
-PYEOF
-)
-
-curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  -d chat_id="${TELEGRAM_CHAT_ID}" \
-  -d parse_mode="Markdown" \
-  -d text="${MSG}" \
-  > /dev/null 2>&1
-
-echo "Reminder sent."
-```
-
-Make it executable:
-
-```bash
-chmod +x .plan/bin/remind.sh
-```
-
-### 4C: Schedule the System Cron Job
-
-**IMPORTANT:** Do NOT use CronCreate here — it is session-scoped and dies when Claude
-exits. Instead, add a real system crontab entry that runs independently.
-
-Check if a crontab entry already exists for this project:
-
-```bash
-crontab -l 2>/dev/null | grep -q "actionize" && echo "CRON_EXISTS" || echo "CRON_MISSING"
-```
-
-If CRON_MISSING, add the entry. The project path must be absolute:
-
-```bash
-PROJECT_DIR=$(pwd)
-(crontab -l 2>/dev/null || true; echo "# actionize: daily Telegram plan reminder"; echo "3 11 * * * ${PROJECT_DIR}/.plan/bin/remind.sh >> ${PROJECT_DIR}/.plan/cron.log 2>&1") | crontab -
-```
-
-Verify it was added:
-
-```bash
-crontab -l
-```
-
-Test the script runs successfully standalone:
-
-```bash
-bash .plan/bin/remind.sh
-```
-
-Tell the user: "System crontab entry added — runs at 11:03am daily, independent of
-Claude Code. Output logs to `.plan/cron.log`. On macOS, if reminders don't arrive,
-check System Settings > Privacy > Full Disk Access for cron. To remove:
-`crontab -l | grep -v actionize | crontab -`"
-
-### 4D: Set Up Session-Start Reminder
-
-To show overdue + today's tasks when Claude Code opens in this project, add a
-reminder note to CLAUDE.md.
-
-Check if CLAUDE.md already has an actionize reminder:
-
-```bash
-grep -q "actionize" CLAUDE.md 2>/dev/null && echo "ALREADY_CONFIGURED" || echo "NOT_CONFIGURED"
-```
-
-If NOT_CONFIGURED, append to CLAUDE.md:
-
-```markdown
-
-## Active Plan
-
-This project has an active action plan in `.plan/`. On session start, read
-`.plan/.status.json` and show overdue + today's tasks. Suggest `/actionize`
-to review the full plan.
-```
+See [Reminders setup](references/reminders-setup.md).
 
 ---
 
@@ -649,253 +404,26 @@ Suggest relevant next skills:
 
 ## Phase 7: Diagnose — Planning Pattern Analysis
 
-This phase is triggered by `/actionize diagnose` or when the user asks to analyze
-their planning patterns. It can run **project-wide** (from within a project) or
-**user-wide** (across all projects).
+Triggered by `/actionize diagnose` or when the user asks to analyze their planning
+patterns. Runs project-wide or user-wide. Summary of the steps:
 
-### Overview
+1. Sync task states to `~/.plan/history.jsonl`: `"${CLAUDE_SKILL_DIR}/bin/sync.sh"` (add `--all` for user-wide).
+2. Prepare data: `"${CLAUDE_SKILL_DIR}/bin/diagnose-prep.sh"` (optionally `--project "ProjectName"`) writes `~/.plan/diagnostics/{date}-{planned,completed,deferred}.txt` and `{date}-summary.json`.
+3. Ask the scope via AskUserQuestion (this project / all projects / compare projects).
+4. Run `mcp__infranodus__generate_topical_clusters` on each of the planned, completed, and deferred texts, then `mcp__infranodus__difference_between_texts` for planned-vs-completed and deferred-vs-completed.
+5. Compare with previous `~/.plan/diagnostics/*-report.md`, save `{date}-report.md`, deliver the insights, and ask whether to adjust the current plan.
 
-The diagnose system maintains a user-wide history at `~/.plan/history.jsonl` that
-tracks every task across all projects with three states:
-- **Planned** — tasks that were created and have future deadlines
-- **Completed** — tasks marked done via `done.sh` or `/actionize`
-- **Deferred** — tasks past their deadline that were never completed
-
-It uses InfraNodus to find topical patterns in what the user plans, completes, and
-defers — revealing blind spots, strengths, and recurring avoidance patterns.
-
-### Step 7.0: Sync History
-
-First, sync the current project's task states to the user-wide history:
-
-```bash
-"${CLAUDE_SKILL_DIR}/bin/sync.sh"
-```
-
-If the user asked for user-wide analysis:
-
-```bash
-"${CLAUDE_SKILL_DIR}/bin/sync.sh" --all
-```
-
-### Step 7.1: Prepare Diagnostic Data
-
-Run the data preparation script:
-
-```bash
-"${CLAUDE_SKILL_DIR}/bin/diagnose-prep.sh"
-```
-
-Or for a specific project:
-
-```bash
-"${CLAUDE_SKILL_DIR}/bin/diagnose-prep.sh" --project "ProjectName"
-```
-
-This outputs:
-- `~/.plan/diagnostics/{date}-planned.txt` — all planned task descriptions
-- `~/.plan/diagnostics/{date}-completed.txt` — all completed task descriptions
-- `~/.plan/diagnostics/{date}-deferred.txt` — all deferred task descriptions
-- `~/.plan/diagnostics/{date}-summary.json` — stats snapshot
-
-### Step 7.2: Scope Selection
-
-Ask via AskUserQuestion:
-> What scope should we analyze?
-
-- A) This project only — patterns within the current project's plan
-- B) All projects — patterns across everything you've planned (user-wide)
-- C) Compare projects — see how planning patterns differ between projects
-
-### Step 7.3: InfraNodus Topical Cluster Analysis
-
-Read the three text files generated in Step 7.1. For each non-empty category,
-call `mcp__infranodus__generate_topical_clusters` to discover what topics cluster
-together.
-
-**For planned tasks** (what the user aspires to do):
-
-Call `mcp__infranodus__generate_topical_clusters` with:
-- **text:** The content of `{date}-planned.txt` (all planned task descriptions,
-  newline-separated)
-- **context:** "Analyzing planned task descriptions to identify topical clusters
-  in the user's planning patterns across projects."
-
-**For completed tasks** (what the user actually finishes):
-
-Call `mcp__infranodus__generate_topical_clusters` with:
-- **text:** The content of `{date}-completed.txt`
-- **context:** "Analyzing completed task descriptions to identify topical clusters
-  in what the user actually accomplishes versus what was planned."
-
-**For deferred tasks** (what the user consistently avoids):
-
-Call `mcp__infranodus__generate_topical_clusters` with:
-- **text:** The content of `{date}-deferred.txt`
-- **context:** "Analyzing deferred task descriptions to identify topical patterns
-  in what the user consistently postpones or avoids completing."
-
-Present each cluster analysis with a plain-language interpretation:
-- **What you plan:** The themes and topics you gravitate toward when planning
-- **What you finish:** The themes that actually get done — your execution strengths
-- **What you defer:** The themes you consistently push back — your blind spots
-
-### Step 7.4: Gap Analysis via InfraNodus
-
-This is the key insight — comparing planned vs completed reveals what falls through
-the cracks, and comparing planned vs deferred reveals systematic avoidance patterns.
-
-**Planned vs Completed — what you plan but don't finish:**
-
-Call `mcp__infranodus__difference_between_texts` with:
-- **contexts:** `[{ "text": "{planned-text}" }, { "text": "{completed-text}" }]`
-  (first item is the target to analyze for missing parts; second is the reference)
-- **context:** "Comparing planned tasks against completed tasks to identify conceptual
-  gaps — topics the user plans for but consistently fails to execute on."
-- **modifyAnalyzedText:** `"detectEntities"`
-
-This reveals: topics present in planning but absent from completion. These are
-systematic execution gaps.
-
-**Completed vs Deferred — what separates done from not-done:**
-
-Call `mcp__infranodus__difference_between_texts` with:
-- **contexts:** `[{ "text": "{deferred-text}" }, { "text": "{completed-text}" }]`
-- **context:** "Comparing deferred tasks against completed tasks to understand what
-  conceptual themes distinguish tasks that get done from those that get postponed."
-- **modifyAnalyzedText:** `"detectEntities"`
-
-This reveals: what's unique to deferred tasks that's absent from completed ones.
-These are the characteristics of tasks the user avoids.
-
-### Step 7.5: Longitudinal Comparison
-
-Check for previous diagnostic results:
-
-```bash
-ls -t ~/.plan/diagnostics/*-report.md 2>/dev/null | head -5
-```
-
-If previous reports exist, read the most recent one. Compare current stats
-(completion rate, deferral rate, topic clusters) against the previous report.
-
-Present trends:
-- Is the completion rate improving or declining?
-- Are the same topics being deferred repeatedly?
-- Have any previously deferred themes moved to completed?
-
-If there are 2+ previous reports, call `mcp__infranodus__difference_between_texts`
-comparing the previous deferred topics against the current deferred topics to see
-if avoidance patterns are shifting or persistent.
-
-### Step 7.6: Save Diagnostic Report
-
-Write the full analysis to `~/.plan/diagnostics/{date}-report.md`:
-
-```markdown
-# Planning Diagnostics — {date}
-
-Scope: {project-wide or user-wide}
-Period: {date range of history entries}
-
-## Stats
-- Total tasks tracked: {N}
-- Completed: {N} ({%})
-- Deferred: {N} ({%})
-- Planned (active): {N}
-
-## What You Plan (Topic Clusters)
-{InfraNodus cluster analysis of planned tasks}
-
-## What You Finish (Topic Clusters)
-{InfraNodus cluster analysis of completed tasks}
-
-## What You Defer (Topic Clusters)
-{InfraNodus cluster analysis of deferred tasks}
-
-## Execution Gaps (Planned vs Completed)
-{difference_between_texts results — topics you plan but don't finish}
-
-## Avoidance Patterns (Deferred vs Completed)
-{difference_between_texts results — what distinguishes tasks you avoid}
-
-## Trends
-{comparison with previous reports, if available}
-
-## Reflection
-{2-3 actionable observations about the user's planning patterns}
-```
-
-### Step 7.7: Deliver Insights
-
-Present the report to the user with a structured summary. Focus on actionable
-insights, not just data. The tone should be reflective and constructive — like
-a coach reviewing performance, not a judge.
-
-Example delivery:
-
-```
-PLANNING DIAGNOSTICS
-════════════════════════════════════════
-Completion rate: 67% (up from 55% last week)
-Deferral rate:   25%
-
-WHAT YOU FINISH:
-  Backend infrastructure, data pipelines, testing
-  → You execute well on technical foundation work
-
-WHAT YOU DEFER:
-  UI polish, documentation, user-facing design
-  → Frontend and docs consistently slip past deadlines
-
-EXECUTION GAP:
-  You plan "text analysis" and "visualization" but
-  complete "schema" and "data pipeline" — the analytical
-  backend gets done, the presentation layer doesn't.
-
-RECOMMENDATION:
-  Front-load one UI task per week before backend work.
-  Your deferred items suggest avoidance of visual/design
-  decisions, not lack of time.
-════════════════════════════════════════
-```
-
-Ask via AskUserQuestion:
-> Based on this analysis, would you like to adjust your current plan?
-
-- A) Yes — rebalance deadlines based on these patterns
-- B) Save and continue — I'll think about this
-- C) Send to Telegram — push this summary to my Telegram
-- D) Run deeper analysis — I want to explore a specific pattern
-
-If C: send via Telegram using the remind.sh pattern (curl to Bot API).
-If D: ask what pattern to explore, then use
-`mcp__infranodus__generate_research_questions` on that subset.
+See [Diagnose](references/diagnose.md) for the full procedure, tool parameters, report template, and delivery format.
 
 ---
 
 ## Phase 8: Diagnose Cron — Automated Sync + Nudge
 
-During Phase 4 (reminder setup), also set up a 3-day sync cron. This runs
-`sync.sh --all` to detect newly deferred tasks across all projects, then sends
-a Telegram message nudging the user to run `/actionize diagnose`.
+During Phase 4, also add a 3-day crontab entry (tagged `actionize-diagnose`) that runs
+`${CLAUDE_SKILL_DIR}/bin/sync.sh --all` and then `${CLAUDE_SKILL_DIR}/bin/diagnose-nudge.sh`,
+which sends a short Telegram message nudging the user to run `/actionize diagnose`.
 
-Check if the diagnostics cron already exists:
-
-```bash
-crontab -l 2>/dev/null | grep -q "actionize-diagnose" && echo "DIAG_CRON_EXISTS" || echo "DIAG_CRON_MISSING"
-```
-
-If DIAG_CRON_MISSING, add it alongside the daily reminder:
-
-```bash
-SKILL_DIR="${CLAUDE_SKILL_DIR}"
-PROJECT_DIR=$(pwd)
-(crontab -l 2>/dev/null || true; echo "# actionize-diagnose: sync + nudge every 3 days"; echo "17 11 */3 * * ${SKILL_DIR}/bin/sync.sh --all && ${SKILL_DIR}/bin/diagnose-nudge.sh") | crontab -
-```
-
-The nudge script sends a short Telegram message: "You have N deferred tasks across
-M projects. Run /actionize diagnose for pattern analysis."
+See [Diagnose](references/diagnose.md#phase-8-diagnose-cron--automated-sync--nudge) for the check and install commands.
 
 ---
 

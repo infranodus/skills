@@ -7,6 +7,12 @@ description: Analyze discourse structure using InfraNodus optimize_text_structur
 
 This skill uses InfraNodus knowledge graph analysis to diagnose the structural diversity of a discourse and then actively shift perspective by developing underrepresented areas, bridging gaps, and surfacing latent ideas — all grounded in the actual topology of the text's knowledge graph.
 
+## Requirements
+
+This skill depends on the **InfraNodus MCP server** — specifically the `optimize_text_structure` tool (and, for the interventions below, `generate_content_gaps`, `develop_latent_topics`, `develop_conceptual_bridges`). Check that these tools are available before starting.
+
+If the InfraNodus MCP server is not available, tell the user plainly (e.g. "The InfraNodus MCP server is not connected, so I can't compute the diversity score; here is a qualitative read instead") and fall back to a manual diagnosis: read the text, list its 3–5 main topic clusters, judge whether one cluster dominates (BIASED), a few are tightly linked (FOCUSED), several are balanced (DIVERSIFIED), or many are disconnected (DISPERSED), and apply the matching intervention below without the graph metrics. Do not fabricate scores, clusters, or gaps that the tool did not return.
+
 ## Core Workflow
 
 ### Step 1: Structural Diagnosis with `optimize_text_structure`
