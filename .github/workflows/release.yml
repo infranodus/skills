@@ -44,6 +44,15 @@ jobs:
               rm -rf "$stage"
 
               echo "✓ Created ${skill_name}.zip"
+
+              # Legacy alias: releases before v1.6.0 named the zip after the
+              # directory (skill-project-learnings.zip, skill-shopping.zip …)
+              # and external links depend on those names. Keep both.
+              legacy_name=$(basename "$dir")
+              if [ "$legacy_name" != "$skill_name" ]; then
+                cp "skill-packages/${skill_name}.zip" "skill-packages/${legacy_name}.zip"
+                echo "✓ Created ${legacy_name}.zip (legacy alias)"
+              fi
             fi
           done
 
