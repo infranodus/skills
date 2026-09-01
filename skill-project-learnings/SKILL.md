@@ -4,19 +4,18 @@ description: >-
   Use PROACTIVELY, without being asked, at the START of any multi-step task in a
   git repo, project folder, or vault (before reading files) and at the END of one
   (to reflect and save). Applies whenever the user asks to implement, fix,
-  refactor, debug, or investigate something in a project, whenever a first attempt
-  was wrong or the user corrected the agent, and whenever the agent rediscovers
-  something a previous session should have known. Retrieves what earlier sessions
-  learned about operating in this project and saves durable insights (where things
-  live, traps, conventions, decisions with rationale, workflows, open questions,
-  what to do differently) to an opt-in, append-only InfraNodus graph named
-  learn- plus the project name that any client can query. Also on "what do we
-  know about this repo?", "what did I learn?", "save learnings", "remember this
-  about the project", "start keeping learnings", "/learnings". Load this skill
-  before calling get_project_learnings, add_project_learnings, or
-  enable_project_learnings directly. Never writes without the user's explicit
-  per-project opt-in and review of each batch. Project knowledge only, never
-  anything about the person.
+  refactor, debug, or investigate something in a project, whenever a first
+  attempt was wrong or the user corrected the agent, and whenever the agent
+  rediscovers something a previous session should have known. Retrieves what
+  earlier sessions learned about operating in the project and saves durable
+  insights (locations, traps, conventions, decisions with rationale, workflows,
+  open questions, what to do differently) to an opt-in, append-only InfraNodus
+  graph named learn- plus the project name. Also on "what do we know about this
+  repo?", "what did I learn?", "save learnings", "remember this about the
+  project", "start keeping learnings", "/learnings". Load before calling
+  get_project_learnings, add_project_learnings, or enable_project_learnings
+  directly. Never writes without the user's explicit per-project opt-in and
+  review of each batch. Project knowledge only, never anything about the person.
 ---
 
 # Project Learnings
