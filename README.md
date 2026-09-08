@@ -140,10 +140,10 @@ ChatGPT doesn't support automatic skill installation, but you can use either of 
 **Install via OpenClaw chat (recommended):**
 
 ```bash
-install this skill: https://github.com/infranodus/skills/releases/download/v1.0.8/infranodus.zip
+install this skill: https://github.com/infranodus/skills/releases/latest/download/infranodus.zip
 ```
 
-Replace `v1.0.8` with the [latest release version](https://github.com/infranodus/skills/releases).
+This link always points to the [latest release](https://github.com/infranodus/skills/releases). To pin a specific version, use `releases/download/v1.6.2/infranodus.zip` instead.
 
 **Manual installation:**
 
