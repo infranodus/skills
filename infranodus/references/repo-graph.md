@@ -484,6 +484,7 @@ rather than waiting inline.
 
 ```bash
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --register-project
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --register-project --with-memory
 ```
 
 Writes the always-on `## infranodus` block into `<project>/CLAUDE.md`
@@ -492,6 +493,34 @@ outside the markers is untouched) so future sessions query these graphs for
 questions about themes, concepts, rationale, and gaps instead of grepping
 files. **This is the step that makes the graphs get used** — without it
 they exist and nothing ever consults them.
+
+`--with-memory` adds a second, independently-markered block
+(`<!-- infranodus-memory:begin -->`): the end-of-session insight-memory
+convention. Every substantive session then ends with the agent distilling
+the USER's insights — their new connections and realizations, not agent
+mechanics (project-learnings' territory) and not file content (the content
+graphs') — into timestamped `[[wikilinked]]` relations, shown to the user
+and saved on their OK to the `<slug>-insights` memory graph via
+`memory_add_relations` (recall with `memory_get_relations`).
+
+**Ask before installing it — one AskUserQuestion at the register step.**
+Skip the question when `<project>/CLAUDE.md` already contains
+`<!-- infranodus-memory:begin -->` (already installed; `--with-memory`
+refreshes it silently). Otherwise ask, single question, two options:
+
+- Question: "Register the project's graphs in CLAUDE.md. Also install the
+  end-of-session insight memory convention? At the end of substantive
+  sessions the agent would distill YOUR realizations into timestamped
+  relations and save them to the `<slug>-insights` graph in your InfraNodus
+  account — always shown to you first, saved only on your OK."
+- **"Routing + insight memory (Recommended)"** →
+  `upload_scopes.py . --register-project --with-memory`
+- **"Routing rules only"** → `upload_scopes.py . --register-project`
+
+Never install the memory block unasked: it commits every future session to
+proposing writes to the user's InfraNodus account. A standalone
+`upload_scopes.py . --with-memory` adds or refreshes just this block (no
+manifest needed) — use it when a user asks for the convention later.
 
 - **Build path only.** Never run it while answering a question via the
   Step 0 fast path — editing CLAUDE.md is not what a question asked for.

@@ -160,7 +160,17 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    `INFRANODUS_REPORT.md` log, deletes the intermediate scope files; add
    `--ontology` for the ontology layer, or call `generate_ontology_graph`
    with `sourceGraphName` yourself on Path A) →
-   `upload_scopes.py . --register-project` (once).
+   `upload_scopes.py . --register-project` (once). The register step asks
+   ONE AskUserQuestion (spec in the runbook's Step 4; skip it when
+   CLAUDE.md already has the `infranodus-memory` marker block): routing
+   rules only, or also the end-of-session insight-memory convention
+   (`--register-project --with-memory`) — a second marker block that has
+   every substantive session distill the USER's insights and save them,
+   on their approval, to a `<slug>-insights` memory graph via
+   `memory_add_relations` (recall: `memory_get_relations`). Never install
+   it unasked. Insights are the user's realizations — keep them apart
+   from project-learnings (agent operations) and from the content graphs
+   (what the files say).
 
 ## Companion skills
 

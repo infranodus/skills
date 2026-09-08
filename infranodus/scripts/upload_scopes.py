@@ -86,6 +86,15 @@ Usage:
                      graphs for questions instead of grepping files.
                      Idempotent (marker-delimited, replaced in place).
                      Run once, after the scopes are uploaded.
+  --with-memory      also write the "## end-of-session insight memory"
+                     block into <project_dir>/CLAUDE.md: the convention
+                     that has the agent distill the USER's insights at the
+                     end of a substantive session and save them (on the
+                     user's approval) to the `<slug>-insights` memory graph
+                     via memory_add_relations. Its own marker pair, same
+                     idempotence. Works with --register-project or alone.
+                     OFFER this, never assume it: it makes every future
+                     session propose writes to the user's account.
   --register-global  no upload, no project needed: write the trigger block
                      into ~/.claude/CLAUDE.md so the skill is surfaced in
                      every session. Derives the skill path and slash command
@@ -1017,6 +1026,57 @@ Rules:
 """
 
 
+MEMORY_MD_BEGIN = "<!-- infranodus-memory:begin -->"
+MEMORY_MD_END = "<!-- infranodus-memory:end -->"
+
+# The memory_add_relations graphName is capped at 28 chars server-side.
+MEMORY_GRAPH_MAX = 28
+
+
+def memory_graph_name(root):
+    """`<dir slug>-insights`, trimmed to the server's graphName cap."""
+    slug = re.sub(r"[^a-z0-9]+", "-", root.name.lower()).strip("-")
+    keep = MEMORY_GRAPH_MAX - len("-insights")
+    return f"{slug[:keep].rstrip('-')}-insights"
+
+
+def memory_md_block(graph):
+    """The end-of-session insight-memory convention, parameterized with the
+    project's memory graph name. Insights are the USER's realizations —
+    kept apart from agent learnings (operational, ambient) and from the
+    content graphs (what the files say) on purpose: operational knowledge
+    may be ambient, intellectual knowledge must stay contestable."""
+    return f"""{MEMORY_MD_BEGIN}
+## end-of-session insight memory
+
+At the end of a substantive session (analysis, digest build, synthesis —
+not quick edits or trivial questions), distill the USER's insights from the
+conversation — the new connections and realizations they arrived at, not
+agent mechanics (those belong in project learnings) and not project content
+(that lives in the graphs) — into short relational statements and save them
+to InfraNodus memory:
+
+- Tool: `memory_add_relations`, graph `{graph}`.
+- One insight per statement, at most two sentences, with at least two
+  `[[wikilinked]]` entities, and an ISO 8601 timestamp per statement
+  (session date) so the graph stays a dynamic record of thinking over time.
+- Show the statements to the user and get their OK before saving.
+- Zero insights is a normal outcome — do not pad.
+- To recall earlier insights on a concept, use `memory_get_relations`
+  with the entity name (memory graph `{graph}`).
+{MEMORY_MD_END}
+"""
+
+
+def write_memory_md_block(root):
+    """Insert/replace the insight-memory convention in <root>/CLAUDE.md."""
+    path = root / "CLAUDE.md"
+    graph = memory_graph_name(root)
+    action = _write_marker_block(path, memory_md_block(graph),
+                                 MEMORY_MD_BEGIN, MEMORY_MD_END)
+    return action, path, graph
+
+
 SKILL_MD_BEGIN = "<!-- infranodus-skill:begin -->"
 SKILL_MD_END = "<!-- infranodus-skill:end -->"
 
@@ -1295,6 +1355,10 @@ def main():
                          "once their statements live in the graph)")
     ap.add_argument("--register-project", action="store_true",
                     help="write the ## infranodus block into CLAUDE.md")
+    ap.add_argument("--with-memory", action="store_true",
+                    help="also write the end-of-session insight-memory "
+                         "convention block into CLAUDE.md (memory graph "
+                         "<slug>-insights); offer it, never assume it")
     ap.add_argument("--register-global", action="store_true",
                     help="write the skill trigger block into ~/.claude/CLAUDE.md")
     ap.add_argument("--check-auth", action="store_true",
@@ -1316,6 +1380,15 @@ def main():
     if args.register_global:
         action, path = register_global_skill()
         print(f"CLAUDE.md {action}: {path}")
+        return
+
+    # The insight-memory convention needs no graphs — a standalone
+    # --with-memory works before any scope is built or uploaded.
+    if args.with_memory and not args.register_project:
+        action, path, graph = write_memory_md_block(root)
+        print(f"CLAUDE.md memory block {action}: {path}")
+        print(f"  insights will be proposed at session end and saved (on "
+              f"the user's approval) to the '{graph}' memory graph")
         return
 
     manifest_path = root / "infranodus" / "manifest.json"
@@ -1342,6 +1415,11 @@ def main():
         if action in ("created", "appended", "updated"):
             print("  the agent will now query these graphs for questions "
                   "about themes, concepts, rationale, and gaps")
+        if args.with_memory:
+            action, path, graph = write_memory_md_block(root)
+            print(f"CLAUDE.md memory block {action}: {path}")
+            print(f"  insights will be proposed at session end and saved "
+                  f"(on the user's approval) to the '{graph}' memory graph")
         return
 
     client, spec = connect_to_configured_server(root)
