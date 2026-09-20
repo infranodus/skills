@@ -13,6 +13,8 @@ The skills are designed to work with each other and to hand off important tasks 
 
 - **Writing Assistant** - Grammar correction, style refinement, and pattern detection that can trigger cognitive state analysis.
 
+- **Structural Humanizer** - Rewrite a text so the way it moves through its ideas matches how human-written text moves. Uses the [InfraNodus MCP server](https://infranodus.com/mcp) fractal-variability measures of the reading path (n-gram step alpha1 for momentum in the size of the moves, radial alpha1 for momentum in direction) as editing targets: group the transitions, let digressions run, cut one-off mentions, then measure again. Explicitly not a detector: on texts of known AI origin the measures describe a population-level tendency, not a per-text verdict, so use Pangram or another detector for that and this skill for the rewrite. Complements the Writing Assistant, which works at the word level.
+
 - **Ontology Creator** - Build structured ontologies, taxonomies, and knowledge graphs by extracting entities, defining relationships, and mapping conceptual structures for any topic or for a collection of texts.
 
 - **SEO Analysis** - Perform advanced SEO analysis to study the current informational supply and demand for a topic. Build your topical authority and create content that covers the important concepts and bridges the market gaps. Suitable for SEO and LLMO. Uses [InfraNodus MCP server](https://infranodus.com/mcp) search intent and results import functionalities.
@@ -116,6 +118,7 @@ Four skills have a `name` that is not just the folder without the `skill-` prefi
 | `skill-ontology-creator` | `ontology-generator` |
 | `skill-vipassana-meditation` | `vipassana-llm` |
 | `skill-viral-videos` | `youtube-viral-optimizer` |
+| `skill-structural-humanizer` | `structural-humanizer` |
 
 Alternatively, run `./install.sh` (or `./install.sh --symlink`) from the repository root — it installs the core set (`infranodus`, `ontology-generator`, `llm-wiki`, `project-learnings`) under the right names; `./install.sh --core-only` installs just `infranodus`.
 

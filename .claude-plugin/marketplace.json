@@ -9,7 +9,7 @@
 		{
 			"name": "infranodus-all",
 			"source": "./",
-			"description": "The complete InfraNodus skills collection: all 16 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
+			"description": "The complete InfraNodus skills collection: all 17 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
 			"skills": [
 				"./infranodus",
 				"./skill-actionize",
@@ -26,7 +26,8 @@
 				"./skill-shopping",
 				"./skill-vipassana-meditation",
 				"./skill-viral-videos",
-				"./skill-writing-assistant"
+				"./skill-writing-assistant",
+				"./skill-structural-humanizer"
 			]
 		},
 		{
@@ -108,6 +109,11 @@
 			"name": "writing-assistant",
 			"source": "./skill-writing-assistant",
 			"description": "Refine texts in any language: grammar, style, paraphrasing, and grammatical pattern detection that signals cognitive states."
+		},
+		{
+			"name": "structural-humanizer",
+			"source": "./skill-structural-humanizer",
+			"description": "Rewrite a text so its reading-path movement matches human-written text, using InfraNodus fractal-variability measures (n-gram step alpha1, radial alpha1) as editing targets, not as a detector."
 		}
 	]
 }
