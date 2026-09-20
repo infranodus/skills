@@ -56,7 +56,10 @@ guess them):
 
 Build/update intent with a manifest present ("rebuild", "refresh",
 "update", bare `/infranodus`) goes to Step 1's update flow — never
-re-extract everything by default; detect what changed and replace it.
+re-extract everything by default; detect what changed and replace it
+file by file. The word "rebuild" from the user means "bring the graph up
+to date", not "empty it": emptying a graph needs the consent rule in
+Step 1.
 
 ## Step 1 — Understand the corpus, then ASK what to build
 
@@ -80,7 +83,7 @@ python3 <SKILL_DIR>/scripts/repo2statements.py . --detect --scope docs
 
 It prints one line per scope (`docs: +3 new / 5 modified / 1 deleted / 2
 renamed`, `history: 12 new commits`, `docs: clean`, `pdfs: unknown —
-built before change tracking; rebuild once …`) and the same as JSON on
+built before change tracking; run --enable-tracking …`) and the same as JSON on
 stdout (`renamed: [{from, to}]` — exact-hash matches only; a moved AND
 edited file is a delete + add). Then **AskUserQuestion** (single
 question), options in this order:
@@ -92,15 +95,42 @@ question), options in this order:
    replaces in place (Path A: `update_statements` for renames,
    `delete_statements` + `create_knowledge_graph` for the rest; Path B:
    `upload_scopes.py .`).
-2. **Rebuild a scope in place** — follow-up listing the scopes (mark the
-   `unknown` ones: they NEED this once to enable updates). → re-extract
-   with the scope's flags, then Path A rebuild or `upload_scopes.py .
-   --force`: the graph is cleared (`deleteAll`) and re-uploaded under the
-   same name — `wikilinksMode`/`maxNodes` bind at first creation, so the
-   original settings persist; changing them needs a new graph name.
+2. **Enable tracking on an untracked scope** — only offered when
+   detection reported `unknown`. → `repo2statements.py . --enable-tracking
+   --scope <name>` (add the `--include`/`--term` the scope was built with
+   if its entry stored none — see its build section in the report). This
+   is LOCAL ONLY: it indexes the files in the manifest, uploads nothing,
+   deletes nothing; the graph keeps what it holds. Then run detection
+   again and, if it reports changes, option 1 reconciles them file by
+   file. The old advice to "rebuild once" is withdrawn: it emptied the
+   graph to achieve what a local index does.
 3. **Add a new scope** — the folder / terms / document questionnaire
    below, unchanged.
-4. **Full rebuild** — every scope re-extracted, `upload_scopes.py . --force`.
+
+There is deliberately **no "rebuild" or "full rebuild" option**. A graph
+the manifest owns is the user's accumulated knowledge base, not a build
+artefact; the update flow is append-and-replace-per-file, and every
+per-file replacement is shown before it is removed (Step 3, Path A step
+5). Changing `wikilinksMode`/`maxNodes` (they bind at first creation)
+means uploading under a NEW graph name and pointing the manifest at it,
+leaving the old graph in place until the user deletes it themselves.
+
+### Deleting from a graph — the consent rule
+
+`delete_statements` with `deleteAll`, `delete_graph`, and
+`upload_scopes.py --force` empty a graph irreversibly. The agent may call
+any of them **only when the user's own message says to delete, empty, or
+rebuild that named graph**. None of the following count as that consent:
+a menu option chosen in AskUserQuestion, an approved plan that mentions a
+rebuild, an option label the agent wrote, "yes" to an earlier unrelated
+question, or a runbook step. When a step appears to need it, stop and
+ask in chat, naming the graph and the statement count from the dry run,
+and proceed only on an explicit yes for that deletion. Per-file
+`delete_statements categories: [<file>]` (the normal update path) still
+needs its dry run shown and a yes, but the yes may cover the whole batch
+of files listed in that one dry run. This rule applies to every graph the
+manifest owns, and to curated `wiki-*` and `learn-*` graphs the manifest
+does not own.
 
 Free text "update just this folder/document" → match the path against each
 scope's `filters.include` and `files` keys in the manifest to find the
@@ -294,7 +324,10 @@ registers what you wrote:
    graph from the earlier version of this mode, the script drops those
    manifest entries and records their graph names as `supersedes` on the
    digest entry; the uploader clears each of them (`delete_statements`
-   `deleteAll`) before the digest goes up. On Path A do the same yourself.
+   `deleteAll`) before the digest goes up — these are the script's own
+   earlier generated graphs, superseded by the digest, never a user-built
+   graph; the uploader prints their names and counts first. On Path A do
+   the same yourself, showing the dry run.
 4. `upload_scopes.py .` as usual (it warns if a digest is on disk but not
    registered). Authored scopes are **kept** after upload, on both upload
    paths, so the user can read and edit the digest. To update it:
@@ -308,13 +341,19 @@ registers what you wrote:
      the graph is untouched; one call can carry several edits. A
      statement can also be matched by its `statementId`; new content is
      ≤ 1000 chars. Unmatched lines come back as `unmatched` — the local
-     file drifted from the graph: fall back to a rebuild.
+     file drifted from the graph: append the new lines instead (`create_
+     knowledge_graph` to the same graph) and, if the old wording must go,
+     show a `delete_statements statements: [...]` dry run for exactly
+     those lines and ask.
    - **Structural rewrite** (new headings, sections dropped or reordered,
-     many lines changed) → edit in place and run steps 3–4 again with
-     `--force` (the upload is skipped while the manifest has a
-     `graphName`; `--force` clears the graph and re-uploads it under the
-     same name — Path A: `deleteAll`, then re-upload). To rewrite from
-     scratch, delete the file and start at step 1.
+     many lines changed) → edit in place, then treat it as a replacement
+     the user must approve: show the `delete_statements deleteAll` dry
+     run for the digest graph (count + sample lines), ask in chat, and
+     only on an explicit yes clear and re-upload (Path A) or run
+     `upload_scopes.py . --force --i-understand-this-empties-the-graph`
+     (Path B). Without that yes, append the new sections and leave the
+     old ones. A digest is the one scope where a full rewrite is a normal
+     event, which is why the consent rule above still applies to it.
 
    `update_statements` also has a bulk form (one selector — `categories`,
    `statements`, `query`, `before` / `after`, `statementIds`, or `all` —
@@ -412,24 +451,32 @@ The contract mirrors the script exactly:
       append a dated `## Delta build` section to `INFRANODUS_REPORT.md`
       (`renamed: a -> b (N statements)` lines, replaced files, new files,
       counts), delete the delta file and its manifest entry.
-6. **Rebuilding a scope in place.** `delete_statements({graphName,
-   deleteAll: true, confirm: false})` → show the count → `confirm: true`
-   → upload the re-extracted scope's chunks to the same `graphName` as in
-   step 2. Never upload on top of a graph that was not cleared, and never
-   clear a graph the manifest does not own (curated `wiki-*` graphs,
-   `learn-*` graphs). `wikilinksMode`/`maxNodes` stay as first created; to
-   change them upload under a new name and update the manifest.
+6. **Emptying a graph (only on the user's explicit, in-chat request).**
+   This is not an update path; see the consent rule in Step 1. If, and
+   only if, the user has said in their own words to empty or rebuild a
+   named graph: `delete_statements({graphName, deleteAll: true, confirm:
+   false})` → show the count and sample lines → ask again, naming the
+   graph → on yes, `confirm: true` → upload the re-extracted scope's
+   chunks to the same `graphName` as in step 2. Never upload on top of a
+   graph that was not cleared, never clear a graph the manifest does not
+   own (curated `wiki-*` graphs, `learn-*` graphs), and never clear one
+   because a runbook step, a plan, or a menu option seemed to call for
+   it. Note in the report that every statement now carries today's date.
+   `wikilinksMode`/`maxNodes` stay as first created; to change them
+   upload under a new name and update the manifest.
 
 Path B does the same with `upload_scopes.py . --ontology` (or
 `--ontology-from docs`), `upload_scopes.py .` for deltas, and
-`upload_scopes.py . --force` for rebuilds.
+`upload_scopes.py . --force --i-understand-this-empties-the-graph` when
+the user has explicitly asked to empty and rebuild a graph (bare
+`--force` is refused by the script).
 
 ### Path B — the bundled script (fallback: no InfraNodus tools in session)
 
 ```bash
 python3 <SKILL_DIR>/scripts/upload_scopes.py .            # long-running: use run_in_background
 python3 <SKILL_DIR>/scripts/upload_scopes.py . --prefix repo-myproject
-python3 <SKILL_DIR>/scripts/upload_scopes.py . --force    # rebuild in place (clears the graph first)
+python3 <SKILL_DIR>/scripts/upload_scopes.py . --force --i-understand-this-empties-the-graph   # EMPTIES the graph first; only on the user's explicit request
 python3 <SKILL_DIR>/scripts/upload_scopes.py .            # also applies pending *-delta-ontology.md files
 ```
 
@@ -465,9 +512,13 @@ count, then appends the delta, updates the parent's `statements` (old −
 removed + added; renames leave it unchanged), re-runs the enrichment,
 logs a `## Delta build` section (`renamed: a -> b (N statements)` lines
 included), and deletes the delta file and entry; a failed relabel or
-delete skips the scope with nothing appended. `--force` = rebuild in
+delete skips the scope with nothing appended. A `replaceAll` delta is refused if it would shrink the graph by more
+than 20% (a sign of an incomplete scan). `--force` = empty and rebuild in
 place: `deleteAll` on
-the scope's graph, then the upload under the same name (`wikilinksMode`
+the scope's graph, then the upload under the same name; the script
+refuses it without `--i-understand-this-empties-the-graph`, prints the
+graph name and recorded count before clearing, and it is only for the
+case where the user has explicitly asked for it (`wikilinksMode`
 and `maxNodes` bind at first creation and persist; a new graph name is
 needed to change them). Digest entries with `supersedes` get those graphs
 cleared first.

@@ -49,6 +49,8 @@ Change tracking (--detect / --update), for scopes that are already uploaded:
   server stores as each statement's category under parentAndConcepts, so
   the index keys are exactly what `delete_statements({categories})` needs
   to remove one file's statements from the graph.
+  --enable-tracking  indexes a scope built before change tracking (local
+            only: no upload, no deletion) so --detect / --update work for it.
   --detect  re-walks each scope with its stored filters and prints, per
             scope, the new / modified / deleted / renamed files (JSON on
             stdout, a one-line summary per scope on stderr). A deleted
@@ -1168,9 +1170,10 @@ def diff_index(stored: dict[str, str], sections: list[Section],
     return sorted(new), sorted(modified), sorted(deleted), renamed, current
 
 
-UNTRACKED_REASON = ("built before change tracking; rebuild once "
-                    "(repo2statements.py with the same flags, then "
-                    "upload_scopes.py --force) to enable updates")
+UNTRACKED_REASON = ("built before change tracking; run "
+                    "`repo2statements.py . --enable-tracking --scope <name>` "
+                    "once (local only: indexes the files, uploads nothing, "
+                    "deletes nothing) to enable updates")
 
 
 def trackable(fname: str, entry: dict) -> tuple[str | None, dict | None]:
@@ -1195,6 +1198,54 @@ def trackable(fname: str, entry: dict) -> tuple[str | None, dict | None]:
             (kind != "history" and "files" not in entry):
         return kind, {"status": "unknown", "reason": UNTRACKED_REASON}
     return kind, None
+
+
+def enable_tracking(root: Path, scopes: dict, hist_opts: dict, vault: bool,
+                    only: str | None = None) -> list[str]:
+    """--enable-tracking: give a scope built before change tracking its
+    per-file index (`files`) and commit cursor by re-walking the working
+    tree with the scope's stored filters. LOCAL ONLY — nothing is uploaded
+    and nothing is deleted from any graph. The graph keeps whatever it
+    holds; the next --detect / --update reconciles the difference as an
+    ordinary delta (per-file, shown before anything is removed). This
+    replaces the old advice to "rebuild once", which emptied the graph.
+    Returns the scope filenames indexed."""
+    done: list[str] = []
+    head = git_head(root)
+    for fname, entry in scopes.items():
+        if only and not match_scope(fname, entry, only):
+            continue
+        kind, problem = trackable(fname, entry)
+        if not problem or problem["status"] != "unknown":
+            if only:
+                print(f"{scope_label(fname)}: already tracked or not "
+                      "trackable — nothing to do", file=sys.stderr)
+            continue
+        if not entry.get("filters") and (INCLUDE_PREFIXES or TERMS):
+            # A pre-tracking entry never stored its filters: take them from
+            # --include/--term on this run and record them for next time.
+            entry["filters"] = {"include": list(INCLUDE_PREFIXES),
+                                "terms": list(TERMS)}
+        elif not entry.get("filters"):
+            print(f"{scope_label(fname)}: this scope stored no filters — pass "
+                  "the --include/--term it was built with (see its build "
+                  "section in INFRANODUS_REPORT.md), or omit them for a "
+                  "whole-folder scope", file=sys.stderr)
+        apply_filters(entry)
+        if kind == "history":
+            _stmts, cursors = mine_history(root, hist_opts)
+            entry["history"] = cursors
+        else:
+            sections, _, _ = mine_scope(kind, root, vault, hist_opts,
+                                        quiet=True)
+            entry["files"] = hash_sections(sections)
+        entry["builtAtCommit"] = head
+        entry["trackingEnabled"] = date.today().isoformat()
+        print(f"{scope_label(fname)}: tracking enabled — "
+              f"{len(entry.get('files', {}))} files indexed, graph untouched; "
+              "run --detect next to see what differs", file=sys.stderr)
+        done.append(fname)
+    return done
 
 
 def detect_changes(root: Path, scopes: dict, hist_opts: dict, vault: bool,
@@ -1457,6 +1508,10 @@ def main() -> int:
                          "and print new / modified / deleted / renamed files "
                          "as JSON (stdout) plus a one-line summary per scope "
                          "(stderr)")
+    ap.add_argument("--enable-tracking", action="store_true",
+                    help="give a scope built before change tracking its "
+                         "per-file index so --detect/--update work; local "
+                         "only, uploads nothing, deletes nothing")
     ap.add_argument("--update", action="store_true",
                     help="extract only what changed since the last build "
                          "into infranodus/<scope>-delta-ontology.md and "
@@ -1486,6 +1541,7 @@ def main() -> int:
                     help="scope-filename suffix for filtered scans "
                          "(auto-derived from --include/--term if omitted)")
     args = ap.parse_args()
+    global INCLUDE_PREFIXES, TERMS
 
     root = Path(args.path).resolve()
     if not root.is_dir():
@@ -1498,14 +1554,20 @@ def main() -> int:
                  "max_issues": args.max_issues, "no_git": args.no_git,
                  "no_gh": args.no_gh}
 
-    if args.detect or args.update:
-        if args.detect and args.update:
-            print("--detect and --update are separate runs", file=sys.stderr)
+    if args.detect or args.update or args.enable_tracking:
+        if sum(map(bool, (args.detect, args.update, args.enable_tracking))) > 1:
+            print("--detect, --update and --enable-tracking are separate runs",
+                  file=sys.stderr)
             return 1
-        if args.include or args.term:
+        if (args.include or args.term) and not args.enable_tracking:
             print("NOTE: --include/--term are ignored with --detect/--update "
                   "— each scope re-applies the filters it was built with",
                   file=sys.stderr)
+        if args.enable_tracking:
+            # Filters given here are recorded on entries that have none.
+            INCLUDE_PREFIXES = [x.strip("/").strip() for x in args.include
+                                if x.strip()]
+            TERMS = [x for x in args.term if x.strip()]
         manifest_path = out_dir / "manifest.json"
         if not manifest_path.exists():
             print("no infranodus/manifest.json — nothing to update; run a "
@@ -1518,6 +1580,18 @@ def main() -> int:
             return 1
         scopes = manifest.get("scopes", {})
         vault = is_vault(root)   # whole folder, before any scope filter
+        if args.enable_tracking:
+            done = enable_tracking(root, scopes, hist_opts, vault,
+                                   only=args.scope)
+            if done:
+                manifest_path.write_text(
+                    json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8")
+            else:
+                print("no untracked scopes"
+                      + (f" matching {args.scope}" if args.scope else ""),
+                      file=sys.stderr)
+            return 0
         if args.detect:
             report = detect_changes(root, scopes, hist_opts, vault,
                                     only=args.scope, path=args.only_path)
@@ -1547,7 +1621,6 @@ def main() -> int:
     # `--include docs/` on a code repo must not turn it into a vault.
     vault = is_vault(root)
 
-    global INCLUDE_PREFIXES, TERMS
     INCLUDE_PREFIXES = [x.strip("/").strip() for x in args.include if x.strip()]
     TERMS = [x for x in args.term if x.strip()]
     filtered = bool(INCLUDE_PREFIXES or TERMS)

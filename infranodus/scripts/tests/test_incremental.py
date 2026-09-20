@@ -374,6 +374,42 @@ class IncrementalFlow(unittest.TestCase):
         self.assertNotIn("update_statements", names)
         self.assertIn("delete_statements", names)
 
+    def test_enable_tracking_is_local_only(self):
+        code, _, _ = run_r2s(self.r2s, self.root)
+        m = manifest(self.root)
+        slug = self.root.name
+        # Simulate a scope built before change tracking: uploaded, no index.
+        docs = next(k for k in m["scopes"] if k.startswith("repo-docs"))
+        m["scopes"][docs]["graphName"] = f"repo-{slug}-docs"
+        m["scopes"][docs]["statements"] = 999
+        m["scopes"][docs].pop("files", None)
+        m["scopes"][docs].pop("filters", None)
+        m["scopes"][docs].pop("builtAtCommit", None)
+        (self.root / "infranodus" / "manifest.json").write_text(
+            json.dumps(m, indent=2))
+        for f in (self.root / "infranodus").glob("*-ontology.md"):
+            f.unlink()
+        code, out, err = run_r2s(self.r2s, self.root, "--detect",
+                                 "--scope", "docs")
+        self.assertIn("unknown", err)
+        self.assertIn("--enable-tracking", err)
+        self.assertNotIn("--force", err)
+        code, out, err = run_r2s(self.r2s, self.root, "--enable-tracking",
+                                 "--scope", "docs")
+        self.assertEqual(code, 0)
+        self.assertIn("graph untouched", err)
+        e = manifest(self.root)["scopes"][docs]
+        self.assertTrue(e["files"])                  # index written
+        self.assertEqual(e["statements"], 999)       # count untouched
+        self.assertEqual(e["graphName"], f"repo-{slug}-docs")
+        self.assertIn("trackingEnabled", e)
+        # no scope or delta file was produced: nothing to upload
+        self.assertEqual(list((self.root / "infranodus").glob("*-ontology.md")),
+                         [])
+        code, out, err = run_r2s(self.r2s, self.root, "--detect",
+                                 "--scope", "docs")
+        self.assertIn("clean", err)
+
     def test_force_clears_graph_first(self):
         code, _, _ = run_r2s(self.r2s, self.root)
         m = manifest(self.root)
@@ -382,7 +418,16 @@ class IncrementalFlow(unittest.TestCase):
             v["graphName"] = f"repo-{slug}-" + self.r2s.scope_label(k)
         (self.root / "infranodus" / "manifest.json").write_text(
             json.dumps(m, indent=2))
-        client, log = run_uploader(self.up, self.root, "--force")
+        # Bare --force is refused: it would empty the graphs. Nothing is
+        # sent to the server and the message points at the safe paths.
+        with self.assertRaises(SystemExit) as cm:
+            run_uploader(self.up, self.root, "--force")
+        self.assertIn("EMPTIES", str(cm.exception))
+        self.assertIn("--enable-tracking", str(cm.exception))
+        # With the explicit acknowledgement it clears each graph first.
+        client, log = run_uploader(self.up, self.root, "--force",
+                                   "--i-understand-this-empties-the-graph")
+        self.assertIn("EMPTYING", log)
         names = [n for n, _ in client.calls]
         self.assertEqual(names[0], "delete_statements")
         self.assertEqual(client.calls[0][1],

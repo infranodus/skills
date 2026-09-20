@@ -1226,8 +1226,21 @@ def upload_delta(client, spec, fname, meta, parent_name, parent, path,
             print(f"  relabelled {n} statements {old} -> {new}", flush=True)
             time.sleep(PACE_SECONDS)
         if replace_all:
-            print(f"{fname} -> {graph_name}: clearing the graph (replaceAll)",
-                  flush=True)
+            # A replaceAll delta (link scopes) rewrites the whole graph. It
+            # is the one routine path that empties a graph, so it carries
+            # its own guard: never replace a graph with something much
+            # smaller. A delta under 80% of the parent's recorded count
+            # means the local scan is incomplete or the manifest is stale.
+            old_n = int(parent.get("statements") or 0)
+            new_n = int(meta.get("statements") or 0)
+            if old_n and new_n < 0.8 * old_n:
+                raise RuntimeError(
+                    f"replaceAll refused: the delta has {new_n} statements "
+                    f"but {graph_name} holds {old_n}; a full rewrite must "
+                    "not shrink a graph by more than 20%. Check the scan "
+                    "(filters, working tree) and re-run --update.")
+            print(f"{fname} -> {graph_name}: replacing all {old_n} "
+                  f"statements with {new_n} (replaceAll)", flush=True)
             removed = delete_statements(client, graph_name, delete_all=True)
         elif categories:
             print(f"{fname} -> {graph_name}: replacing {len(categories)} "
@@ -1339,8 +1352,17 @@ def main():
                     help="graph name prefix (default: <vault|repo>-<dir slug>)")
     ap.add_argument("--force", action="store_true",
                     help="rebuild scopes that already have a graphName in "
-                         "place: clear the graph (delete_statements "
-                         "deleteAll), then upload under the same name")
+                         "place: EMPTY the graph (delete_statements "
+                         "deleteAll), then upload under the same name. "
+                         "Refused unless --i-understand-this-empties-the-"
+                         "graph is also given; prefer --update (per-file "
+                         "replacement) or --enable-tracking in "
+                         "repo2statements.py, which never delete")
+    ap.add_argument("--i-understand-this-empties-the-graph",
+                    dest="ack_empty", action="store_true",
+                    help="required with --force: acknowledges that every "
+                         "statement in the scope's existing graph is "
+                         "deleted before the re-upload (irreversible)")
     ap.add_argument("--save-graph", action="store_true",
                     help="also save infranodus/<scope>-graph.json per scope")
     ap.add_argument("--ontology", action="store_true",
@@ -1365,6 +1387,19 @@ def main():
                     help="no upload: resolve the configured MCP server and "
                          "verify the connection to it")
     args = ap.parse_args()
+    if args.force and not args.ack_empty:
+        sys.exit(
+            "--force EMPTIES every graph it rebuilds (delete_statements "
+            "deleteAll) before re-uploading. That is irreversible and is "
+            "almost never what an update needs:\n"
+            "  - changed files   -> repo2statements.py . --update, then this "
+            "script without --force (per-file replacement, shown first)\n"
+            "  - untracked scope -> repo2statements.py . --enable-tracking "
+            "--scope <name> (local only), then --update\n"
+            "  - new settings    -> upload under a NEW graph name\n"
+            "If the user has explicitly asked, in their own words, to empty "
+            "and rebuild a named graph, re-run with "
+            "--force --i-understand-this-empties-the-graph.")
 
     root = Path(args.project_dir).resolve()
 
@@ -1513,8 +1548,9 @@ def main():
                 to_clear.append(g)
         cleared = True
         for g in to_clear:
-            print(f"{fname}: clearing {g} (delete_statements deleteAll)",
-                  flush=True)
+            held = meta.get("statements") if g == meta.get("graphName") else "?"
+            print(f"{fname}: EMPTYING {g} ({held} statements recorded) "
+                  "(delete_statements deleteAll)", flush=True)
             try:
                 removed = delete_statements(client, g, delete_all=True)
             except RuntimeError as e:

@@ -123,16 +123,30 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    Manifest exists + build/update intent (or bare `/infranodus`) → run
    `python3 scripts/repo2statements.py . --detect` first and lead the
    AskUserQuestion with "Update changed scopes (<its summary>)", then
-   "Rebuild a scope in place", "Add a new scope", "Full rebuild". Update =
-   `repo2statements.py . --update [--scope X]` → `upload_scopes.py .`
+   "Enable tracking on an untracked scope" (only if detection said
+   `unknown`), then "Add a new scope". There is no rebuild option. Update
+   = `repo2statements.py . --update [--scope X]` → `upload_scopes.py .`
    (the uploader deletes the changed files' old statements by category
    with `delete_statements`, then appends the delta to the same graph;
    files that only moved — same content, new path — are relabelled in
-   place with `update_statements`, nothing re-extracted); rebuild =
-   re-extract → `upload_scopes.py . --force` (clears the graph first,
-   same name). No changes → offer query mode. Correcting a few lines of
-   the authored digest = edit the file + `update_statements` edits, not a
-   rebuild (repo-graph.md, Digest step 4).
+   place with `update_statements`, nothing re-extracted). Untracked
+   scope = `repo2statements.py . --enable-tracking --scope X` (local
+   only: indexes the files, uploads nothing, deletes nothing), then
+   detect again. No changes → offer query mode. Correcting a few lines
+   of the authored digest = edit the file + `update_statements` edits
+   (repo-graph.md, Digest step 4).
+
+   **Never empty a graph on your own initiative.** `delete_statements`
+   with `deleteAll`, `delete_graph`, and `upload_scopes.py --force` are
+   allowed only when the user's own message says to delete, empty, or
+   rebuild that named graph. A chosen menu option, an approved plan, an
+   option label you wrote, or a runbook step is not that consent: stop,
+   show the dry run (graph name, statement count, sample lines), ask in
+   chat, and proceed only on an explicit yes for that deletion. Per-file
+   replacement in the update flow still shows its dry run and asks once
+   per batch. The script refuses bare `--force`; the acknowledgement flag
+   it asks for is for the user's explicit request, never a workaround.
+   The graphs are the user's knowledge base, not a build artefact.
 2. On a bare launch with no manifest (no target named), inventory the folder, then
    AskUserQuestion what to build: full graph (recommended) / a specific
    folder / docs containing certain terms / one document (see the runbook
