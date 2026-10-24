@@ -1,12 +1,20 @@
 {
 	"name": "ontology-generator",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Generate ontological knowledge graphs in [[wikilinks]] syntax for Obsidian / InfraNodus visualization and gap analysis.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"ontology",
+		"knowledge-graph",
+		"wikilinks",
+		"obsidian",
+		"entity-extraction"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

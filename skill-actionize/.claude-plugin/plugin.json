@@ -1,12 +1,22 @@
 {
 	"name": "actionize",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Turn insights or research into an actionable plan with deadlines and scheduled Telegram reminders.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"planning",
+		"action-plan",
+		"deadlines",
+		"reminders",
+		"telegram",
+		"productivity",
+		"task-tracking"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

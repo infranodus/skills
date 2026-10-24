@@ -1,12 +1,20 @@
 {
 	"name": "shopping-assistant",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Systematic shopping research: comparison matrices, review analysis, and value assessment converging on the best options.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"shopping",
+		"product-comparison",
+		"reviews",
+		"buying-guide",
+		"research"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

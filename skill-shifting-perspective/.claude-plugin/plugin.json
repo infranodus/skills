@@ -1,12 +1,20 @@
 {
 	"name": "shifting-perspective",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Diagnose the structural diversity of a text with knowledge graph analysis and actively shift its perspective.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"perspective",
+		"bias-detection",
+		"discourse-analysis",
+		"text-analysis",
+		"knowledge-graph"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

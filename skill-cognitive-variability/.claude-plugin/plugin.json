@@ -1,12 +1,21 @@
 {
 	"name": "cognitive-variability",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Guide conversations through shifts between zoom levels and connecting/exploring modes to unlock creative breakthroughs and prevent rigid thinking.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"creativity",
+		"thinking",
+		"brainstorming",
+		"breakthroughs",
+		"facilitation",
+		"cognitive-variability"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

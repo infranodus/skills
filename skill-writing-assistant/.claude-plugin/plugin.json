@@ -1,12 +1,21 @@
 {
 	"name": "writing-assistant",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Refine texts in any language: grammar, style, paraphrasing, and grammatical pattern detection that signals cognitive states.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"writing",
+		"editing",
+		"grammar",
+		"paraphrasing",
+		"style",
+		"multilingual"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

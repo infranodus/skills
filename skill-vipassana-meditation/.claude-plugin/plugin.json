@@ -1,12 +1,20 @@
 {
 	"name": "vipassana-llm",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Apply Vipassana meditation principles to LLM processing: equanimous scanning, non-reactive observation, impermanence awareness.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"meditation",
+		"vipassana",
+		"mindfulness",
+		"equanimity",
+		"reasoning"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

@@ -1,12 +1,24 @@
 {
 	"name": "infranodus-all",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "The complete InfraNodus skills collection: all 16 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"knowledge-graph",
+		"text-network-analysis",
+		"content-gaps",
+		"seo",
+		"graphrag",
+		"research",
+		"writing",
+		"critical-thinking",
+		"planning"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

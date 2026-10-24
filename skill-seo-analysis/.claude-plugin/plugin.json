@@ -1,12 +1,21 @@
 {
 	"name": "seo-analysis",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "SEO analysis: keyword research, content gap analysis, search intent, and optimization recommendations using real Google data.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"seo",
+		"keyword-research",
+		"search-intent",
+		"content-gaps",
+		"content-strategy",
+		"llmo"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",

@@ -1,12 +1,22 @@
 {
 	"name": "llm-wiki",
-	"version": "1.7.2",
+	"version": "1.7.3",
 	"description": "Set up and maintain a personal LLM-authored wiki: an interlinked, compounding knowledge base built from raw sources with knowledge graph support.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
 	},
 	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"wiki",
+		"knowledge-base",
+		"second-brain",
+		"obsidian",
+		"notes",
+		"research",
+		"knowledge-graph"
+	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
 	"documentationUrl": "https://github.com/infranodus/skills",
