@@ -191,3 +191,7 @@ b. Push the tag to GitHub
 ```bash
 git push origin v1.0.0
 ```
+
+## License
+
+Code (scripts, `bin/`, `install.sh`, plugin manifests) is licensed under [Apache-2.0](LICENSE); the skill content (`SKILL.md` files and other Markdown) under [CC BY 4.0](LICENSE). When you share or adapt the skills, credit them as "InfraNodus Skills by InfraNodus (https://infranodus.com)". See [LICENSE](LICENSE) and [NOTICE](NOTICE).

@@ -1,0 +1,15 @@
+{
+	"name": "perspective-reversal",
+	"version": "1.6.2",
+	"description": "Flip any conflict or negotiation to the opponent's perspective to extract superior tactical advice and counter-moves.",
+	"author": {
+		"name": "InfraNodus",
+		"url": "https://infranodus.com"
+	},
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"homepage": "https://github.com/infranodus/skills",
+	"repository": "https://github.com/infranodus/skills",
+	"skills": [
+		"./"
+	]
+}
