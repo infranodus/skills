@@ -1,6 +1,6 @@
 {
 	"name": "vipassana-llm",
-	"version": "1.7.1",
+	"version": "1.7.2",
 	"description": "Apply Vipassana meditation principles to LLM processing: equanimous scanning, non-reactive observation, impermanence awareness.",
 	"author": {
 		"name": "InfraNodus",

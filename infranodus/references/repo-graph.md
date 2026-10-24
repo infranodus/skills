@@ -14,7 +14,8 @@ server-side graph computation. Division of labor:
   `~/.claude/settings.json`, project scope winning). An `http` entry is
   posted to its own `url`; a `stdio` entry is launched as a subprocess.
   Credentials are never read from config files: `http` takes
-  `INFRANODUS_API_KEY` from the environment only, `stdio` hands the entry's
+  `INFRANODUS_API_KEY` from the environment only and sends it only to
+  `infranodus.com` or a loopback address, `stdio` hands the entry's
   own `env` to the subprocess untouched. The script cannot reach a cloud
   OAuth connector (its token lives remotely) — that is why the connector
   path is agent-driven.

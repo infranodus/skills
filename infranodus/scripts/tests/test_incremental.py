@@ -410,5 +410,41 @@ class IncrementalFlow(unittest.TestCase):
         self.assertIn("already uploaded", log)
 
 
+class ApiKeyHost(unittest.TestCase):
+    """INFRANODUS_API_KEY only ever goes to infranodus.com or loopback."""
+
+    def setUp(self):
+        self.up = load("upload_scopes")
+
+    def test_allowed_hosts(self):
+        for url in ("https://mcp.infranodus.com", "https://mcp.infranodus.com/",
+                    "https://infranodus.com/api", "https://MCP.InfraNodus.com.",
+                    "http://localhost:3000/mcp", "http://127.0.0.1:8080",
+                    "http://[::1]:3000"):
+            self.assertTrue(self.up.key_allowed_for(url), url)
+
+    def test_refused_hosts(self):
+        for url in ("https://example.com", "https://infranodus.com.evil.io",
+                    "https://evilinfranodus.com", "https://user@evil.io",
+                    "https://mcp.infranodus.co", "not a url", ""):
+            self.assertFalse(self.up.key_allowed_for(url), url)
+
+    def test_foreign_host_exits_before_sending_key(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / ".mcp.json").write_text(json.dumps({"mcpServers": {
+                "infranodus": {"type": "http", "url": "https://evil.io/mcp"}}}))
+            sent = []
+            self.up.HttpMcpClient = lambda *a: sent.append(a)
+            os.environ["INFRANODUS_API_KEY"] = "test-key"
+            try:
+                with self.assertRaises(SystemExit) as cm:
+                    self.up.connect_to_configured_server(root)
+            finally:
+                del os.environ["INFRANODUS_API_KEY"]
+            self.assertEqual(sent, [])
+            self.assertIn("will not be sent", str(cm.exception.code))
+
+
 if __name__ == "__main__":
     unittest.main()

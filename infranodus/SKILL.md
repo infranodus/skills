@@ -62,10 +62,12 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   which is exactly why the connector path above is agent-driven.
 - **Credentials (script path only) are never read from config files.**
   For an `http` server the key comes from `INFRANODUS_API_KEY` in the
-  environment and nowhere else; for a `stdio` server the entry's own
-  `env` block is passed to the subprocess untouched. There is no endpoint
-  default and no credential fallback: one server, one attempt, and a
-  failed connection falls back to the session connector if one exists —
+  environment and nowhere else, and is only sent to `infranodus.com` or
+  a loopback address (any other host is refused); for a `stdio` server
+  the entry's own `env` block is passed to the subprocess untouched.
+  There is no endpoint default and no credential fallback: one server,
+  one attempt, and a failed connection falls back to the session
+  connector if one exists —
   otherwise it is a hard stop. Do not work around this by exporting a key
   you found in some other application's config — that is how content
   lands in an account the user never chose.

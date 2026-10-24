@@ -117,7 +117,9 @@ stops and explains how to add one.
 
 Credentials are NEVER read out of a config file:
   - http server  -> INFRANODUS_API_KEY from the environment, and nothing
-                    else (infranodus.com -> settings -> API access).
+                    else (infranodus.com -> settings -> API access). The key
+                    is only sent to infranodus.com or a loopback address;
+                    any other host is refused before the key is read.
   - stdio server -> the entry's own env block is handed to the subprocess
                     untouched, so whatever key the user configured is passed
                     through without being inspected, logged, or re-aimed at
@@ -1295,6 +1297,19 @@ def upload_delta(client, spec, fname, meta, parent_name, parent, path,
 
 # --------------------------------------------------------------------- main
 
+# WHY: INFRANODUS_API_KEY is an InfraNodus credential, so it may only reach
+# InfraNodus's own hosts or a server on this machine. A config entry that
+# merely has "infranodus" in its name must not re-aim the key elsewhere; a
+# self-hosted server on another host runs as a stdio entry instead.
+LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def key_allowed_for(url):
+    host = (urllib.parse.urlsplit(url).hostname or "").lower().rstrip(".")
+    return (host == "infranodus.com" or host.endswith(".infranodus.com")
+            or host in LOOPBACK_HOSTS)
+
+
 def connect_to_configured_server(root):
     """Connect to the InfraNodus MCP server configured for this project.
 
@@ -1306,6 +1321,15 @@ def connect_to_configured_server(root):
         sys.exit(NO_SERVER_HELP.format(sources=sources))
 
     if spec.transport == "http":
+        if not key_allowed_for(spec.url):
+            sys.exit(
+                "the configured InfraNodus MCP server is not on infranodus.com "
+                "or this machine, so INFRANODUS_API_KEY will not be sent to "
+                f"it.\n{spec.describe()}\n\n"
+                "Point the entry at https://mcp.infranodus.com, or run a "
+                "self-hosted server as a local stdio entry:\n"
+                "  claude mcp add infranodus -- node "
+                "/path/to/mcp-server-infranodus/dist/index.js")
         key = os.environ.get("INFRANODUS_API_KEY", "").strip()
         if not key:
             sys.exit(
