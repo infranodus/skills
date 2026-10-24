@@ -1,6 +1,6 @@
 {
 	"name": "llm-wiki",
-	"version": "1.6.2",
+	"version": "1.7.0",
 	"description": "Set up and maintain a personal LLM-authored wiki: an interlinked, compounding knowledge base built from raw sources with knowledge graph support.",
 	"author": {
 		"name": "InfraNodus",

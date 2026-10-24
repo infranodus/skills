@@ -1,6 +1,6 @@
 {
 	"name": "shifting-perspective",
-	"version": "1.6.2",
+	"version": "1.7.0",
 	"description": "Diagnose the structural diversity of a text with knowledge graph analysis and actively shift its perspective.",
 	"author": {
 		"name": "InfraNodus",

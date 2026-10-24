@@ -37,9 +37,11 @@ jobs:
 
               stage="skill-packages/stage"
               rm -rf "$stage" && mkdir -p "$stage/$skill_name"
-              # Copy the skill, dropping OS junk, caches and tests
+              # Copy the skill, dropping OS junk, caches, tests and the
+              # plugin manifest (.claude-plugin/ is for the plugin
+              # marketplace, not for skill uploads)
               rsync -a --exclude '.DS_Store' --exclude '__MACOSX' --exclude '__pycache__' \
-                --exclude 'scripts/tests' "$dir" "$stage/$skill_name/"
+                --exclude 'scripts/tests' --exclude '.claude-plugin' "$dir" "$stage/$skill_name/"
               (cd "$stage" && zip -qr "../${skill_name}.zip" "$skill_name")
               rm -rf "$stage"
 

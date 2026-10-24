@@ -1,6 +1,6 @@
 {
 	"name": "ontology-generator",
-	"version": "1.6.2",
+	"version": "1.7.0",
 	"description": "Generate ontological knowledge graphs in [[wikilinks]] syntax for Obsidian / InfraNodus visualization and gap analysis.",
 	"author": {
 		"name": "InfraNodus",
