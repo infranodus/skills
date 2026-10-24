@@ -1,0 +1,15 @@
+{
+	"name": "critical-perspective",
+	"version": "1.6.2",
+	"description": "Critical thinking: question assumptions, explore alternative perspectives, and uncover latent topics in conversations.",
+	"author": {
+		"name": "InfraNodus",
+		"url": "https://infranodus.com"
+	},
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"homepage": "https://github.com/infranodus/skills",
+	"repository": "https://github.com/infranodus/skills",
+	"skills": [
+		"./"
+	]
+}

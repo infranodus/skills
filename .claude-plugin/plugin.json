@@ -1,0 +1,30 @@
+{
+	"name": "infranodus-all",
+	"version": "1.6.2",
+	"description": "The complete InfraNodus skills collection: all 16 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
+	"author": {
+		"name": "InfraNodus",
+		"url": "https://infranodus.com"
+	},
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"homepage": "https://github.com/infranodus/skills",
+	"repository": "https://github.com/infranodus/skills",
+	"skills": [
+		"./infranodus",
+		"./skill-actionize",
+		"./skill-cognitive-variability",
+		"./skill-critical-perspective",
+		"./skill-embodied-navigation",
+		"./skill-llm-wiki",
+		"./skill-ontology-creator",
+		"./skill-perspective-reversal",
+		"./skill-project-learnings",
+		"./skill-rhetorical-analyst",
+		"./skill-seo-analysis",
+		"./skill-shifting-perspective",
+		"./skill-shopping",
+		"./skill-vipassana-meditation",
+		"./skill-viral-videos",
+		"./skill-writing-assistant"
+	]
+}

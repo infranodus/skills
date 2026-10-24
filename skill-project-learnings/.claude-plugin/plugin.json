@@ -1,0 +1,15 @@
+{
+	"name": "project-learnings",
+	"version": "1.6.2",
+	"description": "Agent self-learning inside a project: proactively retrieves at task start and saves at task end what sessions learned about operating in a repo or vault to an opt-in InfraNodus learnings graph. Writes only after per-project opt-in; can be set to manual-only.",
+	"author": {
+		"name": "InfraNodus",
+		"url": "https://infranodus.com"
+	},
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"homepage": "https://github.com/infranodus/skills",
+	"repository": "https://github.com/infranodus/skills",
+	"skills": [
+		"./"
+	]
+}

@@ -1,0 +1,15 @@
+{
+	"name": "actionize",
+	"version": "1.6.2",
+	"description": "Turn insights or research into an actionable plan with deadlines and scheduled Telegram reminders.",
+	"author": {
+		"name": "InfraNodus",
+		"url": "https://infranodus.com"
+	},
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"homepage": "https://github.com/infranodus/skills",
+	"repository": "https://github.com/infranodus/skills",
+	"skills": [
+		"./"
+	]
+}
