@@ -23,9 +23,21 @@ allowed-tools:
   - CronList
   - CronDelete
   - mcp__infranodus__generate_topical_clusters
+  - mcp__claude_ai_InfraNodus__generate_topical_clusters
+  - mcp__plugin_infranodus-all_infranodus__generate_topical_clusters
+  - mcp__plugin_infranodus_infranodus__generate_topical_clusters
   - mcp__infranodus__difference_between_texts
+  - mcp__claude_ai_InfraNodus__difference_between_texts
+  - mcp__plugin_infranodus-all_infranodus__difference_between_texts
+  - mcp__plugin_infranodus_infranodus__difference_between_texts
   - mcp__infranodus__generate_knowledge_graph
+  - mcp__claude_ai_InfraNodus__generate_knowledge_graph
+  - mcp__plugin_infranodus-all_infranodus__generate_knowledge_graph
+  - mcp__plugin_infranodus_infranodus__generate_knowledge_graph
   - mcp__infranodus__generate_research_questions
+  - mcp__claude_ai_InfraNodus__generate_research_questions
+  - mcp__plugin_infranodus-all_infranodus__generate_research_questions
+  - mcp__plugin_infranodus_infranodus__generate_research_questions
 metadata:
   version: "1.0.0"
 ---
@@ -96,7 +108,7 @@ If C: stop — skill is done.
 
 ### Session start
 
-`bin/session-check.sh` is a compact, non-interactive version of the check above.
+`scripts/session-check.sh` is a compact, non-interactive version of the check above.
 It takes an optional plan directory argument (default `.plan`); if
 `.plan/.status.json` is missing, the plan is not `active`, or nothing is overdue or
 due today, it exits 0 silently. Otherwise it prints one `PLAN: {title} [{done}/{total} done]`
@@ -104,7 +116,7 @@ line plus `OVERDUE:` and `TODAY:` lines and a hint to run `/actionize`. Use it f
 Claude Code SessionStart hook or as the Phase 0 preamble command:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/bin/session-check.sh" .plan
+bash "${CLAUDE_SKILL_DIR}/scripts/session-check.sh" .plan
 ```
 
 ---
@@ -279,7 +291,7 @@ Owner: {user}
 Copy from the skill's bin directory:
 
 ```bash
-cp "${CLAUDE_SKILL_DIR}/bin/done.sh" .plan/bin/done.sh
+cp "${CLAUDE_SKILL_DIR}/scripts/done.sh" .plan/bin/done.sh
 chmod +x .plan/bin/done.sh
 ```
 
@@ -305,7 +317,7 @@ fi
 Summary of the steps (exact commands, prompts, and the reminder script are in the reference):
 
 1. **Telegram bot (4A):** check `.env` for `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. If missing, guide the user through creating a bot with @BotFather, have them message the bot once, detect the chat id via `getUpdates`, save both to `.env`, and send a test message. Telegram is optional — the user may skip it.
-2. **Reminder script (4B):** `mkdir -p .plan/bin`, then copy `${CLAUDE_SKILL_DIR}/bin/remind.sh` to `.plan/bin/remind.sh` and `chmod +x` it (the reference also shows the script inline).
+2. **Reminder script (4B):** `mkdir -p .plan/bin`, then copy `${CLAUDE_SKILL_DIR}/scripts/remind.sh` to `.plan/bin/remind.sh` and `chmod +x` it (the reference also shows the script inline).
 3. **System cron (4C):** do NOT use CronCreate (session-scoped). Add a real crontab entry that runs `.plan/bin/remind.sh` daily, logging to `.plan/cron.log`. Test with `bash .plan/bin/remind.sh`.
 4. **Session-start note (4D):** append an "Active Plan" section to CLAUDE.md if not already present.
 5. **Diagnose cron:** optionally add the 3-day sync + nudge crontab entry from Phase 8.
@@ -407,10 +419,10 @@ Suggest relevant next skills:
 Triggered by `/actionize diagnose` or when the user asks to analyze their planning
 patterns. Runs project-wide or user-wide. Summary of the steps:
 
-1. Sync task states to `~/.plan/history.jsonl`: `"${CLAUDE_SKILL_DIR}/bin/sync.sh"` (add `--all` for user-wide).
-2. Prepare data: `"${CLAUDE_SKILL_DIR}/bin/diagnose-prep.sh"` (optionally `--project "ProjectName"`) writes `~/.plan/diagnostics/{date}-{planned,completed,deferred}.txt` and `{date}-summary.json`.
+1. Sync task states to `~/.plan/history.jsonl`: `"${CLAUDE_SKILL_DIR}/scripts/sync.sh"` (add `--all` for user-wide).
+2. Prepare data: `"${CLAUDE_SKILL_DIR}/scripts/diagnose-prep.sh"` (optionally `--project "ProjectName"`) writes `~/.plan/diagnostics/{date}-{planned,completed,deferred}.txt` and `{date}-summary.json`.
 3. Ask the scope via AskUserQuestion (this project / all projects / compare projects).
-4. Run `mcp__infranodus__generate_topical_clusters` on each of the planned, completed, and deferred texts, then `mcp__infranodus__difference_between_texts` for planned-vs-completed and deferred-vs-completed.
+4. Run the InfraNodus `generate_topical_clusters` tool on each of the planned, completed, and deferred texts, then the InfraNodus `difference_between_texts` tool for planned-vs-completed and deferred-vs-completed.
 5. Compare with previous `~/.plan/diagnostics/*-report.md`, save `{date}-report.md`, deliver the insights, and ask whether to adjust the current plan.
 
 See [Diagnose](references/diagnose.md) for the full procedure, tool parameters, report template, and delivery format.
@@ -420,7 +432,7 @@ See [Diagnose](references/diagnose.md) for the full procedure, tool parameters, 
 ## Phase 8: Diagnose Cron — Automated Sync + Nudge
 
 During Phase 4, also add a 3-day crontab entry (tagged `actionize-diagnose`) that runs
-`${CLAUDE_SKILL_DIR}/bin/sync.sh --all` and then `${CLAUDE_SKILL_DIR}/bin/diagnose-nudge.sh`,
+`${CLAUDE_SKILL_DIR}/scripts/sync.sh --all` and then `${CLAUDE_SKILL_DIR}/scripts/diagnose-nudge.sh`,
 which sends a short Telegram message nudging the user to run `/actionize diagnose`.
 
 See [Diagnose](references/diagnose.md#phase-8-diagnose-cron--automated-sync--nudge) for the check and install commands.

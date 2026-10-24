@@ -1,6 +1,6 @@
 {
 	"name": "embodied-navigation",
-	"version": "1.7.0",
+	"version": "1.7.1",
 	"description": "Transfer embodied movement principles (meditation, martial arts, dance) to navigate complex situations mapped as knowledge graphs.",
 	"author": {
 		"name": "InfraNodus",
@@ -9,6 +9,10 @@
 	"license": "Apache-2.0 AND CC-BY-4.0",
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
+	"documentationUrl": "https://github.com/infranodus/skills",
+	"supportUrl": "https://support.noduslabs.com",
+	"privacyPolicyUrl": "https://infranodus.com/about/privacy-policy",
+	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
 	]

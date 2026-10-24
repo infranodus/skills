@@ -19,7 +19,9 @@ server-side graph computation. Division of labor:
   OAuth connector (its token lives remotely) — that is why the connector
   path is agent-driven.
 - **Queries** (reads): the session's native InfraNodus MCP tools
-  (`mcp__infranodus__<tool>` or the connector's equivalents).
+  (any InfraNodus prefix: `mcp__infranodus__<tool>`, a plugin's
+  `mcp__plugin_<plugin>_infranodus__<tool>`, or the claude.ai connector's
+  `mcp__claude_ai_InfraNodus__<tool>`).
 
 Before a script-path upload, `upload_scopes.py [project_dir] --check-auth`
 resolves the server and verifies the connection, printing the transport and

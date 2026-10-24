@@ -1,6 +1,6 @@
 {
 	"name": "cognitive-variability",
-	"version": "1.7.0",
+	"version": "1.7.1",
 	"description": "Guide conversations through shifts between zoom levels and connecting/exploring modes to unlock creative breakthroughs and prevent rigid thinking.",
 	"author": {
 		"name": "InfraNodus",
@@ -9,6 +9,10 @@
 	"license": "Apache-2.0 AND CC-BY-4.0",
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
+	"documentationUrl": "https://github.com/infranodus/skills",
+	"supportUrl": "https://support.noduslabs.com",
+	"privacyPolicyUrl": "https://infranodus.com/about/privacy-policy",
+	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
 	]

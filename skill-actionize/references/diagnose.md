@@ -20,13 +20,13 @@ defers — revealing blind spots, strengths, and recurring avoidance patterns.
 First, sync the current project's task states to the user-wide history:
 
 ```bash
-"${CLAUDE_SKILL_DIR}/bin/sync.sh"
+"${CLAUDE_SKILL_DIR}/scripts/sync.sh"
 ```
 
 If the user asked for user-wide analysis:
 
 ```bash
-"${CLAUDE_SKILL_DIR}/bin/sync.sh" --all
+"${CLAUDE_SKILL_DIR}/scripts/sync.sh" --all
 ```
 
 ### Step 7.1: Prepare Diagnostic Data
@@ -34,13 +34,13 @@ If the user asked for user-wide analysis:
 Run the data preparation script:
 
 ```bash
-"${CLAUDE_SKILL_DIR}/bin/diagnose-prep.sh"
+"${CLAUDE_SKILL_DIR}/scripts/diagnose-prep.sh"
 ```
 
 Or for a specific project:
 
 ```bash
-"${CLAUDE_SKILL_DIR}/bin/diagnose-prep.sh" --project "ProjectName"
+"${CLAUDE_SKILL_DIR}/scripts/diagnose-prep.sh" --project "ProjectName"
 ```
 
 This outputs:
@@ -61,12 +61,12 @@ Ask via AskUserQuestion:
 ### Step 7.3: InfraNodus Topical Cluster Analysis
 
 Read the three text files generated in Step 7.1. For each non-empty category,
-call `mcp__infranodus__generate_topical_clusters` to discover what topics cluster
+call the InfraNodus `generate_topical_clusters` tool to discover what topics cluster
 together.
 
 **For planned tasks** (what the user aspires to do):
 
-Call `mcp__infranodus__generate_topical_clusters` with:
+Call the InfraNodus `generate_topical_clusters` tool with:
 - **text:** The content of `{date}-planned.txt` (all planned task descriptions,
   newline-separated)
 - **context:** "Analyzing planned task descriptions to identify topical clusters
@@ -74,14 +74,14 @@ Call `mcp__infranodus__generate_topical_clusters` with:
 
 **For completed tasks** (what the user actually finishes):
 
-Call `mcp__infranodus__generate_topical_clusters` with:
+Call the InfraNodus `generate_topical_clusters` tool with:
 - **text:** The content of `{date}-completed.txt`
 - **context:** "Analyzing completed task descriptions to identify topical clusters
   in what the user actually accomplishes versus what was planned."
 
 **For deferred tasks** (what the user consistently avoids):
 
-Call `mcp__infranodus__generate_topical_clusters` with:
+Call the InfraNodus `generate_topical_clusters` tool with:
 - **text:** The content of `{date}-deferred.txt`
 - **context:** "Analyzing deferred task descriptions to identify topical patterns
   in what the user consistently postpones or avoids completing."
@@ -98,7 +98,7 @@ the cracks, and comparing planned vs deferred reveals systematic avoidance patte
 
 **Planned vs Completed — what you plan but don't finish:**
 
-Call `mcp__infranodus__difference_between_texts` with:
+Call the InfraNodus `difference_between_texts` tool with:
 - **contexts:** `[{ "text": "{planned-text}" }, { "text": "{completed-text}" }]`
   (first item is the target to analyze for missing parts; second is the reference)
 - **context:** "Comparing planned tasks against completed tasks to identify conceptual
@@ -110,7 +110,7 @@ systematic execution gaps.
 
 **Completed vs Deferred — what separates done from not-done:**
 
-Call `mcp__infranodus__difference_between_texts` with:
+Call the InfraNodus `difference_between_texts` tool with:
 - **contexts:** `[{ "text": "{deferred-text}" }, { "text": "{completed-text}" }]`
 - **context:** "Comparing deferred tasks against completed tasks to understand what
   conceptual themes distinguish tasks that get done from those that get postponed."
@@ -135,7 +135,7 @@ Present trends:
 - Are the same topics being deferred repeatedly?
 - Have any previously deferred themes moved to completed?
 
-If there are 2+ previous reports, call `mcp__infranodus__difference_between_texts`
+If there are 2+ previous reports, call the InfraNodus `difference_between_texts` tool
 comparing the previous deferred topics against the current deferred topics to see
 if avoidance patterns are shifting or persistent.
 
@@ -221,7 +221,7 @@ Ask via AskUserQuestion:
 
 If C: send via Telegram using the remind.sh pattern (curl to Bot API).
 If D: ask what pattern to explore, then use
-`mcp__infranodus__generate_research_questions` on that subset.
+the InfraNodus `generate_research_questions` tool on that subset.
 
 ---
 
@@ -242,7 +242,7 @@ If DIAG_CRON_MISSING, add it alongside the daily reminder:
 ```bash
 SKILL_DIR="${CLAUDE_SKILL_DIR}"
 PROJECT_DIR=$(pwd)
-(crontab -l 2>/dev/null || true; echo "# actionize-diagnose: sync + nudge every 3 days"; echo "17 11 */3 * * ${SKILL_DIR}/bin/sync.sh --all && ${SKILL_DIR}/bin/diagnose-nudge.sh") | crontab -
+(crontab -l 2>/dev/null || true; echo "# actionize-diagnose: sync + nudge every 3 days"; echo "17 11 */3 * * ${SKILL_DIR}/scripts/sync.sh --all && ${SKILL_DIR}/scripts/diagnose-nudge.sh") | crontab -
 ```
 
 The nudge script sends a short Telegram message: "You have N deferred tasks across

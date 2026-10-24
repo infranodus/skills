@@ -90,6 +90,8 @@ Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infr
 
 > **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies.
 
+The `infranodus-all` and `infranodus` plugins also connect the [InfraNodus MCP server](https://infranodus.com/mcp) (`https://mcp.infranodus.com`), so you don't need to add it separately. Run `/mcp`, select InfraNodus and sign in once. If you already use the InfraNodus connector on claude.ai, Claude Code recognizes the same server and connects to it only once. The other single-skill plugins don't bundle the server; follow the [MCP setup guide](https://infranodus.com/mcp) if you want their InfraNodus features.
+
 **Option B — `npx skills` CLI:**
 
 From your terminal:

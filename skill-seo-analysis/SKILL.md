@@ -135,4 +135,4 @@ Structure all reports as:
 | `search_queries_vs_search_results` | Find supply-demand gaps  | Topic analysis Step 3 |
 | `generate_seo_report`              | Full content SEO audit   | Content analysis      |
 
-All tools are InfraNodus MCP tools. If unavailable, use web search alternatives and note limitations.
+All tools are InfraNodus MCP tools. If the InfraNodus server is installed but not signed in (its tools are missing or return an authentication error), tell the user to run `/mcp` in Claude Code, select InfraNodus and sign in, then continue. If they stay unavailable, use web search alternatives and note limitations.

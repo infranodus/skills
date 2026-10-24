@@ -1,6 +1,6 @@
 {
 	"name": "infranodus",
-	"version": "1.7.0",
+	"version": "1.7.1",
 	"description": "Text network analysis and knowledge graphs via the InfraNodus MCP server: content gaps, research questions, SEO/GEO optimization, GraphRAG retrieval, repo and vault graphs.",
 	"author": {
 		"name": "InfraNodus",
@@ -9,7 +9,17 @@
 	"license": "Apache-2.0 AND CC-BY-4.0",
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
+	"documentationUrl": "https://github.com/infranodus/skills",
+	"supportUrl": "https://support.noduslabs.com",
+	"privacyPolicyUrl": "https://infranodus.com/about/privacy-policy",
+	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
-	]
+	],
+	"mcpServers": {
+		"infranodus": {
+			"type": "http",
+			"url": "https://mcp.infranodus.com"
+		}
+	}
 }
