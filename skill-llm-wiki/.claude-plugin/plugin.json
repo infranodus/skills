@@ -1,7 +1,7 @@
 {
 	"name": "llm-wiki",
 	"version": "1.7.3",
-	"description": "Set up and maintain a personal LLM-authored wiki: an interlinked, compounding knowledge base built from raw sources with knowledge graph support.",
+	"description": "Collect and curate: set up and maintain an LLM wiki / second brain (Karpathy-style raw sources -> interlinked wiki pages) that compounds over time, with knowledge graph and gap analysis of what it covers. Works with the core infranodus skill.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
@@ -15,7 +15,10 @@
 		"obsidian",
 		"notes",
 		"research",
-		"knowledge-graph"
+		"knowledge-graph",
+		"llm-wiki",
+		"agent-memory",
+		"content-gaps"
 	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",

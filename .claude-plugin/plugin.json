@@ -16,8 +16,11 @@
 		"graphrag",
 		"research",
 		"writing",
-		"critical-thinking",
-		"planning"
+		"second-brain",
+		"agent-memory",
+		"obsidian",
+		"llm-wiki",
+		"youtube"
 	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",

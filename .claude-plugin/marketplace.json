@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-skills",
-	"description": "InfraNodus skills for Claude: text network analysis, knowledge graphs, content gap detection, SEO, and cognitive variability workflows.",
+	"description": "InfraNodus skills: a knowledge graph + gap finder for your notes, vault or agent memory (the infranodus core skill), plus research-to-publish workflow skills: LLM wiki, ontology, project memory, perspective shifting, cognitive variability, writing, SEO and YouTube. Experimental skills moved to InfraNodus Lab.",
 	"owner": {
 		"name": "InfraNodus",
 		"url": "https://github.com/infranodus/skills"
@@ -9,22 +9,22 @@
 		{
 			"name": "infranodus",
 			"source": "./infranodus",
-			"description": "Text network analysis and knowledge graphs via the InfraNodus MCP server: content gaps, research questions, SEO/GEO optimization, GraphRAG retrieval, repo and vault graphs."
+			"description": "Knowledge graph + gap finder for your notes, vault or agent memory: shows what's missing and what to write next. Maps a folder, Obsidian vault, LLM wiki or repo into a measured, deterministic graph via the InfraNodus MCP server: topic clusters, content gaps, research questions, GraphRAG retrieval, SEO/GEO."
 		},
 		{
 			"name": "llm-wiki",
 			"source": "./skill-llm-wiki",
-			"description": "Set up and maintain a personal LLM-authored wiki: an interlinked, compounding knowledge base built from raw sources with knowledge graph support."
+			"description": "Collect and curate: set up and maintain an LLM wiki / second brain (Karpathy-style raw sources -> interlinked wiki pages) that compounds over time, with knowledge graph and gap analysis of what it covers. Works with the core infranodus skill."
 		},
 		{
 			"name": "ontology-generator",
 			"source": "./skill-ontology-creator",
-			"description": "Generate ontological knowledge graphs in [[wikilinks]] syntax for Obsidian / InfraNodus visualization and gap analysis."
+			"description": "Curate: turn a topic or text into a [[wikilinks]] ontology with typed relations for Obsidian or InfraNodus, ready for knowledge graph visualization and gap analysis. Works with the core infranodus skill."
 		},
 		{
 			"name": "project-learnings",
 			"source": "./skill-project-learnings",
-			"description": "Agent self-learning inside a project: proactively retrieves at task start and saves at task end what sessions learned about operating in a repo or vault to an opt-in InfraNodus learnings graph. Writes only after per-project opt-in; can be set to manual-only."
+			"description": "Agent memory for a project: proactively retrieves at task start and saves at task end what sessions learned about operating in a repo or vault to an opt-in InfraNodus learnings graph. Writes only after per-project opt-in; can be set to manual-only."
 		},
 		{
 			"name": "shifting-perspective",
