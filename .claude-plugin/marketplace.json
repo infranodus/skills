@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-skills",
-	"description": "InfraNodus skills: a knowledge graph + gap finder for your notes, vault or agent memory (the infranodus core skill), plus research-to-publish workflow skills: LLM wiki, ontology, project memory, perspective shifting, cognitive variability, writing, SEO and YouTube. Experimental skills moved to infranodus/skills-lab.",
+	"description": "InfraNodus skills: a knowledge graph + gap finder for your notes, vault or agent memory (the infranodus core skill), plus research-to-publish workflow skills: LLM wiki, ontology, project memory, perspective shifting, cognitive variability, writing and SEO. Experimental skills moved to infranodus/skills-lab.",
 	"owner": {
 		"name": "InfraNodus",
 		"url": "https://github.com/infranodus/skills"
@@ -47,14 +47,9 @@
 			"description": "SEO analysis: keyword research, content gap analysis, search intent, and optimization recommendations using real Google data."
 		},
 		{
-			"name": "youtube-viral-optimizer",
-			"source": "./skill-viral-videos",
-			"description": "Generate high-CTR YouTube thumbnails, titles, and video scripts optimized for virality and algorithm positioning."
-		},
-		{
 			"name": "infranodus-all",
 			"source": "./",
-			"description": "The complete InfraNodus skills collection: all 9 skills in this repo in one install: the infranodus core (knowledge graph + gap finder), llm-wiki, ontology-generator, project-learnings, shifting-perspective, cognitive-variability, writing-assistant, seo-analysis and youtube-viral-optimizer, plus the InfraNodus MCP server. Lab skills are installed separately.",
+			"description": "The complete InfraNodus skills collection: all 8 skills in this repo in one install: the infranodus core (knowledge graph + gap finder), llm-wiki, ontology-generator, project-learnings, shifting-perspective, cognitive-variability, writing-assistant and seo-analysis, plus the InfraNodus MCP server. Lab skills (infranodus/skills-lab) are installed separately.",
 			"skills": [
 				"./infranodus",
 				"./skill-cognitive-variability",
@@ -63,7 +58,6 @@
 				"./skill-project-learnings",
 				"./skill-seo-analysis",
 				"./skill-shifting-perspective",
-				"./skill-viral-videos",
 				"./skill-writing-assistant"
 			]
 		},
@@ -129,6 +123,15 @@
 				"path": "skill-vipassana-meditation"
 			},
 			"description": "[Moved to infranodus/skills-lab] Apply Vipassana meditation principles to LLM processing: equanimous scanning, non-reactive observation, impermanence awareness."
+		},
+		{
+			"name": "youtube-viral-optimizer",
+			"source": {
+				"source": "git-subdir",
+				"url": "infranodus/skills-lab",
+				"path": "skill-viral-videos"
+			},
+			"description": "[Moved to infranodus/skills-lab] Generate high-CTR YouTube thumbnails, titles, and video scripts optimized for virality and algorithm positioning."
 		}
 	]
 }

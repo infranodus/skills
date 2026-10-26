@@ -1,7 +1,7 @@
 {
 	"name": "infranodus-all",
 	"version": "1.7.3",
-	"description": "The complete InfraNodus skills collection: all 9 skills in this repo in one install: the infranodus core (knowledge graph + gap finder), llm-wiki, ontology-generator, project-learnings, shifting-perspective, cognitive-variability, writing-assistant, seo-analysis and youtube-viral-optimizer, plus the InfraNodus MCP server. Lab skills are installed separately.",
+	"description": "The complete InfraNodus skills collection: all 8 skills in this repo in one install: the infranodus core (knowledge graph + gap finder), llm-wiki, ontology-generator, project-learnings, shifting-perspective, cognitive-variability, writing-assistant and seo-analysis, plus the InfraNodus MCP server. Lab skills (infranodus/skills-lab) are installed separately.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
@@ -19,8 +19,7 @@
 		"second-brain",
 		"agent-memory",
 		"obsidian",
-		"llm-wiki",
-		"youtube"
+		"llm-wiki"
 	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
@@ -36,7 +35,6 @@
 		"./skill-project-learnings",
 		"./skill-seo-analysis",
 		"./skill-shifting-perspective",
-		"./skill-viral-videos",
 		"./skill-writing-assistant"
 	],
 	"mcpServers": {
