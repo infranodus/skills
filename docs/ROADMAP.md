@@ -1,4 +1,4 @@
-# Roadmap: main repo + InfraNodus Lab
+# Roadmap: main repo + InfraNodus Skills Lab
 
 Status as of 2026-10-26, branch `restructure/main-and-lab`. This branch makes
 structural and documentation changes only; no `SKILL.md` instructions were
@@ -18,13 +18,13 @@ search for the quoted text if they do.
   (`skill-ontology-creator`), `project-learnings`, `shifting-perspective`,
   `cognitive-variability`, `writing-assistant`, `seo-analysis`,
   `youtube-viral-optimizer` (`skill-viral-videos`).
-- **Moved to InfraNodus Lab (7):** `actionize`, `critical-perspective`,
+- **Moved to InfraNodus Skills Lab (7):** `actionize`, `critical-perspective`,
   `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`,
   `shopping-assistant` (`skill-shopping`), `vipassana-llm`
   (`skill-vipassana-meditation`).
-- **Lab repo name: `infranodus/infranodus-lab` is a placeholder (TBD).** It
-  must not be named `skills`. Its marketplace name `infranodus-lab` is also
-  TBD.
+- **Lab repo: `infranodus/skills-lab`** (decided), marketplace
+  `infranodus-skills-lab`, bundle `skills-lab-all`. Local folder
+  `~/Software/skills/InfraNodus-Skills-Lab`.
 - **Audience:** AI researchers, Obsidian users, general researchers, content
   publishers, mostly not terminal users, so the README puts the no-terminal
   path (InfraNodus connector + release-zip skill upload) first.
@@ -33,12 +33,12 @@ search for the quoted text if they do.
 
 | Change | Where |
 |---|---|
-| Moved-skill entries keep their ids but use a `git-subdir` source (`url: infranodus/infranodus-lab`, `path: skill-…`). The `github` source type has no subdirectory field, so `git-subdir` is the right type for a multi-skill repo | `.claude-plugin/marketplace.json` |
+| Moved-skill entries keep their ids but use a `git-subdir` source (`url: infranodus/skills-lab`, `path: skill-…`). The `github` source type has no subdirectory field, so `git-subdir` is the right type for a multi-skill repo | `.claude-plugin/marketplace.json` |
 | `infranodus-all` lists only the 9 remaining skills | marketplace entry + root `.claude-plugin/plugin.json` |
 | Old folders of moved skills contain only a stub `README.md` (no `SKILL.md`, no `.claude-plugin/`) | `skill-actionize/` … `skill-vipassana-meditation/` |
 | Outcome-led descriptions + keywords (manifest text only) | marketplace + 5 `plugin.json` files |
 | InfraNodus MCP server declared in the llm-wiki plugin | `skill-llm-wiki/.claude-plugin/plugin.json` |
-| README: headline, no-terminal install first, workflow with gaps at the centre, "What gets uploaded and where", "Moved to InfraNodus Lab", glossary | `README.md` |
+| README: headline, no-terminal install first, workflow with gaps at the centre, "What gets uploaded and where", "Moved to InfraNodus Skills Lab", glossary | `README.md` |
 | Track this file only (rest of `docs/` stays local) | `.gitignore` |
 
 No change was needed in `install.sh` (it only installs `infranodus`,
@@ -52,11 +52,11 @@ bundle; a second, overlapping bundle adds a double-install trap), the
 optional-hooks scaffold that lived inside it (kept as a TODO below), and the
 rename plan.
 
-**Lab repo (local only):** `~/Software/skills/InfraNodus-Lab`, branch `main`.
+**Lab repo (local only):** `~/Software/skills/InfraNodus-Skills-Lab`, branch `main`.
 Plain copy via `git archive` from `master` @ `8e59daf` (history not
 preserved; it remains in this repo). It has its own
-`.claude-plugin/marketplace.json` (`infranodus-lab`, TBD) with the same 7
-plugin ids plus an `infranodus-lab-all` bundle, the copied
+`.claude-plugin/marketplace.json` (`infranodus-skills-lab`) with the same 7
+plugin ids plus an `skills-lab-all` bundle, the copied
 `release.yml`, `LICENSE`, `NOTICE`, and a README. Manifest URLs point at the
 placeholder repo.
 
@@ -68,7 +68,7 @@ moved ids cannot be installed from `infranodus-skills`.
 1. Pick the final Lab repo name and marketplace name. If they differ from the
    placeholders, update: Lab `marketplace.json` + 7 `plugin.json` URLs +
    README + NOTICE; here the 7 `git-subdir` URLs, the 7 stub READMEs, README
-   "Moved to InfraNodus Lab", this file.
+   "Moved to InfraNodus Skills Lab", this file.
 2. Create the Lab repo on GitHub, push `main`, tag `v1.7.3` (or `v1.8.0`) so
    its release workflow builds zips, including the legacy `skill-*.zip`
    aliases.
@@ -84,7 +84,7 @@ moved ids cannot be installed from `infranodus-skills`.
   prefix changes from `/infranodus-all:<skill>` to `/<skill>:<skill>` when
   they are installed by id.
 - `npx skills add infranodus/skills --skill <lab-skill>` stops finding them;
-  use `npx skills add infranodus/infranodus-lab --skill <lab-skill>`.
+  use `npx skills add infranodus/skills-lab --skill <lab-skill>`.
 - Release zips for Lab skills (`actionize.zip`, `skill-shopping.zip`, …)
   stop appearing in new releases here, so
   `releases/latest/download/<lab-skill>.zip` links on this repo break after
@@ -103,7 +103,7 @@ run):
 - Throwaway `CLAUDE_CONFIG_DIR`: local marketplace add of this repo, install
   of every remaining id + `infranodus-all`; moved ids attempted.
 - Temporary (uncommitted) copy of the marketplace with the Lab entries'
-  `git-subdir` `url` pointed at `file://…/InfraNodus-Lab` to simulate the
+  `git-subdir` `url` pointed at `file://…/InfraNodus-Skills-Lab` to simulate the
   cross-repo install.
 - `install.sh --project` in a temp dir; `npx skills add . --list` on both
   repos.
@@ -115,10 +115,10 @@ export CLAUDE_CONFIG_DIR=$(mktemp -d)
 claude plugin marketplace add infranodus/skills
 claude plugin install actionize@infranodus-skills        # git-subdir over GitHub
 claude plugin install infranodus-all@infranodus-skills   # 9 skills
-claude plugin marketplace add infranodus/infranodus-lab
-claude plugin install infranodus-lab-all@infranodus-lab
-npx skills add infranodus/infranodus-lab --list
-curl -sIL https://github.com/infranodus/infranodus-lab/releases/latest/download/actionize.zip
+claude plugin marketplace add infranodus/skills-lab
+claude plugin install skills-lab-all@infranodus-skills-lab
+npx skills add infranodus/skills-lab --list
+curl -sIL https://github.com/infranodus/skills-lab/releases/latest/download/actionize.zip
 ```
 
 Also: an existing user who installed a moved id from the old relative-path

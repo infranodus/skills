@@ -87,12 +87,13 @@ Never mined by the repo/vault scanner: `.git`, `node_modules`, `dist`, `build`, 
 
 **Credentials.** Queries use the MCP connection you signed into (`/mcp`). The core skill's fallback uploader (`upload_scopes.py`) reads the key only from the `INFRANODUS_API_KEY` environment variable and sends it only to `infranodus.com` or a loopback address. The `llm-wiki` uploader (`upload_wiki_ontology.py`) currently also looks for a key in local MCP config files (`.mcp.json`, `~/.claude.json`, `~/.claude/settings.json`, `~/.cursor/mcp.json`, `~/.codex/config.json`); aligning both on one policy is on the [roadmap](docs/ROADMAP.md).
 
-## Moved to InfraNodus Lab
+## Moved to InfraNodus Skills Lab
 
-Seven experimental skills moved to a separate repository, **InfraNodus Lab** (`infranodus/infranodus-lab`, name TBD, not published yet): `actionize`, `critical-perspective`, `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`, `shopping-assistant`, `vipassana-llm`.
+Seven experimental skills moved to a separate repository, **InfraNodus Skills Lab** ([infranodus/skills-lab](https://github.com/infranodus/skills-lab)): `actionize`, `critical-perspective`, `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`, `shopping-assistant`, `vipassana-llm`.
 
 - Claude Code: the same ids keep working from this marketplace, e.g. `/plugin install actionize@infranodus-skills` (fetched from the Lab repo).
 - Their old folders here contain only a `README.md` pointing to the new location.
+- Or use the Lab marketplace directly: `/plugin marketplace add infranodus/skills-lab`, then `/plugin install skills-lab-all@infranodus-skills-lab` (all Lab skills) or `<id>@infranodus-skills-lab`.
 - They are no longer part of `infranodus-all`.
 
 ## Installation (all routes)
@@ -108,7 +109,7 @@ The skills work with any LLM client. Download them from the GitHub releases page
 
 **Option B — Clone the Repository**
 
-1. Clone this repository or download the `infranodus` folder or individual `skill-*` folders (folders that contain only a `README.md` are stubs for skills that moved to InfraNodus Lab)
+1. Clone this repository or download the `infranodus` folder or individual `skill-*` folders (folders that contain only a `README.md` are stubs for skills that moved to InfraNodus Skills Lab)
 2. Each folder contains all necessary files for that skill
 3. Create a `.zip` of the folder contents if your client requires it
 
@@ -144,7 +145,7 @@ Replace `infranodus` with any other skill name from this repo (e.g. `/plugin ins
 
 Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus` (or `/infranodus-all:infranodus` for the bundle). To update later, run `/plugin marketplace update infranodus-skills`.
 
-> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. (The Lab skills are not part of `infranodus-all`; install them by id, see [Moved to InfraNodus Lab](#moved-to-infranodus-lab).) Each skill would then be loaded twice under the same name and Claude Code drops one of the copies.
+> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies. (The Lab skills are not part of `infranodus-all`; install them by id, see [Moved to InfraNodus Skills Lab](#moved-to-infranodus-skills-lab).)
 
 The `infranodus-all`, `infranodus` and `llm-wiki` plugins also connect the [InfraNodus MCP server](https://infranodus.com/mcp) (`https://mcp.infranodus.com`), so you don't need to add it separately. Run `/mcp`, select InfraNodus and sign in once. If you already use the InfraNodus connector on claude.ai, Claude Code recognizes the same server and connects to it only once. The other single-skill plugins don't bundle the server; follow the [MCP setup guide](https://infranodus.com/mcp) if you want their InfraNodus features.
 

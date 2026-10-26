@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-skills",
-	"description": "InfraNodus skills: a knowledge graph + gap finder for your notes, vault or agent memory (the infranodus core skill), plus research-to-publish workflow skills: LLM wiki, ontology, project memory, perspective shifting, cognitive variability, writing, SEO and YouTube. Experimental skills moved to InfraNodus Lab.",
+	"description": "InfraNodus skills: a knowledge graph + gap finder for your notes, vault or agent memory (the infranodus core skill), plus research-to-publish workflow skills: LLM wiki, ontology, project memory, perspective shifting, cognitive variability, writing, SEO and YouTube. Experimental skills moved to infranodus/skills-lab.",
 	"owner": {
 		"name": "InfraNodus",
 		"url": "https://github.com/infranodus/skills"
@@ -71,64 +71,64 @@
 			"name": "actionize",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-actionize"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Turn insights or research into an actionable plan with deadlines and scheduled Telegram reminders."
+			"description": "[Moved to infranodus/skills-lab] Turn insights or research into an actionable plan with deadlines and scheduled Telegram reminders."
 		},
 		{
 			"name": "critical-perspective",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-critical-perspective"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Critical thinking: question assumptions, explore alternative perspectives, and uncover latent topics in conversations."
+			"description": "[Moved to infranodus/skills-lab] Critical thinking: question assumptions, explore alternative perspectives, and uncover latent topics in conversations."
 		},
 		{
 			"name": "embodied-navigation",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-embodied-navigation"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Transfer embodied movement principles (meditation, martial arts, dance) to navigate complex situations mapped as knowledge graphs."
+			"description": "[Moved to infranodus/skills-lab] Transfer embodied movement principles (meditation, martial arts, dance) to navigate complex situations mapped as knowledge graphs."
 		},
 		{
 			"name": "perspective-reversal",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-perspective-reversal"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Flip any conflict or negotiation to the opponent's perspective to extract superior tactical advice and counter-moves."
+			"description": "[Moved to infranodus/skills-lab] Flip any conflict or negotiation to the opponent's perspective to extract superior tactical advice and counter-moves."
 		},
 		{
 			"name": "rhetorical-analyst",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-rhetorical-analyst"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Analyze arguments, debate tactics, and rhetorical moves across persuasion, rhetoric, and logic dimensions."
+			"description": "[Moved to infranodus/skills-lab] Analyze arguments, debate tactics, and rhetorical moves across persuasion, rhetoric, and logic dimensions."
 		},
 		{
 			"name": "shopping-assistant",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-shopping"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Systematic shopping research: comparison matrices, review analysis, and value assessment converging on the best options."
+			"description": "[Moved to infranodus/skills-lab] Systematic shopping research: comparison matrices, review analysis, and value assessment converging on the best options."
 		},
 		{
 			"name": "vipassana-llm",
 			"source": {
 				"source": "git-subdir",
-				"url": "infranodus/infranodus-lab",
+				"url": "infranodus/skills-lab",
 				"path": "skill-vipassana-meditation"
 			},
-			"description": "[Moved to InfraNodus Lab, repo name TBD] Apply Vipassana meditation principles to LLM processing: equanimous scanning, non-reactive observation, impermanence awareness."
+			"description": "[Moved to infranodus/skills-lab] Apply Vipassana meditation principles to LLM processing: equanimous scanning, non-reactive observation, impermanence awareness."
 		}
 	]
 }
