@@ -1,7 +1,7 @@
 {
 	"name": "infranodus-all",
 	"version": "1.7.3",
-	"description": "The complete InfraNodus skills collection: all 16 skills in one install — text network analysis, knowledge graphs, SEO, planning, writing, and cognitive variability workflows.",
+	"description": "The complete InfraNodus skills collection: all 9 skills in this repo in one install: the infranodus core (knowledge graph + gap finder), llm-wiki, ontology-generator, project-learnings, shifting-perspective, cognitive-variability, writing-assistant, seo-analysis and youtube-viral-optimizer, plus the InfraNodus MCP server. Lab skills are installed separately.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
@@ -27,19 +27,12 @@
 	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./infranodus",
-		"./skill-actionize",
 		"./skill-cognitive-variability",
-		"./skill-critical-perspective",
-		"./skill-embodied-navigation",
 		"./skill-llm-wiki",
 		"./skill-ontology-creator",
-		"./skill-perspective-reversal",
 		"./skill-project-learnings",
-		"./skill-rhetorical-analyst",
 		"./skill-seo-analysis",
 		"./skill-shifting-perspective",
-		"./skill-shopping",
-		"./skill-vipassana-meditation",
 		"./skill-viral-videos",
 		"./skill-writing-assistant"
 	],
