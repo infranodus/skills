@@ -14,14 +14,14 @@ search for the quoted text if they do.
   gap finder for your notes, vault or agent memory: shows what's missing and
   what to write next.* The measured, deterministic graph is the proof, not the
   pitch.
-- **Stays here (9):** `infranodus`, `llm-wiki`, `ontology-generator`
+- **Stays here (8):** `infranodus`, `llm-wiki`, `ontology-generator`
   (`skill-ontology-creator`), `project-learnings`, `shifting-perspective`,
-  `cognitive-variability`, `writing-assistant`, `seo-analysis`,
-  `youtube-viral-optimizer` (`skill-viral-videos`).
-- **Moved to InfraNodus Skills Lab (7):** `actionize`, `critical-perspective`,
+  `cognitive-variability`, `writing-assistant`, `seo-analysis`.
+- **Moved to InfraNodus Skills Lab (8):** `actionize`, `critical-perspective`,
   `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`,
   `shopping-assistant` (`skill-shopping`), `vipassana-llm`
-  (`skill-vipassana-meditation`).
+  (`skill-vipassana-meditation`), `youtube-viral-optimizer`
+  (`skill-viral-videos`).
 - **Lab repo: `infranodus/skills-lab`** (decided), marketplace
   `infranodus-skills-lab`, bundle `skills-lab-all`. Local folder
   `~/Software/skills/InfraNodus-Skills-Lab`.
@@ -34,7 +34,7 @@ search for the quoted text if they do.
 | Change | Where |
 |---|---|
 | Moved-skill entries keep their ids but use a `git-subdir` source (`url: infranodus/skills-lab`, `path: skill-…`). The `github` source type has no subdirectory field, so `git-subdir` is the right type for a multi-skill repo | `.claude-plugin/marketplace.json` |
-| `infranodus-all` lists only the 9 remaining skills | marketplace entry + root `.claude-plugin/plugin.json` |
+| `infranodus-all` lists only the 8 remaining skills | marketplace entry + root `.claude-plugin/plugin.json` |
 | Old folders of moved skills contain only a stub `README.md` (no `SKILL.md`, no `.claude-plugin/`) | `skill-actionize/` … `skill-vipassana-meditation/` |
 | Outcome-led descriptions + keywords (manifest text only) | marketplace + 5 `plugin.json` files |
 | InfraNodus MCP server declared in the llm-wiki plugin | `skill-llm-wiki/.claude-plugin/plugin.json` |
@@ -47,44 +47,52 @@ No change was needed in `install.sh` (it only installs `infranodus`,
 folders without `SKILL.md`, so the stubs produce no zip).
 
 **Not carried over from `restructure/knowledge-front-door`:** the
-`infranodus-knowledge` bundle (with 9 focused skills, `infranodus-all` is the
+`infranodus-knowledge` bundle (with 8 focused skills, `infranodus-all` is the
 bundle; a second, overlapping bundle adds a double-install trap), the
 optional-hooks scaffold that lived inside it (kept as a TODO below), and the
 rename plan.
 
 **Lab repo (local only):** `~/Software/skills/InfraNodus-Skills-Lab`, branch `main`.
-Plain copy via `git archive` from `master` @ `8e59daf` (history not
-preserved; it remains in this repo). It has its own
-`.claude-plugin/marketplace.json` (`infranodus-skills-lab`) with the same 7
-plugin ids plus an `skills-lab-all` bundle, the copied
-`release.yml`, `LICENSE`, `NOTICE`, and a README. Manifest URLs point at the
-placeholder repo.
+Plain copy via `git archive` (content identical to `master` @ `8e59daf`,
+v1.7.3; history not preserved, it remains in this repo). It has its own
+`.claude-plugin/marketplace.json` (`infranodus-skills-lab`) with the same 8
+plugin ids plus a `skills-lab-all` bundle, the copied `release.yml`,
+`LICENSE`, `NOTICE`, and a README. Manifest URLs point at
+`https://github.com/infranodus/skills-lab`.
 
 ## 3. Go-live order
 
-Do not merge this branch before step 2. Until the Lab repo exists, the 7
+Do not merge this branch before step 1. Until the Lab repo exists, the 8
 moved ids cannot be installed from `infranodus-skills`.
 
-1. Pick the final Lab repo name and marketplace name. If they differ from the
-   placeholders, update: Lab `marketplace.json` + 7 `plugin.json` URLs +
-   README + NOTICE; here the 7 `git-subdir` URLs, the 7 stub READMEs, README
-   "Moved to InfraNodus Skills Lab", this file.
-2. Create the Lab repo on GitHub, push `main`, tag `v1.7.3` (or `v1.8.0`) so
+1. Create the Lab repo on GitHub, push `main`, tag `v1.7.3` (or `v1.8.0`) so
    its release workflow builds zips, including the legacy `skill-*.zip`
    aliases.
-3. Cross-repo test (section 4), then merge this branch and tag a release here.
-4. Bump plugin versions at release time. Without a version change, existing
-   `infranodus-all` installs may keep the cached 16-skill copy.
-5. Website: update infranodus.com `/skills` and `/about/knowledge-base`
+2. Cross-repo test (section 4), then merge this branch and tag a release here.
+3. Bump plugin versions above 1.7.3 in **both** repos at release time.
+   Upgrade simulation (local git server, throwaway config): without a bump,
+   `claude plugin update` reports "already at the latest version (1.7.3)" and
+   keeps the cached 16-skill copy, and by-id installs of Lab skills never
+   switch to the Lab repo. With 1.8.0 in both repos, `infranodus-all` drops
+   to the remaining skills and by-id Lab installs are fetched from the Lab
+   repo (restart needed).
+4. Website: update infranodus.com `/skills` and `/about/knowledge-base`
    (headline, no-terminal install, workflow, Lab link).
 
 ### Known breakages to announce
 
-- `infranodus-all` no longer contains the 7 Lab skills, and their command
+- `infranodus-all` no longer contains the 8 Lab skills, and their command
   prefix changes from `/infranodus-all:<skill>` to `/<skill>:<skill>` when
   they are installed by id.
 - `npx skills add infranodus/skills --skill <lab-skill>` stops finding them;
   use `npx skills add infranodus/skills-lab --skill <lab-skill>`.
+- `npx skills` users who installed all 16 keep the Lab copies, unmaintained:
+  re-running `npx skills add infranodus/skills -g` does not remove them. To
+  clean up: `npx skills remove actionize critical-perspective
+  embodied-navigation perspective-reversal rhetorical-analyst
+  shopping-assistant vipassana-llm youtube-viral-optimizer -g`, then
+  `npx skills add infranodus/skills-lab -g` if still wanted.
+- `install.sh` never installed Lab skills; nothing changes for its users.
 - Release zips for Lab skills (`actionize.zip`, `skill-shopping.zip`, …)
   stop appearing in new releases here, so
   `releases/latest/download/<lab-skill>.zip` links on this repo break after
@@ -114,7 +122,7 @@ Still to verify after the Lab repo is pushed:
 export CLAUDE_CONFIG_DIR=$(mktemp -d)
 claude plugin marketplace add infranodus/skills
 claude plugin install actionize@infranodus-skills        # git-subdir over GitHub
-claude plugin install infranodus-all@infranodus-skills   # 9 skills
+claude plugin install infranodus-all@infranodus-skills   # 8 skills
 claude plugin marketplace add infranodus/skills-lab
 claude plugin install skills-lab-all@infranodus-skills-lab
 npx skills add infranodus/skills-lab --list
