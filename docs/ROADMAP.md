@@ -65,7 +65,8 @@ plugin ids plus a `skills-lab-all` bundle, the copied `release.yml`,
 Do not merge this branch before step 1. Until the Lab repo exists, the 8
 moved ids cannot be installed from `infranodus-skills`.
 
-1. Create the Lab repo on GitHub, push `main`, tag `v1.7.3` (or `v1.8.0`) so
+1. Create the Lab repo on GitHub, bump its plugin versions (see step 3),
+   push `main` and tag `v1.8.0` so
    its release workflow builds zips, including the legacy `skill-*.zip`
    aliases.
 2. Cross-repo test (section 4), then merge this branch and tag a release here.
