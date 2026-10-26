@@ -1,6 +1,7 @@
 .DS_Store
 __pycache__/
 *.pyc
-docs/
+docs/*
+!docs/ROADMAP.md
 testing-briefs/
 testing-knowledge
