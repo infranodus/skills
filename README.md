@@ -39,7 +39,7 @@ research -> ANALYZE TOPICS & GAPS -> collect / curate -> refine -> publish
 | **Analyze topics & gaps** (centre) | `infranodus`, `shifting-perspective` | "/infranodus - graph this vault and show me the main topic clusters and the content gaps between them." |
 | **Collect / curate** | `llm-wiki`, `ontology-generator`, `project-learnings` | "Set up an LLM wiki for my research on sleep and memory, with raw sources and wiki pages in Obsidian." |
 | **Refine** | `shifting-perspective`, `cognitive-variability` | "My draft feels one-sided. What perspectives are missing, and how do I develop them?" |
-| **Publish** | `writing-assistant`, `seo-analysis`, `youtube-viral-optimizer` | "Do keyword research for 'knowledge graphs for note-taking' and show what people search for that nobody covers well." |
+| **Publish** | `writing-assistant`, `seo-analysis` | "Do keyword research for 'knowledge graphs for note-taking' and show what people search for that nobody covers well." |
 
 ## Skills in this repo
 
@@ -67,8 +67,6 @@ research -> ANALYZE TOPICS & GAPS -> collect / curate -> refine -> publish
 
 - **SEO Analysis** (`seo-analysis`) - Perform advanced SEO analysis to study the current informational supply and demand for a topic. Build your topical authority and create content that covers the important concepts and bridges the market gaps. Suitable for SEO and LLMO. Uses [InfraNodus MCP server](https://infranodus.com/mcp) search intent and results import functionalities.
 
-- **YouTube Viral Optimizer** (`youtube-viral-optimizer`, folder `skill-viral-videos`) - Generate high-CTR YouTube titles, thumbnails, and full video scripts optimized for virality. Covers psychological triggers, SEO-driven title strategy, thumbnail copywriting, algorithm positioning, and a complete script structure (Pattern Interrupt → Hook → Framing → Curiosity Loop → Escalation → Payoff → Relevance Bridge → Loop Reopen). Includes a Graph-to-Script pipeline that uses [InfraNodus MCP server](https://infranodus.com/mcp) to extract structural gaps from any topic and turn them into ready-made curiosity loops. Works for any niche or channel.
-
 ## What gets uploaded and where
 
 Everything below is what the skills currently do, per their `SKILL.md` and scripts. Content is sent only to the InfraNodus MCP server your agent is connected to (hosted: `https://mcp.infranodus.com`, saved to **your** InfraNodus account; or a local/self-hosted server you configured).
@@ -81,7 +79,7 @@ Everything below is what the skills currently do, per their `SKILL.md` and scrip
 | `llm-wiki` | raw sources, wiki pages, `output/` analyses, curated ontology files in `infranodus/` (kept; append-only) | curated ontology files: the whole file on first upload, then only newly appended lines | `wiki-<project>-<scope>` graphs |
 | `ontology-generator` | the ontology is returned in chat | only if you ask to analyze or save it | only if you ask (`create_knowledge_graph` or `memory_add_relations`) |
 | `project-learnings` | nothing | after you explicitly enable it for a project, the learnings batch you review | `learn-<project>` (append-only); before opt-in a run is a single read |
-| `shifting-perspective`, `cognitive-variability`, `writing-assistant`, `seo-analysis`, `youtube-viral-optimizer` | nothing written by the skill | the text, topic or search query you analyze, when the InfraNodus tools are connected (analysis tools only, e.g. `optimize_text_structure`, `generate_content_gaps`, `generate_seo_report`) | nothing; these skills don't call saving tools |
+| `shifting-perspective`, `cognitive-variability`, `writing-assistant`, `seo-analysis` | nothing written by the skill | the text, topic or search query you analyze, when the InfraNodus tools are connected (analysis tools only, e.g. `optimize_text_structure`, `generate_content_gaps`, `generate_seo_report`) | nothing; these skills don't call saving tools |
 
 Never mined by the repo/vault scanner: `.git`, `node_modules`, `dist`, `build`, `out`, `vendor`, virtualenvs and tool caches, `target`, `.next`/`.nuxt`, `.obsidian`, `.idea`/`.vscode`, the `infranodus/` folder itself, and likely-secret files (`.env*`, keys, anything named credential/secret/apikey). Lockfiles, minified bundles and licences are left out of the digest reading list. Scanned PDFs without a text layer are skipped (no OCR).
 
@@ -89,12 +87,18 @@ Never mined by the repo/vault scanner: `.git`, `node_modules`, `dist`, `build`, 
 
 ## Moved to InfraNodus Skills Lab
 
-Seven experimental skills moved to a separate repository, **InfraNodus Skills Lab** ([infranodus/skills-lab](https://github.com/infranodus/skills-lab)): `actionize`, `critical-perspective`, `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`, `shopping-assistant`, `vipassana-llm`.
+Eight experimental skills moved to a separate repository, **InfraNodus Skills Lab** ([infranodus/skills-lab](https://github.com/infranodus/skills-lab)): `actionize`, `critical-perspective`, `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`, `shopping-assistant`, `vipassana-llm`, and `youtube-viral-optimizer` (YouTube titles, thumbnails and video scripts, built from graph gaps).
 
 - Claude Code: the same ids keep working from this marketplace, e.g. `/plugin install actionize@infranodus-skills` (fetched from the Lab repo).
 - Their old folders here contain only a `README.md` pointing to the new location.
 - Or use the Lab marketplace directly: `/plugin marketplace add infranodus/skills-lab`, then `/plugin install skills-lab-all@infranodus-skills-lab` (all Lab skills) or `<id>@infranodus-skills-lab`.
 - They are no longer part of `infranodus-all`.
+- Installed them with `npx skills add infranodus/skills -g`? Re-running that command does not remove them; they stay as unmaintained copies. Remove them, then reinstall from the Lab repo if you still want them:
+
+  ```bash
+  npx skills remove actionize critical-perspective embodied-navigation perspective-reversal rhetorical-analyst shopping-assistant vipassana-llm youtube-viral-optimizer -g
+  npx skills add infranodus/skills-lab -g
+  ```
 
 ## Installation (all routes)
 
@@ -137,7 +141,7 @@ This repository is a Claude Code plugin marketplace. Inside Claude Code, run:
 /plugin install infranodus@infranodus-skills
 ```
 
-Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`), or install all 9 skills of this repo in one go:
+Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`), or install all 8 skills of this repo in one go:
 
 ```
 /plugin install infranodus-all@infranodus-skills
@@ -167,12 +171,11 @@ Copy each skill folder to the `~/.claude/skills` directory to make it available 
 cp -r skill-cognitive-variability ~/.claude/skills/cognitive-variability
 ```
 
-Two skills have a `name` that is not just the folder without the `skill-` prefix:
+One skill has a `name` that is not just the folder without the `skill-` prefix:
 
 | Repository folder | Install as |
 |---|---|
 | `skill-ontology-creator` | `ontology-generator` |
-| `skill-viral-videos` | `youtube-viral-optimizer` |
 
 Alternatively, run `./install.sh` (or `./install.sh --symlink`) from the repository root — it installs the core set (`infranodus`, `ontology-generator`, `llm-wiki`, `project-learnings`) under the right names; `./install.sh --core-only` installs just `infranodus`.
 
