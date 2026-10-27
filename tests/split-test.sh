@@ -4,7 +4,7 @@
 # Usage: tests/split-test.sh [path-to-this-repo] [branch] [pre-split-ref]   (needs claude, git, jq, npx, curl)
 set -u
 
-MAIN_REPO=${1:-$(cd "$(dirname "$0")/.." && pwd)}
+MAIN_REPO=$(cd "${1:-$(dirname "$0")/..}" && pwd)   # absolute: the script cds into its work dir
 BRANCH=${2:-restructure/main-and-lab}
 OLD_REF=${3:-v1.7.3}   # last release before the split, for the upgrade check
 LAB_GH=infranodus/skills-lab
