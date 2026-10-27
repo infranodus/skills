@@ -65,12 +65,12 @@ plugin ids plus a `skills-lab-all` bundle, the copied `release.yml`,
 Do not merge this branch before step 1. Until the Lab repo exists, the 8
 moved ids cannot be installed from `infranodus-skills`.
 
-1. Create the Lab repo on GitHub, bump its plugin versions (see step 3),
+1. **Done 2026-10-27.** Create the Lab repo on GitHub, bump its plugin versions (see step 3),
    push `main` and tag `v1.8.0` so
    its release workflow builds zips, including the legacy `skill-*.zip`
    aliases.
-2. Cross-repo test (section 4), then merge this branch and tag a release here.
-3. Bump plugin versions above 1.7.3 in **both** repos at release time.
+2. **Test done 2026-10-27** (section 4). Then merge this branch and tag a release here.
+3. **Done (1.8.0 in both repos).** Bump plugin versions above 1.7.3 in **both** repos at release time.
    Upgrade simulation (local git server, throwaway config): without a bump,
    `claude plugin update` reports "already at the latest version (1.7.3)" and
    keeps the cached 16-skill copy, and by-id installs of Lab skills never
@@ -104,8 +104,7 @@ moved ids cannot be installed from `infranodus-skills`.
 
 ## 4. Tests
 
-Done locally on this branch (see the commit that added this file for the
-run):
+Done locally on this branch before the Lab repo existed:
 
 - `claude plugin validate` on both repos and every touched plugin folder;
   `jq .` on every JSON.
@@ -117,22 +116,27 @@ run):
 - `install.sh --project` in a temp dir; `npx skills add . --list` on both
   repos.
 
-Still to verify after the Lab repo is pushed:
+Verified on 2026-10-27 after the Lab repo was published (`v1.8.0`), with
+`tests/split-test.sh` (87/87 checks). It clones this repo's branch and the
+`v1.7.3` tag, runs every `claude` call under a throwaway `CLAUDE_CONFIG_DIR`, and
+checks:
 
-```
-export CLAUDE_CONFIG_DIR=$(mktemp -d)
-claude plugin marketplace add infranodus/skills
-claude plugin install actionize@infranodus-skills        # git-subdir over GitHub
-claude plugin install infranodus-all@infranodus-skills   # 8 skills
-claude plugin marketplace add infranodus/skills-lab
-claude plugin install skills-lab-all@infranodus-skills-lab
-npx skills add infranodus/skills-lab --list
-curl -sIL https://github.com/infranodus/skills-lab/releases/latest/download/actionize.zip
-```
+- Fresh install from the branch: all 17 ids install; `infranodus-all` has 8
+  skills, 1 MCP server, 1.8.0; the 8 Lab ids install by id via `git-subdir`
+  from GitHub at 1.8.0.
+- `skills-lab-all@infranodus-skills-lab` from GitHub: 8 skills, 1 MCP server,
+  1.8.0.
+- MCP server: six installed plugins declare `infranodus`, `claude mcp list`
+  shows one entry (deduplicated).
+- Upgrade: install from `v1.7.3` (16 skills, relative-path `actionize`),
+  then `marketplace update` + `plugin update`: `infranodus-all` drops to 8
+  skills at 1.8.0 and `actionize` switches to the Lab copy at 1.8.0.
+- `npx skills add infranodus/skills-lab --list` finds the Lab skills; the
+  branch lists only the main skills; the 8 Lab zips resolve (HTTP 200) under
+  `releases/latest/download/`.
 
-Also: an existing user who installed a moved id from the old relative-path
-source must get the Lab copy on `claude plugin marketplace update
-infranodus-skills` + `claude plugin update <id>`.
+Re-run before any future change to the marketplace or to the Lab repo:
+`tests/split-test.sh [path-to-this-repo] [branch] [pre-split-ref]` (after the merge, pass `master` as the branch; the upgrade check starts from `v1.7.3`).
 
 ## 5. TODOs (not done here)
 
