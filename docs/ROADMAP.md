@@ -37,7 +37,7 @@ search for the quoted text if they do.
 | `infranodus-all` lists only the 8 remaining skills | marketplace entry + root `.claude-plugin/plugin.json` |
 | Old folders of moved skills contain only a stub `README.md` (no `SKILL.md`, no `.claude-plugin/`) | `skill-actionize/` … `skill-vipassana-meditation/` |
 | Outcome-led descriptions + keywords (manifest text only) | marketplace + 5 `plugin.json` files |
-| InfraNodus MCP server declared in the llm-wiki plugin | `skill-llm-wiki/.claude-plugin/plugin.json` |
+| InfraNodus MCP server declared in every plugin whose skill needs its tools: llm-wiki, seo-analysis, shifting-perspective, project-learnings (`infranodus` and `infranodus-all` already had it) | `skill-llm-wiki/`, `skill-seo-analysis/`, `skill-shifting-perspective/`, `skill-project-learnings/` `.claude-plugin/plugin.json` |
 | README: headline, no-terminal install first, workflow with gaps at the centre, "What gets uploaded and where", "Moved to InfraNodus Skills Lab", glossary | `README.md` |
 | Track this file only (rest of `docs/` stays local) | `.gitignore` |
 

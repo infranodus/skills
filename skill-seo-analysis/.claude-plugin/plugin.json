@@ -24,5 +24,11 @@
 	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
-	]
+	],
+	"mcpServers": {
+		"infranodus": {
+			"type": "http",
+			"url": "https://mcp.infranodus.com"
+		}
+	}
 }
