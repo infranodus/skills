@@ -1,45 +1,106 @@
-# InfraNodus Claude Skills Repository
+# InfraNodus Skills
 
-This collection of skills is based on the [InfraNodus cognitive variability](https://infranodus.com/about/cognitive-variability) framework that is implemented in [InfraNodus](https://infranodus.com) text analysis tool.
-Use the skills as extended prompts in Claude Web or in your favorite LLM client. They will augment the capacities of the model and help you introduce custom logic, frameworks, workflows, and guidelines into the model's behavior.
+**Knowledge graph + gap finder for your notes, vault or agent memory: shows what's missing and what to write next.**
 
-The skills are designed to work with each other and to hand off important tasks when needed. They are also integrated with the [InfraNodus MCP Server](https://infranodus.com/mcp) tools, so you can use advanced text gap analysis, SEO optimization and data import, and knowledge graph memory in your workflows.
+Give it a folder of notes, an Obsidian vault, an LLM wiki, a set of articles or a single text. It maps the main topics, shows how they connect, and turns the gaps between them into concrete prompts: what to research, link or write next. The graph comes from [InfraNodus](https://infranodus.com) text network analysis, so it is measured, not guessed: word co-occurrence and network metrics, with the default extraction of a folder running locally without an LLM. That is why the gaps can be checked.
 
-## Skills Available
+Made for AI researchers, Obsidian and second-brain users, researchers and content publishers. You don't need a terminal to start.
 
-- **Cognitive Variability** - A skill that promotes the [cognitive variability](https://infranodus.com/about/cognitive-variability) framework for adaptive thinking to help evolve ideas and avoid getting stuck.
+## Get started without a terminal (Claude web / desktop)
 
-- **Critical Perspective** - Engage in critical thinking by questioning assumptions, exploring alternative perspectives, and uncovering latent topics in conversations.
+1. **Connect InfraNodus.** In Claude, go to **Settings → Connectors**, add `https://mcp.infranodus.com` as a connector and sign in with your InfraNodus account (OAuth). Details: [infranodus.com/mcp](https://infranodus.com/mcp).
+2. **Add the core skill.** Download [`infranodus.zip`](https://github.com/infranodus/skills/releases/latest/download/infranodus.zip) (latest release). In Claude, open **Settings → Capabilities**, turn on **Code execution and file creation**, then click **Upload Skill** in the Skills section and pick the zip. Other skills from this repo are on the same [Releases](https://github.com/infranodus/skills/releases) page as `<skill-name>.zip`.
+3. **Ask for the gaps.** Paste a text, attach documents or give a URL: *"Use InfraNodus to show the main topics in these notes and the gaps between them, then suggest three questions I should write about next."*
 
-- **Writing Assistant** - Grammar correction, style refinement, and pattern detection that can trigger cognitive state analysis.
+Graphs of a whole folder, repo or vault (and keeping them up to date) need an agent that can read your files, such as Claude Code.
 
-- **Ontology Creator** - Build structured ontologies, taxonomies, and knowledge graphs by extracting entities, defining relationships, and mapping conceptual structures for any topic or for a collection of texts.
+## Claude Code (one line)
 
-- **SEO Analysis** - Perform advanced SEO analysis to study the current informational supply and demand for a topic. Build your topical authority and create content that covers the important concepts and bridges the market gaps. Suitable for SEO and LLMO. Uses [InfraNodus MCP server](https://infranodus.com/mcp) search intent and results import functionalities.
+```
+/plugin marketplace add infranodus/skills
+/plugin install infranodus@infranodus-skills
+```
 
-- **YouTube Viral Optimizer** - Generate high-CTR YouTube titles, thumbnails, and full video scripts optimized for virality. Covers psychological triggers, SEO-driven title strategy, thumbnail copywriting, algorithm positioning, and a complete script structure (Pattern Interrupt → Hook → Framing → Curiosity Loop → Escalation → Payoff → Relevance Bridge → Loop Reopen). Includes a Graph-to-Script pipeline that uses [InfraNodus MCP server](https://infranodus.com/mcp) to extract structural gaps from any topic and turn them into ready-made curiosity loops. Works for any niche or channel.
+Then run `/mcp`, select InfraNodus and sign in once, open a project or vault folder and type `/infranodus`. Want every skill in this repo? `/plugin install infranodus-all@infranodus-skills`. Other routes (`npx skills`, `install.sh`, Cursor, OpenClaw, ChatGPT) are under [Installation](#installation-all-routes).
 
-- **Shopping Assistant** - A systematic, multi-phase shopping research workflow that acts as your personal shopping advisor. Gathers requirements, researches product categories via web search, builds comparison matrices, analyzes reviews for recurring praise and complaints, and converges on 3-4 best options with clear reasoning. Designed to save hours of research and avoid both impulse buys and analysis paralysis.
+## The workflow: gaps at the centre
 
-- **Rhetorical Analyst** - Analyze arguments, debate tactics, and rhetorical moves across three dimensions: persuasion, rhetoric, and logic. Identifies the moves being made, scores their effectiveness, exposes hidden assumptions, tracks logical gaps, and checks for asymmetric standards — including the analyst's own. Use it to break down debates, stress-test your own arguments, or understand why something feels persuasive but wrong.
+Every stage feeds back into the gap analysis, and every gap suggests the next piece of research or writing.
 
-- **Shifting Perspective** - Analyze discourse structure using [InfraNodus MCP server](https://infranodus.com/mcp) knowledge graph analysis to diagnose the structural diversity of a text and then actively shift perspective. Based on the diversity score (biased, focused, diversified, or dispersed), applies targeted interventions: develops underrepresented viewpoints, bridges conceptual gaps, or surfaces latent ideas grounded in the actual topology of the text's knowledge graph. Use it when a conversation feels one-sided, when research needs broadening, or when you want to understand what perspectives are missing from any text, URL, or YouTube video.
+```
+research -> ANALYZE TOPICS & GAPS -> collect / curate -> refine -> publish
+   ^                 |                                               |
+   +-----------------+------------ next gap / next question <--------+
+```
 
-- **Perspective Reversal** - Flip any conflict, negotiation, or adversarial situation to the opponent's perspective to extract superior tactical advice. By reasoning from the adversary's point of view — mapping their full toolkit of moves, pressure points, and procedural weapons — and then translating each tactic into a concrete counter-move for the user. Covers landlord disputes, workplace conflicts, bureaucratic obstruction, scam attempts, debt collectors, and any scenario where someone feels stuck or outmaneuvered. Optionally uses [InfraNodus MCP server](https://infranodus.com/mcp) for discourse bias checks, search intent analysis of the adversary's playbook, and content gap detection to find blind spots.
+| Stage | Skills | Example prompt |
+|---|---|---|
+| **Research** | `infranodus` | "Analyze this YouTube talk <url> with InfraNodus and turn its gaps into research questions." |
+| **Analyze topics & gaps** (centre) | `infranodus`, `shifting-perspective` | "/infranodus - graph this vault and show me the main topic clusters and the content gaps between them." |
+| **Collect / curate** | `llm-wiki`, `ontology-generator`, `project-learnings` | "Set up an LLM wiki for my research on sleep and memory, with raw sources and wiki pages in Obsidian." |
+| **Refine** | `shifting-perspective`, `cognitive-variability` | "My draft feels one-sided. What perspectives are missing, and how do I develop them?" |
+| **Publish** | `writing-assistant`, `seo-analysis` | "Do keyword research for 'knowledge graphs for note-taking' and show what people search for that nobody covers well." |
 
-- **Embodied Navigation** - Transfer principles from embodied movement practices (meditation, martial arts, contemporary dance, bodymind) to navigate complex situations. Maps any situation as a knowledge graph using [InfraNodus MCP server](https://infranodus.com/mcp) and reads its topology the way you'd read a body — identifying fixation points, tension patterns, neglected zones, and pivot joints. Provides four integrated toolkits: equanimous scanning (dissolving fixation loops through distributed attention), adaptive fluidity (absorbing and redirecting force instead of opposing it), tension redistribution (shifting stuck points by working on adjacent structure), and confluence (entering existing flows to redirect them from within). Use it when someone is stuck, in conflict, overwhelmed, negotiating, or when analytical thinking alone creates rigidity.
+## Skills in this repo
 
-- **Vipassana for LLMs** - Apply Vipassana meditation principles to LLM processing — equanimous scanning, non-reactive observation, impermanence awareness (anicca), and breaking conditioned reaction chains (sankharas). Addresses the failure modes LLMs share with untrained minds: fixating on salient tokens, generating conditioned responses, craving coherence, and collapsing into narrative before observing raw phenomena. Use it when you want bare attention rather than premature conclusions, when conversations show reactive thinking, or when you need to dissolve fixation loops and see a situation as it really is.
+**Core (start here)**
 
-- **LLM Wiki** - Based on [Andrej Karpathy's LLM Wiki proposal](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) this skill offers a guided workflow for designing and scaffolding a personal LLM-maintained wiki — a persistent, compounding knowledge base where the LLM incrementally builds interlinked markdown pages from raw sources. Instead of re-deriving knowledge on every query (like RAG), the wiki extracts, cross-references, and synthesizes knowledge once, then stays current as new sources arrive. Covers the full setup: raw sources, wiki pages, output layer, and a schema that co-evolves with the project. Use it when you want to build a "second brain", organize research, or set up an Obsidian + LLM knowledge base workflow.
+- **InfraNodus** (`infranodus`, the core skill and default) - The front door. Turns a folder, Obsidian vault, LLM wiki or code repo into knowledge graphs and tells you what's missing: topic clusters, content gaps, research questions, central concepts, GraphRAG retrieval over the saved graphs. Invoked inside a project (`/infranodus`), it mines docs, PDF text, docstrings, `WHY:`/`NOTE:` comments and commit/PR/issue history deterministically (stdlib Python, no LLM), and keeps the graphs current: `repo2statements.py --detect` lists the files that changed since the last build, `--update` extracts only those, and the uploader replaces their statements in place with the server's `delete_statements` tool, so no graph is deleted by hand or duplicated. Also a reference for every [InfraNodus MCP server](https://infranodus.com/mcp) tool (text analysis, comparison, SEO/GEO, structured memory) for Claude Code, Cursor, [OpenClaw](https://openclaw.ai/) or any MCP client.
 
-- **Actionize** - Turn insights, findings, or research into an actionable plan with deadlines and scheduled reminders. Collaboratively designs the plan with the user, saves it to the project, and sets up cron-based Telegram reminders for upcoming and overdue tasks. Includes a planning diagnostics mode that analyzes patterns like chronic deferral, vague tasks, and missing dependencies. Uses [InfraNodus MCP server](https://infranodus.com/mcp) to compare the original research against the plan and surface gaps. Use it after completing research or brainstorming when you have insights but no concrete next steps.
+**Collect and curate**
 
-- **Project Learnings** - Self-learning for agents working inside a project (a repo, folder, or vault). Runs proactively: at the start of a multi-step task the agent retrieves what earlier sessions learned about operating in the project; at the end it reflects and saves the durable insights — where things live, traps, conventions, decisions with their rationale, workflows, open questions, what to do differently — to an opt-in, append-only knowledge graph (`learn-<project>`) in your InfraNodus account that any client and any machine can query. Uses the [InfraNodus MCP server](https://infranodus.com/mcp) `get_project_learnings` / `add_project_learnings` / `enable_project_learnings` tools. Nothing is written without your explicit per-project opt-in and a review of each batch; until you enable a project, an automatic run is a single read that returns `enabled: false`. Only project knowledge is kept, never anything about you. Prefer it manual-only? Set `disable-model-invocation: true` in its `SKILL.md` or `"skillOverrides": { "project-learnings": "user-invocable-only" }` in `.claude/settings.local.json`.
+- **LLM Wiki** (`llm-wiki`) - Based on [Andrej Karpathy's LLM Wiki proposal](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) this skill offers a guided workflow for designing and scaffolding a personal LLM-maintained wiki — a persistent, compounding knowledge base where the LLM incrementally builds interlinked markdown pages from raw sources. Instead of re-deriving knowledge on every query (like RAG), the wiki extracts, cross-references, and synthesizes knowledge once, then stays current as new sources arrive. Covers the full setup: raw sources, wiki pages, output layer, and a schema that co-evolves with the project. Use it when you want to build a "second brain", organize research, or set up an Obsidian + LLM knowledge base workflow.
 
-- **InfraNodus CLI / Tool Use** - A comprehensive reference for all [InfraNodus MCP server](https://infranodus.com/mcp) tools: text analysis, knowledge graph generation, content gap detection, SEO/GEO optimization, structured memory, text comparison, and GraphRAG retrieval. Includes setup instructions, a full tool catalog with parameters, and practical examples. Designed to be copied into [OpenClaw](https://openclaw.ai/), Claude Code, Cursor, or any LLM client that supports MCP or tool-use prompts — giving any AI assistant access to InfraNodus' text network analysis capabilities. Invoked inside a project folder (`/infranodus`), it also builds knowledge graphs of a code repo or Obsidian vault (docs, PDF text, docstrings, commit/PR/issue history) and keeps them current: `repo2statements.py --detect` lists the files that changed since the last build, `--update` extracts only those, and the uploader replaces their statements in place with the server's `delete_statements` tool — no graph is deleted by hand or duplicated.
+- **Ontology Generator** (`ontology-generator`, folder `skill-ontology-creator`) - Build structured ontologies, taxonomies, and knowledge graphs by extracting entities, defining relationships, and mapping conceptual structures for any topic or for a collection of texts.
 
-## Installation
+- **Project Learnings** (`project-learnings`) - Self-learning for agents working inside a project (a repo, folder, or vault). Runs proactively: at the start of a multi-step task the agent retrieves what earlier sessions learned about operating in the project; at the end it reflects and saves the durable insights — where things live, traps, conventions, decisions with their rationale, workflows, open questions, what to do differently — to an opt-in, append-only knowledge graph (`learn-<project>`) in your InfraNodus account that any client and any machine can query. Uses the [InfraNodus MCP server](https://infranodus.com/mcp) `get_project_learnings` / `add_project_learnings` / `enable_project_learnings` tools. Nothing is written without your explicit per-project opt-in and a review of each batch; until you enable a project, an automatic run is a single read that returns `enabled: false`. Only project knowledge is kept, never anything about you. Prefer it manual-only? Set `disable-model-invocation: true` in its `SKILL.md` or `"skillOverrides": { "project-learnings": "user-invocable-only" }` in `.claude/settings.local.json`.
+
+**Analyze and refine**
+
+- **Shifting Perspective** (`shifting-perspective`) - Analyze discourse structure using [InfraNodus MCP server](https://infranodus.com/mcp) knowledge graph analysis to diagnose the structural diversity of a text and then actively shift perspective. Based on the diversity score (biased, focused, diversified, or dispersed), applies targeted interventions: develops underrepresented viewpoints, bridges conceptual gaps, or surfaces latent ideas grounded in the actual topology of the text's knowledge graph. Use it when a conversation feels one-sided, when research needs broadening, or when you want to understand what perspectives are missing from any text, URL, or YouTube video.
+
+- **Cognitive Variability** (`cognitive-variability`) - A skill that promotes the [cognitive variability](https://infranodus.com/about/cognitive-variability) framework for adaptive thinking to help evolve ideas and avoid getting stuck.
+
+**Publish**
+
+- **Writing Assistant** (`writing-assistant`) - Grammar correction, style refinement, and pattern detection that can trigger cognitive state analysis.
+
+- **SEO Analysis** (`seo-analysis`) - Perform advanced SEO analysis to study the current informational supply and demand for a topic. Build your topical authority and create content that covers the important concepts and bridges the market gaps. Suitable for SEO and LLMO. Uses [InfraNodus MCP server](https://infranodus.com/mcp) search intent and results import functionalities.
+
+## What gets uploaded and where
+
+Everything below is what the skills currently do, per their `SKILL.md` and scripts. Content is sent only to the InfraNodus MCP server your agent is connected to (hosted: `https://mcp.infranodus.com`, saved to **your** InfraNodus account; or a local/self-hosted server you configured).
+
+| Skill | Stays on your machine | Sent to InfraNodus | Saved in your account as |
+|---|---|---|---|
+| `infranodus`: one-off text/URL analysis | nothing written | the text or URL you give it | nothing, unless you or the agent call a saving tool (`create_knowledge_graph`, `memory_add_relations`) |
+| `infranodus`: repo/vault graphs | `infranodus/manifest.json` (routing metadata: graph names, topics, gaps, endpoint, account), `infranodus/INFRANODUS_REPORT.md` (append-only build log). Scope files (`repo-*-ontology.md`, `vault-*-ontology.md`) are build intermediates: **deleted after a successful upload** unless `--keep-scopes` is passed | statements extracted from docs (md/rst/txt), the PDF text layer, docstrings and `WHY`/`NOTE`/`TODO` comments, commit/PR/issue text (via `git` and `gh`), vault page links, and any digest you approve | graphs named `repo-<project>-<scope>` / `vault-<project>-<scope>`; optional `onto-<project>` ontology (generated by the server's LLM) |
+| `infranodus`: `--register-project` | marker blocks in the project's `CLAUDE.md` | nothing | with `--with-memory` only, and on your approval per session: a `<slug>-insights` memory graph |
+| `llm-wiki` | raw sources, wiki pages, `output/` analyses, curated ontology files in `infranodus/` (kept; append-only) | curated ontology files: the whole file on first upload, then only newly appended lines | `wiki-<project>-<scope>` graphs |
+| `ontology-generator` | the ontology is returned in chat | only if you ask to analyze or save it | only if you ask (`create_knowledge_graph` or `memory_add_relations`) |
+| `project-learnings` | nothing | after you explicitly enable it for a project, the learnings batch you review | `learn-<project>` (append-only); before opt-in a run is a single read |
+| `shifting-perspective`, `cognitive-variability`, `writing-assistant`, `seo-analysis` | nothing written by the skill | the text, topic or search query you analyze, when the InfraNodus tools are connected (analysis tools only, e.g. `optimize_text_structure`, `generate_content_gaps`, `generate_seo_report`) | nothing; these skills don't call saving tools |
+
+Never mined by the repo/vault scanner: `.git`, `node_modules`, `dist`, `build`, `out`, `vendor`, virtualenvs and tool caches, `target`, `.next`/`.nuxt`, `.obsidian`, `.idea`/`.vscode`, the `infranodus/` folder itself, and likely-secret files (`.env*`, keys, anything named credential/secret/apikey). Lockfiles, minified bundles and licences are left out of the digest reading list. Scanned PDFs without a text layer are skipped (no OCR).
+
+**Credentials.** Queries use the MCP connection you signed into (`/mcp`). The core skill's fallback uploader (`upload_scopes.py`) reads the key only from the `INFRANODUS_API_KEY` environment variable and sends it only to `infranodus.com` or a loopback address. The `llm-wiki` uploader (`upload_wiki_ontology.py`) currently also looks for a key in local MCP config files (`.mcp.json`, `~/.claude.json`, `~/.claude/settings.json`, `~/.cursor/mcp.json`, `~/.codex/config.json`); aligning both on one policy is on the [roadmap](docs/ROADMAP.md).
+
+## Moved to InfraNodus Skills Lab
+
+Eight experimental skills moved to a separate repository, **InfraNodus Skills Lab** ([infranodus/skills-lab](https://github.com/infranodus/skills-lab)): `actionize`, `critical-perspective`, `embodied-navigation`, `perspective-reversal`, `rhetorical-analyst`, `shopping-assistant`, `vipassana-llm`, and `youtube-viral-optimizer` (YouTube titles, thumbnails and video scripts, built from graph gaps).
+
+- Claude Code: the same ids keep working from this marketplace, e.g. `/plugin install actionize@infranodus-skills` (fetched from the Lab repo).
+- Their old folders here contain only a `README.md` pointing to the new location.
+- Or use the Lab marketplace directly: `/plugin marketplace add infranodus/skills-lab`, then `/plugin install skills-lab-all@infranodus-skills-lab` (all Lab skills) or `<id>@infranodus-skills-lab`.
+- They are no longer part of `infranodus-all`.
+- Installed them with `npx skills add infranodus/skills -g`? Re-running that command does not remove them; they stay as unmaintained copies. Remove them, then reinstall from the Lab repo if you still want them:
+
+  ```bash
+  npx skills remove actionize critical-perspective embodied-navigation perspective-reversal rhetorical-analyst shopping-assistant vipassana-llm youtube-viral-optimizer -g
+  npx skills add infranodus/skills-lab -g
+  ```
+
+## Installation (all routes)
 
 The skills work with any LLM client. Download them from the GitHub releases page and follow the instructions for your client below.
 
@@ -52,7 +113,7 @@ The skills work with any LLM client. Download them from the GitHub releases page
 
 **Option B — Clone the Repository**
 
-1. Clone this repository or download individual `skill-*` folders
+1. Clone this repository or download the `infranodus` folder or individual `skill-*` folders (folders that contain only a `README.md` are stubs for skills that moved to InfraNodus Skills Lab)
 2. Each folder contains all necessary files for that skill
 3. Create a `.zip` of the folder contents if your client requires it
 
@@ -80,7 +141,7 @@ This repository is a Claude Code plugin marketplace. Inside Claude Code, run:
 /plugin install infranodus@infranodus-skills
 ```
 
-Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`), or install the complete collection in one go:
+Replace `infranodus` with any other skill name from this repo (e.g. `/plugin install seo-analysis@infranodus-skills`), or install all 8 skills of this repo in one go:
 
 ```
 /plugin install infranodus-all@infranodus-skills
@@ -88,9 +149,9 @@ Replace `infranodus` with any other skill name from this repo (e.g. `/plugin ins
 
 Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus` (or `/infranodus-all:infranodus` for the bundle). To update later, run `/plugin marketplace update infranodus-skills`.
 
-> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies.
+> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies. (The Lab skills are not part of `infranodus-all`; install them by id, see [Moved to InfraNodus Skills Lab](#moved-to-infranodus-skills-lab).)
 
-The `infranodus-all` and `infranodus` plugins also connect the [InfraNodus MCP server](https://infranodus.com/mcp) (`https://mcp.infranodus.com`), so you don't need to add it separately. Run `/mcp`, select InfraNodus and sign in once. If you already use the InfraNodus connector on claude.ai, Claude Code recognizes the same server and connects to it only once. The other single-skill plugins don't bundle the server; follow the [MCP setup guide](https://infranodus.com/mcp) if you want their InfraNodus features.
+The `infranodus-all`, `infranodus` and `llm-wiki` plugins also connect the [InfraNodus MCP server](https://infranodus.com/mcp) (`https://mcp.infranodus.com`), so you don't need to add it separately. Run `/mcp`, select InfraNodus and sign in once. If you already use the InfraNodus connector on claude.ai, Claude Code recognizes the same server and connects to it only once. The other single-skill plugins don't bundle the server; follow the [MCP setup guide](https://infranodus.com/mcp) if you want their InfraNodus features.
 
 **Option B — `npx skills` CLI:**
 
@@ -110,14 +171,11 @@ Copy each skill folder to the `~/.claude/skills` directory to make it available 
 cp -r skill-cognitive-variability ~/.claude/skills/cognitive-variability
 ```
 
-Four skills have a `name` that is not just the folder without the `skill-` prefix:
+One skill has a `name` that is not just the folder without the `skill-` prefix:
 
 | Repository folder | Install as |
 |---|---|
-| `skill-shopping` | `shopping-assistant` |
 | `skill-ontology-creator` | `ontology-generator` |
-| `skill-vipassana-meditation` | `vipassana-llm` |
-| `skill-viral-videos` | `youtube-viral-optimizer` |
 
 Alternatively, run `./install.sh` (or `./install.sh --symlink`) from the repository root — it installs the core set (`infranodus`, `ontology-generator`, `llm-wiki`, `project-learnings`) under the right names; `./install.sh --core-only` installs just `infranodus`.
 
@@ -193,6 +251,20 @@ b. Push the tag to GitHub
 ```bash
 git push origin v1.0.0
 ```
+
+## Glossary
+
+- **Knowledge graph**: a network of concepts (nodes) and the connections between them (edges). InfraNodus builds it from which words appear together.
+- **Topic cluster**: a group of concepts that are more connected to each other than to the rest of the graph; roughly, one theme.
+- **Content gap**: two clusters that are both important but barely connected. Bridging them is often the most useful next thing to write or research.
+- **Central concepts**: the concepts that connect the most parts of the graph (high betweenness centrality).
+- **Measured / deterministic**: the graph is computed with network metrics, so the same input gives the same graph; an LLM only writes on top of it.
+- **MCP / connector**: the Model Context Protocol, the standard way to plug tools such as InfraNodus into Claude and other AI clients. In Claude web/desktop it is called a connector.
+- **Skill**: a folder with a `SKILL.md` file that teaches the AI a workflow. **Plugin / marketplace**: Claude Code's way to install and update skills from a repository.
+- **GraphRAG**: answering questions by retrieving from a knowledge graph instead of only from text chunks.
+- **Ontology / `[[wikilinks]]`**: a curated list of concepts and their relations, written with Obsidian-style double-bracket links.
+- **LLM wiki / second brain**: a set of interlinked notes that an AI maintains from your raw sources and that grows over time.
+- **Scope / manifest**: in a project, each graph (docs, links, history) is a scope; `infranodus/manifest.json` records which graphs exist and where.
 
 ## License
 

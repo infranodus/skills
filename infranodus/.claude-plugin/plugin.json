@@ -1,7 +1,7 @@
 {
 	"name": "infranodus",
-	"version": "1.7.3",
-	"description": "Text network analysis and knowledge graphs via the InfraNodus MCP server: content gaps, research questions, SEO/GEO optimization, GraphRAG retrieval, repo and vault graphs.",
+	"version": "1.8.0",
+	"description": "Knowledge graph + gap finder for your notes, vault or agent memory: shows what's missing and what to write next. Maps a folder, Obsidian vault, LLM wiki or repo into a measured, deterministic graph via the InfraNodus MCP server: topic clusters, content gaps, research questions, GraphRAG retrieval, SEO/GEO.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
@@ -17,7 +17,10 @@
 		"geo",
 		"research-questions",
 		"obsidian",
-		"codebase-graph"
+		"codebase-graph",
+		"second-brain",
+		"agent-memory",
+		"llm-wiki"
 	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",

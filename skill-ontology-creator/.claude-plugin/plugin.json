@@ -1,7 +1,7 @@
 {
 	"name": "ontology-generator",
-	"version": "1.7.3",
-	"description": "Generate ontological knowledge graphs in [[wikilinks]] syntax for Obsidian / InfraNodus visualization and gap analysis.",
+	"version": "1.8.0",
+	"description": "Curate: turn a topic or text into a [[wikilinks]] ontology with typed relations for Obsidian or InfraNodus, ready for knowledge graph visualization and gap analysis. Works with the core infranodus skill.",
 	"author": {
 		"name": "InfraNodus",
 		"url": "https://infranodus.com"
@@ -13,7 +13,9 @@
 		"knowledge-graph",
 		"wikilinks",
 		"obsidian",
-		"entity-extraction"
+		"entity-extraction",
+		"second-brain",
+		"content-gaps"
 	],
 	"homepage": "https://github.com/infranodus/skills",
 	"repository": "https://github.com/infranodus/skills",
