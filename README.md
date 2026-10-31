@@ -9,7 +9,7 @@ Made for AI researchers, Obsidian and second-brain users, researchers and conten
 ## Get started without a terminal (Claude web / desktop)
 
 1. **Connect InfraNodus.** In Claude, go to **Settings → Connectors**, add `https://mcp.infranodus.com` as a connector and sign in with your InfraNodus account (OAuth). Details: [infranodus.com/mcp](https://infranodus.com/mcp).
-2. **Add the core skill.** Download [`infranodus.zip`](https://github.com/infranodus/skills/releases/latest/download/infranodus.zip) (latest release). In Claude, open **Settings → Capabilities**, turn on **Code execution and file creation**, then click **Upload Skill** in the Skills section and pick the zip. Other skills from this repo are on the same [Releases](https://github.com/infranodus/skills/releases) page as `<skill-name>.zip`.
+2. **Add the core skill.** Download [`infranodus.zip`](https://github.com/infranodus/skills/releases/latest/download/infranodus.zip) (latest release). In Claude, open **Settings → Capabilities**, turn on **Code execution and file creation**, then click **Upload Skill** in the Skills section and pick the zip. Other skills are uploaded the same way, one zip each (there is no all-in-one zip for Claude web); direct links are in [Install a single skill](#install-a-single-skill).
 3. **Ask for the gaps.** Paste a text, attach documents or give a URL: *"Use InfraNodus to show the main topics in these notes and the gaps between them, then suggest three questions I should write about next."*
 
 Graphs of a whole folder, repo or vault (and keeping them up to date) need an agent that can read your files, such as Claude Code.
@@ -21,7 +21,7 @@ Graphs of a whole folder, repo or vault (and keeping them up to date) need an ag
 /plugin install infranodus@infranodus-skills
 ```
 
-Then run `/mcp`, select InfraNodus and sign in once, open a project or vault folder and type `/infranodus`. Want every skill in this repo? `/plugin install infranodus-all@infranodus-skills`. Other routes (`npx skills`, `install.sh`, Cursor, OpenClaw, ChatGPT) are under [Installation](#installation-all-routes).
+Then run `/mcp`, select InfraNodus and sign in once, open a project or vault folder and type `/infranodus:infranodus`. Want every skill in this repo? `/plugin install infranodus-all@infranodus-skills`. One skill at a time: see [Install a single skill](#install-a-single-skill). Other routes (`npx skills`, `install.sh`, Cursor, OpenClaw, ChatGPT) are under [Installation](#installation-all-routes).
 
 ## The workflow: gaps at the centre
 
@@ -66,6 +66,24 @@ research -> ANALYZE TOPICS & GAPS -> collect / curate -> refine -> publish
 - **Writing Assistant** (`writing-assistant`) - Grammar correction, style refinement, and pattern detection that can trigger cognitive state analysis.
 
 - **SEO Analysis** (`seo-analysis`) - Perform advanced SEO analysis to study the current informational supply and demand for a topic. Build your topical authority and create content that covers the important concepts and bridges the market gaps. Suitable for SEO and LLMO. Uses [InfraNodus MCP server](https://infranodus.com/mcp) search intent and results import functionalities.
+
+### Install a single skill
+
+Claude Code: run `/plugin marketplace add infranodus/skills` once, then the command in the table. Claude web / desktop: download the zip and upload it under **Settings → Capabilities → Skills** (one zip per skill; there is no all-in-one zip). Skills marked "bundled" bring the InfraNodus MCP server with them in Claude Code; for the others, connect it yourself ([setup guide](https://infranodus.com/mcp)).
+
+| Skill | Claude Code | Claude web / desktop | MCP server |
+|---|---|---|---|
+| InfraNodus (core) | `/plugin install infranodus@infranodus-skills` | [`infranodus.zip`](https://github.com/infranodus/skills/releases/latest/download/infranodus.zip) | bundled |
+| LLM Wiki | `/plugin install llm-wiki@infranodus-skills` | [`llm-wiki.zip`](https://github.com/infranodus/skills/releases/latest/download/llm-wiki.zip) | bundled |
+| Project Learnings | `/plugin install project-learnings@infranodus-skills` | [`project-learnings.zip`](https://github.com/infranodus/skills/releases/latest/download/project-learnings.zip) | bundled |
+| Shifting Perspective | `/plugin install shifting-perspective@infranodus-skills` | [`shifting-perspective.zip`](https://github.com/infranodus/skills/releases/latest/download/shifting-perspective.zip) | bundled |
+| SEO Analysis | `/plugin install seo-analysis@infranodus-skills` | [`seo-analysis.zip`](https://github.com/infranodus/skills/releases/latest/download/seo-analysis.zip) | bundled |
+| Ontology Generator | `/plugin install ontology-generator@infranodus-skills` | [`ontology-generator.zip`](https://github.com/infranodus/skills/releases/latest/download/ontology-generator.zip) | connect separately |
+| Cognitive Variability | `/plugin install cognitive-variability@infranodus-skills` | [`cognitive-variability.zip`](https://github.com/infranodus/skills/releases/latest/download/cognitive-variability.zip) | connect separately |
+| Writing Assistant | `/plugin install writing-assistant@infranodus-skills` | [`writing-assistant.zip`](https://github.com/infranodus/skills/releases/latest/download/writing-assistant.zip) | connect separately |
+| **All 8 skills** | `/plugin install infranodus-all@infranodus-skills` | not available: upload each zip | bundled |
+
+Install either the bundle or single skills, not both (see the note under [Claude Code](#claude-code)).
 
 ## What gets uploaded and where
 
@@ -119,7 +137,7 @@ The skills work with any LLM client. Download them from the GitHub releases page
 
 ### Step 2 (Optional): Get an InfraNodus API Key
 
-Some skills can access the [InfraNodus MCP Server](https://infranodus.com/mcp) to perform more complex tasks and extract real-time data from external sources (e.g. search intent or search results). The MCP server provides free access for the first few iterations, but you'll need to [get an InfraNodus API key](https://infranodus.com/api-access) for more advanced workflows and to avoid hitting rate limits.
+Not needed if you use the Claude Code plugins or the claude.ai connector: both sign in to the [InfraNodus MCP Server](https://infranodus.com/mcp) with your InfraNodus account (OAuth). You need an [InfraNodus API key](https://infranodus.com/api-access) only when you connect the MCP server yourself with a key (e.g. `npx skills`, manual copies, Cursor, OpenClaw via MCPorter) or use the core skill's fallback uploader (`INFRANODUS_API_KEY`). Without signing in or a key, the server allows only a few free calls before rate limits apply.
 
 ### Step 3: Install to Your LLM Client
 
@@ -147,11 +165,11 @@ Replace `infranodus` with any other skill name from this repo (e.g. `/plugin ins
 /plugin install infranodus-all@infranodus-skills
 ```
 
-Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus` (or `/infranodus-all:infranodus` for the bundle). To update later, run `/plugin marketplace update infranodus-skills`.
+Installed skills are invoked with their plugin namespace, e.g. `/infranodus:infranodus` (or `/infranodus-all:infranodus` for the bundle). To update later, run `/plugin marketplace update infranodus-skills`, then `/plugin update <id>@infranodus-skills` for each installed plugin (e.g. `infranodus-all`), and restart Claude Code.
 
-> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies. (The Lab skills are not part of `infranodus-all`; install them by id, see [Moved to InfraNodus Skills Lab](#moved-to-infranodus-skills-lab).)
+> **Note:** install either the `infranodus-all` bundle **or** individual plugins, not both. Each skill would then be loaded twice under the same name and Claude Code drops one of the copies. To switch from the bundle to single skills, run `/plugin uninstall infranodus-all@infranodus-skills` first, then install the ones you want. (The Lab skills are not part of `infranodus-all`; install them by id, see [Moved to InfraNodus Skills Lab](#moved-to-infranodus-skills-lab).)
 
-The `infranodus-all`, `infranodus` and `llm-wiki` plugins also connect the [InfraNodus MCP server](https://infranodus.com/mcp) (`https://mcp.infranodus.com`), so you don't need to add it separately. Run `/mcp`, select InfraNodus and sign in once. If you already use the InfraNodus connector on claude.ai, Claude Code recognizes the same server and connects to it only once. The other single-skill plugins don't bundle the server; follow the [MCP setup guide](https://infranodus.com/mcp) if you want their InfraNodus features.
+The `infranodus-all`, `infranodus`, `llm-wiki`, `project-learnings`, `shifting-perspective` and `seo-analysis` plugins also connect the [InfraNodus MCP server](https://infranodus.com/mcp) (`https://mcp.infranodus.com`), so you don't need to add it separately. Run `/mcp`, select InfraNodus and sign in once. If you already use the InfraNodus connector on claude.ai, Claude Code recognizes the same server and connects to it only once. If you added InfraNodus earlier with `claude mcp add`, remove that entry (`claude mcp remove infranodus -s user`, or `-s project` / `-s local` depending on where you added it): it is not merged with the plugin's server, so you would get every tool twice. The other single-skill plugins (`ontology-generator`, `cognitive-variability`, `writing-assistant`) don't bundle the server; follow the [MCP setup guide](https://infranodus.com/mcp) if you want their InfraNodus features.
 
 **Option B — `npx skills` CLI:**
 
@@ -177,7 +195,7 @@ One skill has a `name` that is not just the folder without the `skill-` prefix:
 |---|---|
 | `skill-ontology-creator` | `ontology-generator` |
 
-Alternatively, run `./install.sh` (or `./install.sh --symlink`) from the repository root — it installs the core set (`infranodus`, `ontology-generator`, `llm-wiki`, `project-learnings`) under the right names; `./install.sh --core-only` installs just `infranodus`.
+Alternatively, run `./install.sh` (or `./install.sh --symlink`) from the repository root — it installs four skills (`infranodus`, `ontology-generator`, `llm-wiki`, `project-learnings`) under the right names; `./install.sh --core-only` installs just `infranodus`. The other skills are copied by hand as shown above.
 
 To scope a skill to a specific project, create a `.claude/skills` folder inside that project and copy the skill folder(s) there instead.
 
@@ -203,7 +221,7 @@ ChatGPT doesn't support automatic skill installation, but you can use either of 
 install this skill: https://github.com/infranodus/skills/releases/latest/download/infranodus.zip
 ```
 
-This link always points to the [latest release](https://github.com/infranodus/skills/releases). To pin a specific version, use `releases/download/v1.6.2/infranodus.zip` instead.
+This link always points to the [latest release](https://github.com/infranodus/skills/releases). To pin a specific version, use `releases/download/v1.8.0/infranodus.zip` instead.
 
 **Manual installation:**
 
