@@ -37,14 +37,14 @@ check "marketplace add (branch clone)" c plugin marketplace add "$WORK/main-bran
 for id in $MAIN_IDS infranodus-all $LAB_IDS; do
   check "install $id@infranodus-skills" c plugin install "$id@infranodus-skills"
 done
-eq "infranodus-all skills" "$(n_skills infranodus-all@infranodus-skills)" 8
-eq "infranodus-all MCP servers" "$(n_mcp infranodus-all@infranodus-skills)" 1
-eq "infranodus-all version" "$(version infranodus-all@infranodus-skills)" 1.8.0
 # Each main plugin's expected version is the one in its own manifest on the branch.
 want_version() {
   local src; src=$(jq -r --arg id "$1" '.plugins[] | select(.name==$id) | .source' "$WORK/main-branch/.claude-plugin/marketplace.json")
   jq -r .version "$WORK/main-branch/$src/.claude-plugin/plugin.json"
 }
+eq "infranodus-all skills" "$(n_skills infranodus-all@infranodus-skills)" 8
+eq "infranodus-all MCP servers" "$(n_mcp infranodus-all@infranodus-skills)" 1
+eq "infranodus-all version" "$(version infranodus-all@infranodus-skills)" "$(want_version infranodus-all)"
 for id in $MAIN_IDS; do eq "$id version" "$(version "$id@infranodus-skills")" "$(want_version "$id")"; done
 for id in $MCP_IDS; do eq "$id MCP servers" "$(n_mcp "$id@infranodus-skills")" 1; done
 for id in $LAB_IDS; do
@@ -81,7 +81,7 @@ check "marketplace update infranodus-skills" c plugin marketplace update infrano
 check "plugin update infranodus-all" c plugin update infranodus-all@infranodus-skills
 check "plugin update actionize" c plugin update actionize@infranodus-skills
 eq "after: infranodus-all skills" "$(n_skills infranodus-all@infranodus-skills)" 8
-eq "after: infranodus-all version" "$(version infranodus-all@infranodus-skills)" 1.8.0
+eq "after: infranodus-all version" "$(version infranodus-all@infranodus-skills)" "$(want_version infranodus-all)"
 eq "after: actionize version (now from Lab)" "$(version actionize@infranodus-skills)" 1.8.0
 check "after: actionize manifest points at skills-lab" \
   grep -q "infranodus/skills-lab" "$(path_of actionize@infranodus-skills)/.claude-plugin/plugin.json"
