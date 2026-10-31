@@ -1,6 +1,6 @@
 {
 	"name": "infranodus",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "Knowledge graph + gap finder for your notes, vault or agent memory: shows what's missing and what to write next. Maps a folder, Obsidian vault, LLM wiki or repo into a measured, deterministic graph via the InfraNodus MCP server: topic clusters, content gaps, research questions, GraphRAG retrieval, SEO/GEO.",
 	"author": {
 		"name": "InfraNodus",
