@@ -2,18 +2,19 @@
 name: infranodus
 description: >-
   Text network analysis and knowledge graphs via the InfraNodus MCP server:
-  analyze text structure, find content gaps, generate research questions and
-  ideas, compare texts, optimize content for SEO/GEO, analyze Google search
-  results, GraphRAG retrieval, structured memory. Accepts text, URLs (YouTube
-  transcription included), and saved graphs. Also builds knowledge graphs of
-  code repos and Obsidian vaults: invoked in a project folder ("graph this
-  repo", "analyze this vault", "/infranodus") it mines docs, PDF text,
-  docstrings, WHY/NOTE comments, and commit/PR/issue history into saved graphs
-  with a report, and keeps them current by replacing the statements of changed
-  files in place. When infranodus/manifest.json exists in the project root,
-  answer questions about themes, decisions, rationale, or gaps by querying the
-  existing graphs FIRST, before reading files. For an LLM-authored knowledge
-  base built from sources (wiki pages, curated ontologies), prefer the llm-wiki
+  text structure, content gaps, research questions and ideas, text
+  comparison, SEO/GEO and Google search analysis, GraphRAG retrieval,
+  structured memory. Accepts text, URLs (incl. YouTube), and saved graphs.
+  Analyzes and optimizes an LLM's memories (Claude or Codex memory, mem0,
+  claude-mem): optimizes their structure with optimize_knowledge_base and
+  finds gaps to bridge them and enhance the memories. Also graphs code repos
+  and Obsidian vaults: in a project folder ("graph this repo", "analyze this
+  vault", "/infranodus") it mines docs, PDF text, docstrings, WHY/NOTE
+  comments, and commit/PR/issue history into saved graphs with a report, and
+  keeps them current as files change. When infranodus/manifest.json exists
+  in the project root, answer questions about themes, decisions, rationale,
+  or gaps by querying the existing graphs FIRST, before reading files. For
+  an LLM-authored knowledge base built from sources, prefer the llm-wiki
   skill.
 metadata:
   homepage: https://infranodus.com
@@ -119,6 +120,34 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   `search_queries_vs_search_results` tools.
 - Diversity stats in responses: `biased` → too concentrated, `focused` →
   somewhat concentrated, `diversified` → balanced, `dispersed` → scattered.
+
+## Analyze and optimize memories
+
+When the user asks to analyze, audit, clean up, or improve an LLM's memory
+— Claude's (`CLAUDE.md` files, the auto-memory folder
+`~/.claude/projects/<project>/memory/`), Codex's (`AGENTS.md` and its
+memory files), or an external provider's (mem0, claude-mem, read through
+that provider's own MCP search/list tools) — treat the memories as a small
+knowledge base:
+
+1. **Collect** the memories the user points at. Pass them as `statements`
+   (one memory item per statement), with `categories` set to the source
+   (file, provider, or memory type) and `timestamps` when the store has
+   dates. Do not send secrets or anything the user excludes.
+2. **Optimize structure** with `optimize_knowledge_base` (`focus:
+   "general"`): what dominates, what is under-developed, which clusters
+   never connect, and contradictions or duplicates worth merging. It
+   analyzes without saving; pass `saveAs` only if the user wants the
+   memory graph kept (e.g. `memory-<project>`), which also allows
+   `compareWith` against a repo or vault graph.
+3. **Find gaps to bridge** with `generate_content_gaps` (and
+   `develop_conceptual_bridges` for links to the wider context): each gap
+   is a missing connection between two groups of memories.
+4. **Enhance the memories**: propose concrete edits — merge duplicates,
+   fix contradictions, add a memory that bridges a gap, split overloaded
+   ones — and show them to the user. Write changes back to the original
+   store (the memory files, or the provider's own add/update tools) only
+   after the user agrees.
 
 ## Repo / Vault Graphs (invoked inside a project folder)
 
