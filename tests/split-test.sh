@@ -40,7 +40,12 @@ done
 eq "infranodus-all skills" "$(n_skills infranodus-all@infranodus-skills)" 8
 eq "infranodus-all MCP servers" "$(n_mcp infranodus-all@infranodus-skills)" 1
 eq "infranodus-all version" "$(version infranodus-all@infranodus-skills)" 1.8.0
-for id in $MAIN_IDS; do eq "$id version" "$(version "$id@infranodus-skills")" 1.8.0; done
+# Each main plugin's expected version is the one in its own manifest on the branch.
+want_version() {
+  local src; src=$(jq -r --arg id "$1" '.plugins[] | select(.name==$id) | .source' "$WORK/main-branch/.claude-plugin/marketplace.json")
+  jq -r .version "$WORK/main-branch/$src/.claude-plugin/plugin.json"
+}
+for id in $MAIN_IDS; do eq "$id version" "$(version "$id@infranodus-skills")" "$(want_version "$id")"; done
 for id in $MCP_IDS; do eq "$id MCP servers" "$(n_mcp "$id@infranodus-skills")" 1; done
 for id in $LAB_IDS; do
   eq "$id (Lab, by id) version" "$(version "$id@infranodus-skills")" 1.8.0

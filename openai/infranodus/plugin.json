@@ -1,0 +1,110 @@
+{
+	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+	"name": "infranodus",
+	"version": "0.0.0-set-by-build",
+	"description": "Knowledge graph + gap finder for your notes, vault or agent memory: shows what's missing and what to write next. Maps a text, URL, folder, Obsidian vault, LLM wiki or repo into a measured, deterministic graph via the InfraNodus MCP server: topic clusters, content gaps, research questions, GraphRAG retrieval, SEO/GEO.",
+	"author": {
+		"name": "Nodus Labs",
+		"url": "https://infranodus.com"
+	},
+	"homepage": "https://infranodus.com/skills/infranodus",
+	"repository": "https://github.com/infranodus/skills",
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"knowledge-graph",
+		"text-network-analysis",
+		"content-gaps",
+		"graphrag",
+		"research-questions",
+		"seo",
+		"obsidian",
+		"second-brain"
+	],
+	"extensions": {
+		"com.openai": {
+			"interface": {
+				"displayName": "InfraNodus",
+				"shortDescription": "Knowledge graphs and gaps",
+				"longDescription": "InfraNodus turns any text into a knowledge graph and shows its structure: the main topics, how they connect, and the gaps between them that are worth developing.\n\nWhat you can do:\n- Analyze a text, a web page or a YouTube video: topical clusters, key concepts, structural gaps and how diverse or biased the discourse is.\n- Generate research questions and ideas that bridge the gaps between topics.\n- Compare texts: what they share, and what one covers that the other is missing.\n- Analyze Google search results and related search queries to find content opportunities (SEO/GEO).\n- Analyze and optimize an AI assistant's memories (memory files and external memory stores): find duplicates, contradictions and gaps between groups of memories, and get suggestions to bridge them.\n- Save graphs to your InfraNodus account and query them later with GraphRAG retrieval, or use them as structured memory.\n- Map a folder, an Obsidian vault or a code repository into saved graphs and keep them current as files change (where the plugin can read local files).\n\nWho it is for: researchers, writers, students, SEO and content strategists, and anyone keeping a knowledge base or second brain.\n\nRequirements and limitations: you need an InfraNodus account (sign in when you connect the plugin). Analyses run on InfraNodus servers and use your account's plan limits. The plugin only reads and writes graphs in the account you connect; it does not access other users' graphs. Graph-changing tools (create, update, delete) act only when you ask for them.",
+				"developerName": "Nodus Labs",
+				"category": "Education & Research",
+				"capabilities": [
+					"Analyze text, URLs and YouTube videos",
+					"Find content gaps",
+					"Generate research questions",
+					"Compare texts",
+					"Analyze Google search demand",
+					"Save and query knowledge graphs",
+					"Analyze and optimize AI memories"
+				],
+				"websiteURL": "https://infranodus.com",
+				"supportURL": "https://support.noduslabs.com",
+				"privacyPolicyURL": "https://infranodus.com/about/privacy-policy",
+				"termsOfServiceURL": "https://infranodus.com/about/terms-conditions",
+				"defaultPrompt": [
+					"Show the main topics and content gaps in this text",
+					"Generate research questions from the gaps in my notes",
+					"Compare these two articles: what does the first one miss?"
+				],
+				"composerIcon": "./assets/logo.png",
+				"logo": "./assets/logo.png"
+			},
+			"review": {
+				"test_cases": {
+					"positive": [
+						{
+							"description": "Topical structure of a pasted text",
+							"prompt": "What are the main topics and the gaps between them in this text? Urban gardens cut food miles and give neighbours a shared project. Rooftop farms reduce building heat. City councils struggle with zoning rules for growing food. Community composting closes the nutrient loop, but volunteers burn out.",
+							"tools_triggered": "generate_topical_clusters, generate_content_gaps",
+							"expected_behavior": "Returns 3-5 topical clusters with their key concepts and at least one structural gap between clusters, explained in plain language. Nothing is saved to the account."
+						},
+						{
+							"description": "Research questions from a structural gap",
+							"prompt": "Using the same text about urban gardening, generate three research questions that bridge its content gaps.",
+							"tools_triggered": "generate_research_questions",
+							"expected_behavior": "Returns three research questions, each linking concepts from two different topical clusters, with the gap each question addresses."
+						},
+						{
+							"description": "Compare two texts",
+							"prompt": "Compare these two texts and tell me what the first one is missing. Text 1: Remote work saves commuting time and lets teams hire globally. Text 2: Remote work saves commuting time, but isolation, blurred work-life boundaries and weaker mentoring for junior staff are real costs.",
+							"tools_triggered": "difference_between_texts",
+							"expected_behavior": "Lists the concepts present in the second text but absent from the first (isolation, work-life boundaries, mentoring, junior staff) and summarises the missing perspective."
+						},
+						{
+							"description": "Save a graph and retrieve from it",
+							"prompt": "Save these notes as an InfraNodus graph called review-demo-notes, then tell me what the graph says about trust: Trust grows from repeated small promises kept. Teams with high trust share bad news early. Bad news shared early is cheaper to fix.",
+							"tools_triggered": "create_knowledge_graph, retrieve_from_knowledge_base",
+							"expected_behavior": "Creates the graph review-demo-notes in the connected account (only after the explicit request), then answers the question from the saved statements about trust and cites them."
+						},
+						{
+							"description": "List and analyze an existing saved graph",
+							"prompt": "List my InfraNodus graphs, then show the main topics of the graph review-sample-graph.",
+							"tools_triggered": "list_graphs, analyze_existing_graph_by_name",
+							"expected_behavior": "Lists the graphs in the demo account, including review-sample-graph, then returns its main topical clusters and key concepts."
+						}
+					],
+					"negative": [
+						{
+							"description": "Unrelated request: weather forecast. InfraNodus analyzes text structure and has no weather data, so the plugin should not be used.",
+							"prompt": "What will the weather be in Berlin tomorrow?"
+						},
+						{
+							"description": "Unsupported action: sending email. The plugin cannot send messages on the user's behalf.",
+							"prompt": "Email a summary of my notes to my team."
+						},
+						{
+							"description": "Unsupported purchase: buying credits or a subscription. The plugin does not sell anything or process payments.",
+							"prompt": "Upgrade my InfraNodus plan and pay with my saved card."
+						}
+					]
+				},
+				"demo_recording_url": "https://www.youtube.com/watch?v=thUYUuM6dG4",
+				"commerce": false,
+				"commerce_description": "This plugin does not sell products or process payments."
+			},
+			"publication": {
+				"release_notes": "First release in the plugin directory: knowledge graph analysis, content gaps, research questions, text comparison, search demand analysis, memory optimization and saved-graph retrieval through the InfraNodus MCP server."
+			}
+		}
+	}
+}
