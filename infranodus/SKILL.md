@@ -32,15 +32,17 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 
 - **Queries and analysis** — use the native MCP tools in the session
   (any InfraNodus prefix: `mcp__infranodus__<tool>`, a plugin's
-  `mcp__plugin_<plugin>_infranodus__<tool>`, or the claude.ai connector's
-  `mcp__claude_ai_InfraNodus__<tool>`).
+  `mcp__plugin_<plugin>_infranodus__<tool>`, the claude.ai connector's
+  `mcp__claude_ai_InfraNodus__<tool>`, or the plain tool name in ChatGPT
+  and Codex).
   The server's own instructions and tool schemas are the authoritative
   reference for every tool's parameters and workflow patterns — do not
   duplicate or second-guess them here.
 - **Not signed in** — if the InfraNodus server is installed but not signed
   in (its tools are missing or return an authentication error), tell the
-  user to run `/mcp` in Claude Code, select InfraNodus and sign in, then
-  continue.
+  user to sign in: in Claude Code, run `/mcp`, select InfraNodus and sign
+  in; in ChatGPT or Codex, reconnect the InfraNodus plugin in its
+  settings. Then continue.
 - **Bulk uploads (repo/vault graphs) — session server FIRST.** Prefer the
   InfraNodus MCP server already connected to this session (e.g. the
   claude.ai InfraNodus connector): the agent performs the upload itself

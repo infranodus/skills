@@ -63,6 +63,15 @@ jobs:
           echo "Created packages:"
           ls -la skill-packages/
 
+      - name: Build OpenAI plugin package
+        # ChatGPT / Codex plugin directory ZIP of the infranodus plugin, built
+        # from the same skill files (tests/build-openai.sh). Kept out of
+        # skill-packages/ so it is not listed as a Claude skill package.
+        run: |
+          tests/build-openai.sh
+          mkdir -p openai-packages
+          cp dist/infranodus-openai.zip openai-packages/
+
       - name: Generate release notes
         id: release_notes
         run: |
@@ -109,7 +118,9 @@ jobs:
           body_path: release_notes.md
           draft: false
           prerelease: false
-          files: skill-packages/*.zip
+          files: |
+            skill-packages/*.zip
+            openai-packages/infranodus-openai.zip
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

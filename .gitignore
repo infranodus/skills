@@ -5,3 +5,6 @@ docs/*
 !docs/ROADMAP.md
 testing-briefs/
 testing-knowledge
+
+# OpenAI plugin build output (tests/build-openai.sh)
+dist/

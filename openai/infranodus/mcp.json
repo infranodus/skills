@@ -1,0 +1,19 @@
+{
+	"$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+	"mcpServers": {
+		"infranodus": {
+			"type": "streamable-http",
+			"url": "https://mcp.infranodus.com",
+			"extensions": {
+				"com.openai": {
+					"auth": {
+						"type": "oauth",
+						"client": {
+							"mode": "dcr"
+						}
+					}
+				}
+			}
+		}
+	}
+}
