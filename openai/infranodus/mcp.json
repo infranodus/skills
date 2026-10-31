@@ -3,7 +3,7 @@
 	"mcpServers": {
 		"infranodus": {
 			"type": "streamable-http",
-			"url": "https://mcp.infranodus.com",
+			"url": "https://mcp.infranodus.com/openai",
 			"extensions": {
 				"com.openai": {
 					"auth": {
