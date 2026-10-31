@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-all",
-	"version": "1.8.0",
+	"version": "1.8.4",
 	"description": "The complete InfraNodus skills collection: all 8 skills in this repo in one install: the infranodus core (knowledge graph + gap finder), llm-wiki, ontology-generator, project-learnings, shifting-perspective, cognitive-variability, writing-assistant and seo-analysis, plus the InfraNodus MCP server. Lab skills (infranodus/skills-lab) are installed separately.",
 	"author": {
 		"name": "InfraNodus",
