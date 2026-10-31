@@ -43,6 +43,35 @@ cp -R "$SRC_OPENAI/assets" "$OUT_DIR/assets"
 # The skill, minus caches, tests and OS junk. No symlinks (rejected by the
 # directory), no .claude-plugin/ (Claude-only).
 cp "$SRC_SKILL/SKILL.md" "$OUT_DIR/skills/infranodus/SKILL.md"
+
+# The directory rejects a skill description that names another AI assistant,
+# model or platform, while the Claude description names Claude, Codex, mem0
+# and claude-mem on purpose (it routes those requests to the skill). The
+# OpenAI copy gets openai/infranodus/skill-description.txt instead.
+if [ -f "$SRC_OPENAI/skill-description.txt" ]; then
+	python3 -I - "$OUT_DIR/skills/infranodus/SKILL.md" "$SRC_OPENAI/skill-description.txt" <<'PY'
+import re, sys, textwrap
+skill, desc_file = sys.argv[1], sys.argv[2]
+desc = " ".join(open(desc_file, encoding="utf-8").read().split())
+text = open(skill, encoding="utf-8").read()
+m = re.match(r"---\n(.*?)\n---\n", text, re.S)
+if not m:
+    sys.exit("error: SKILL.md has no frontmatter")
+lines = m.group(1).split("\n")
+out, i = [], 0
+while i < len(lines):
+    if lines[i].startswith("description:"):
+        out.append("description: >-")
+        out += ["  " + l for l in textwrap.wrap(desc, 76)]
+        i += 1
+        while i < len(lines) and (lines[i].startswith(" ") or lines[i] == ""):
+            i += 1
+        continue
+    out.append(lines[i])
+    i += 1
+open(skill, "w", encoding="utf-8").write("---\n" + "\n".join(out) + "\n---\n" + text[m.end():])
+PY
+fi
 for d in references scripts; do
 	[ -d "$SRC_SKILL/$d" ] || continue
 	(cd "$SRC_SKILL" && find "$d" -type f \
@@ -83,6 +112,14 @@ R='.extensions["com.openai"].review.test_cases'
 desc_chars=$(awk 'NR==1{next} /^---$/{exit} {print}' "$OUT_DIR/skills/infranodus/SKILL.md" |
 	sed -n '/^description:/,/^[a-z]*:/p' | sed '1s/^description:[ >-]*//;$d' | tr -s ' \n' ' ' | wc -m | tr -d ' ')
 [ "$desc_chars" -le 1024 ] || err "SKILL.md description is $desc_chars chars (max 1024)"
+
+# No other AI assistant, model or platform in the plugin name, listing text
+# or skill description (directory rule).
+SKILL_DESC=$(python3 -I -c 'import sys,yaml; t=open(sys.argv[1],encoding="utf-8").read().split("---")[1]; print(yaml.safe_load(t)["description"])' "$OUT_DIR/skills/infranodus/SKILL.md" 2>/dev/null) || err "SKILL.md frontmatter is not valid YAML"
+LISTING=$(jq -r '[.name, .description, (.extensions["com.openai"].interface | .displayName, .shortDescription, .longDescription, (.capabilities // [] | join(" ")), (.defaultPrompt // [] | join(" "))), (.extensions["com.openai"].publication.release_notes // "")] | join("\n")' "$M")
+NAMES='claude|anthropic|chatgpt|codex|openai|gpt-?[0-9]|gemini|bard|copilot|cursor|windsurf|perplexity|grok|llama|mistral|deepseek|mem0|claude-mem'
+hits=$(printf '%s\n%s\n' "$LISTING" "$SKILL_DESC" | { grep -o -i -w -E "$NAMES" || true; } | sort -u | tr '\n' ' ')
+[ -z "$hits" ] || err "listing or skill description names other AI products: $hits"
 
 if grep -q 'TODO' "$M"; then
 	if [ "$STRICT" = 1 ]; then err "placeholders left in plugin.json (TODO)"; else warn "placeholders left in plugin.json (TODO): fill before submitting"; fi
