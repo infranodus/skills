@@ -6,7 +6,7 @@ plugin is built twice from the same skill:
 | | Claude Code | ChatGPT / Codex |
 |---|---|---|
 | Manifest | `infranodus/.claude-plugin/plugin.json` | `openai/infranodus/plugin.json` |
-| MCP server | in the manifest (`mcpServers`) | `openai/infranodus/mcp.json` (OAuth via DCR) |
+| MCP server | none: the skill uses the InfraNodus connector the user has connected | `openai/infranodus/mcp.json` (OAuth via DCR) |
 | Skill | `infranodus/SKILL.md` + `references/` + `scripts/` | copied to `skills/infranodus/` at build time |
 | Version | **source of truth** | copied from the Claude manifest at build time |
 
