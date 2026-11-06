@@ -1,6 +1,6 @@
 {
 	"name": "seo-analysis",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "SEO analysis: keyword research, content gap analysis, search intent, and optimization recommendations using real Google data.",
 	"author": {
 		"name": "InfraNodus",
@@ -24,11 +24,5 @@
 	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
-	],
-	"mcpServers": {
-		"infranodus": {
-			"type": "http",
-			"url": "https://mcp.infranodus.com"
-		}
-	}
+	]
 }

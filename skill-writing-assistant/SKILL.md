@@ -83,7 +83,7 @@ The InfraNodus tools are provided by the InfraNodus MCP server at `https://mcp.i
 
 **If the InfraNodus MCP server is already configured** in your environment (e.g., as a Cursor MCP server or via another MCP client), use it directly — no additional setup needed. Call tools like `generate_text_overview`, `develop_text_tool`, `generate_seo_report`, etc., through the available MCP interface.
 
-If the InfraNodus server is installed but not signed in (its tools are missing or return an authentication error), tell the user to run `/mcp` in Claude Code, select InfraNodus and sign in, then continue.
+If the InfraNodus tools are missing or return an authentication error, tell the user to connect the InfraNodus connector (claude.ai Settings → Connectors) or run `claude mcp add --transport http infranodus https://mcp.infranodus.com`, then sign in, and continue.
 
 **If the InfraNodus MCP server is not available**, use `mcporter` as a fallback to connect:
 

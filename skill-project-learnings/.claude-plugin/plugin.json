@@ -1,6 +1,6 @@
 {
 	"name": "project-learnings",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "Agent memory for a project: proactively retrieves at task start and saves at task end what sessions learned about operating in a repo or vault to an opt-in InfraNodus learnings graph. Writes only after per-project opt-in; can be set to manual-only.",
 	"author": {
 		"name": "InfraNodus",
@@ -26,11 +26,5 @@
 	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
-	],
-	"mcpServers": {
-		"infranodus": {
-			"type": "http",
-			"url": "https://mcp.infranodus.com"
-		}
-	}
+	]
 }

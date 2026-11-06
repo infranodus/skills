@@ -31,19 +31,21 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
 
 ## How this skill talks to InfraNodus
 
-- **Queries and analysis** — use the native MCP tools in the session
-  (any InfraNodus prefix: `mcp__infranodus__<tool>`, a plugin's
-  `mcp__plugin_<plugin>_infranodus__<tool>`, the claude.ai connector's
-  `mcp__claude_ai_InfraNodus__<tool>`, or the plain tool name in ChatGPT
-  and Codex).
+- **Queries and analysis** — call the InfraNodus tools by their bare name
+  (e.g. the InfraNodus `generate_content_gaps` tool), from whatever
+  InfraNodus MCP server or connector is connected to the session. The
+  prefix in front of the name differs by how it was connected (the
+  claude.ai connector, a server added with `claude mcp add`, a plugin), so
+  never rely on one.
   The server's own instructions and tool schemas are the authoritative
   reference for every tool's parameters and workflow patterns — do not
   duplicate or second-guess them here.
-- **Not signed in** — if the InfraNodus server is installed but not signed
-  in (its tools are missing or return an authentication error), tell the
-  user to sign in: in Claude Code, run `/mcp`, select InfraNodus and sign
-  in; in ChatGPT or Codex, reconnect the InfraNodus plugin in its
-  settings. Then continue.
+- **Not connected or not signed in** — if the InfraNodus tools are missing
+  or return an authentication error, tell the user to connect the
+  InfraNodus connector (claude.ai Settings → Connectors) or run
+  `claude mcp add --transport http infranodus https://mcp.infranodus.com`,
+  then sign in; in ChatGPT or Codex, reconnect the InfraNodus plugin in its
+  settings. Then continue. Never ask the user for an API key.
 - **Bulk uploads (repo/vault graphs) — session server FIRST.** Prefer the
   InfraNodus MCP server already connected to this session (e.g. the
   claude.ai InfraNodus connector): the agent performs the upload itself
@@ -75,9 +77,11 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   you found in some other application's config — that is how content
   lands in an account the user never chose.
 - **If neither is available** (no session tools AND no configured server),
-  `--check-auth` prints the `claude mcp add` commands for both the hosted
-  and the local option. Offer to run one of them, or offer to keep the
-  extracted scope files local. Never guess an endpoint.
+  tell the user in one line to connect the InfraNodus connector (claude.ai
+  Settings → Connectors, or
+  `claude mcp add --transport http infranodus https://mcp.infranodus.com`),
+  and offer to keep the extracted scope files local meanwhile. Never ask
+  for an API key and never guess an endpoint.
 - **Provenance** — each uploaded scope records `endpoint`, `transport`,
   `account`, and `verified` (the date the graph was successfully read back)
   in the manifest. When a graph query fails, compare the manifest's
