@@ -1,6 +1,6 @@
 {
 	"name": "llm-wiki",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "Collect and curate: set up and maintain an LLM wiki / second brain (Karpathy-style raw sources -> interlinked wiki pages) that compounds over time, with knowledge graph and gap analysis of what it covers. Works with the core infranodus skill.",
 	"author": {
 		"name": "InfraNodus",
@@ -28,11 +28,5 @@
 	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
 	"skills": [
 		"./"
-	],
-	"mcpServers": {
-		"infranodus": {
-			"type": "http",
-			"url": "https://mcp.infranodus.com"
-		}
-	}
+	]
 }
