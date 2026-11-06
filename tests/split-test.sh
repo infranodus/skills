@@ -33,6 +33,12 @@ path_of()  { c plugin list --json | jq -r --arg id "$1" '.[] | select(.id==$id) 
 
 git clone -q --branch "$BRANCH" "$MAIN_REPO" "$WORK/main-branch"
 git clone -q --branch "$OLD_REF" "$MAIN_REPO" "$WORK/main-master" 2>/dev/null
+git clone -q --depth 1 "https://github.com/$LAB_GH" "$WORK/lab"
+# A Lab plugin's expected version is the one in its own manifest in the Lab repo.
+lab_version() {
+  local src; src=$(jq -r --arg id "$1" '.plugins[] | select(.name==$id) | .source' "$WORK/lab/.claude-plugin/marketplace.json")
+  jq -r .version "$WORK/lab/$src/.claude-plugin/plugin.json"
+}
 
 echo "== A. Fresh install from $BRANCH (Lab ids via git-subdir over GitHub)"
 CFG=$WORK/cfg-fresh; mkdir -p "$CFG"
@@ -51,7 +57,7 @@ eq "infranodus-all version" "$(version infranodus-all@infranodus-skills)" "$(wan
 for id in $MAIN_IDS; do eq "$id version" "$(version "$id@infranodus-skills")" "$(want_version "$id")"; done
 for id in $MCP_IDS; do check "$id brings no MCP server" no_mcp "$id@infranodus-skills"; done
 for id in $LAB_IDS; do
-  eq "$id (Lab, by id) version" "$(version "$id@infranodus-skills")" 1.8.0
+  eq "$id (Lab, by id) version" "$(version "$id@infranodus-skills")" "$(lab_version "$id")"
   p=$(path_of "$id@infranodus-skills")
   check "$id installed SKILL.md present" test -f "$p/SKILL.md"
   check "$id manifest points at skills-lab" grep -q "infranodus/skills-lab" "$p/.claude-plugin/plugin.json"
@@ -62,8 +68,8 @@ CFG=$WORK/cfg-lab; mkdir -p "$CFG"
 check "marketplace add $LAB_GH" c plugin marketplace add "$LAB_GH"
 check "install skills-lab-all@infranodus-skills-lab" c plugin install skills-lab-all@infranodus-skills-lab
 eq "skills-lab-all skills" "$(n_skills skills-lab-all@infranodus-skills-lab)" 8
-eq "skills-lab-all MCP servers" "$(n_mcp skills-lab-all@infranodus-skills-lab)" 1
-eq "skills-lab-all version" "$(version skills-lab-all@infranodus-skills-lab)" 1.8.0
+check "skills-lab-all brings no MCP server" no_mcp skills-lab-all@infranodus-skills-lab
+eq "skills-lab-all version" "$(version skills-lab-all@infranodus-skills-lab)" "$(lab_version skills-lab-all)"
 check "install actionize@infranodus-skills-lab" c plugin install actionize@infranodus-skills-lab
 
 echo "== C. MCP server registrations with infranodus + seo-analysis + infranodus-all (info)"
@@ -85,7 +91,7 @@ check "plugin update infranodus-all" c plugin update infranodus-all@infranodus-s
 check "plugin update actionize" c plugin update actionize@infranodus-skills
 eq "after: infranodus-all skills" "$(n_skills infranodus-all@infranodus-skills)" 8
 eq "after: infranodus-all version" "$(version infranodus-all@infranodus-skills)" "$(want_version infranodus-all)"
-eq "after: actionize version (now from Lab)" "$(version actionize@infranodus-skills)" 1.8.0
+eq "after: actionize version (now from Lab)" "$(version actionize@infranodus-skills)" "$(lab_version actionize)"
 check "after: actionize manifest points at skills-lab" \
   grep -q "infranodus/skills-lab" "$(path_of actionize@infranodus-skills)/.claude-plugin/plugin.json"
 
