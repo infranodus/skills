@@ -25,6 +25,9 @@ c()        { CLAUDE_CONFIG_DIR="$CFG" claude "$@"; }
 details()  { c plugin details "$1" 2>&1; }
 n_skills() { details "$1" | sed -n 's/^ *Skills (\([0-9]*\)).*/\1/p'; }
 n_mcp()    { details "$1" | sed -n 's/^ *MCP servers (\([0-9]*\)).*/\1/p'; }
+# The plugins bring no MCP server of their own (they use the user's InfraNodus
+# connector), so `plugin details` lists none: no line, or a count of 0.
+no_mcp()   { local n; n=$(n_mcp "$1"); [ -z "$n" ] || [ "$n" = 0 ]; }
 version()  { c plugin list --json | jq -r --arg id "$1" '.[] | select(.id==$id) | .version'; }
 path_of()  { c plugin list --json | jq -r --arg id "$1" '.[] | select(.id==$id) | .installPath'; }
 
@@ -43,10 +46,10 @@ want_version() {
   jq -r .version "$WORK/main-branch/$src/.claude-plugin/plugin.json"
 }
 eq "infranodus-all skills" "$(n_skills infranodus-all@infranodus-skills)" 8
-eq "infranodus-all MCP servers" "$(n_mcp infranodus-all@infranodus-skills)" 1
+check "infranodus-all brings no MCP server" no_mcp infranodus-all@infranodus-skills
 eq "infranodus-all version" "$(version infranodus-all@infranodus-skills)" "$(want_version infranodus-all)"
 for id in $MAIN_IDS; do eq "$id version" "$(version "$id@infranodus-skills")" "$(want_version "$id")"; done
-for id in $MCP_IDS; do eq "$id MCP servers" "$(n_mcp "$id@infranodus-skills")" 1; done
+for id in $MCP_IDS; do check "$id brings no MCP server" no_mcp "$id@infranodus-skills"; done
 for id in $LAB_IDS; do
   eq "$id (Lab, by id) version" "$(version "$id@infranodus-skills")" 1.8.0
   p=$(path_of "$id@infranodus-skills")
@@ -67,7 +70,7 @@ echo "== C. MCP server registrations with infranodus + seo-analysis + infranodus
 CFG=$WORK/cfg-fresh
 (cd "$WORK" && c mcp list 2>&1) | grep -i "infranodus" | sed 's/^/        /'
 N=$( (cd "$WORK" && c mcp list 2>&1) | grep -ci "mcp.infranodus.com")
-echo "        -> $N entries point at mcp.infranodus.com (1 = deduplicated, >1 = one per plugin)"
+echo "        -> $N entries point at mcp.infranodus.com (0 = no plugin brings the server, as intended)"
 
 echo "== D. Upgrade: user on $OLD_REF -> $BRANCH"
 CFG=$WORK/cfg-upgrade; mkdir -p "$CFG"
