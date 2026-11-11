@@ -1,0 +1,34 @@
+{
+	"name": "infranodus",
+	"version": "1.8.6",
+	"description": "Knowledge graph + gap finder for your notes, vault or agent memory: shows what's missing and what to write next. Maps a folder, Obsidian vault, LLM wiki or repo into a measured, deterministic graph via the InfraNodus MCP server: topic clusters, content gaps, research questions, GraphRAG retrieval, SEO/GEO.",
+	"author": {
+		"name": "InfraNodus",
+		"url": "https://infranodus.com"
+	},
+	"license": "Apache-2.0 AND CC-BY-4.0",
+	"keywords": [
+		"infranodus",
+		"knowledge-graph",
+		"text-network-analysis",
+		"content-gaps",
+		"graphrag",
+		"seo",
+		"geo",
+		"research-questions",
+		"obsidian",
+		"codebase-graph",
+		"second-brain",
+		"agent-memory",
+		"llm-wiki"
+	],
+	"homepage": "https://github.com/infranodus/skills",
+	"repository": "https://github.com/infranodus/skills",
+	"documentationUrl": "https://github.com/infranodus/skills",
+	"supportUrl": "https://support.noduslabs.com",
+	"privacyPolicyUrl": "https://infranodus.com/about/privacy-policy",
+	"termsOfServiceUrl": "https://infranodus.com/about/terms-conditions",
+	"skills": [
+		"./"
+	]
+}

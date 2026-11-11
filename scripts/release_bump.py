@@ -16,6 +16,8 @@ Rules:
   only when this number goes up.
 - A change in openai/infranodus/ counts as a change to `infranodus`: the
   ChatGPT / Codex package takes its version from that plugin.
+- So does a change in claude-directory/src/infranodus/: the Claude directory
+  edition is built from it and carries that plugin's manifest.
 
 Prints a summary, and writes `release`, `version`, `changed` and
 `openai_upload` to $GITHUB_OUTPUT when it is set.
@@ -32,6 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BUNDLE_MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 OPENAI_PLUGIN = "infranodus"
 OPENAI_LISTING = "openai/infranodus/"
+DIRECTORY_SOURCES = "claude-directory/src/infranodus/"
 VERSION_LINE = re.compile(r'^(\s*"version"\s*:\s*")(\d+\.\d+\.\d+)(")', re.M)
 
 
@@ -98,6 +101,8 @@ def main():
     }
     listing_changed = any(path.startswith(OPENAI_LISTING) for path in changed_files)
     if listing_changed:
+        changed.add(OPENAI_PLUGIN)
+    if any(path.startswith(DIRECTORY_SOURCES) for path in changed_files):
         changed.add(OPENAI_PLUGIN)
 
     outputs = {"release": "false", "version": "", "changed": "", "openai_upload": "false"}
