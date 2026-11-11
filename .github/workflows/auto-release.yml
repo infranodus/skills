@@ -1,0 +1,88 @@
+name: Release on merge
+
+# Every push to master (a merged pull request) is released without further
+# steps: the plugins that changed since the last v* tag get the new version,
+# the bump is committed and tagged, and the release workflow builds the
+# packages. See RELEASING.md.
+#
+# Labels on the merged pull request:
+#   release:skip    no release for this merge
+#   release:minor   bump the minor version instead of the patch
+#   release:major   bump the major version
+
+on:
+  push:
+    branches: [master]
+
+# One release at a time; a second merge waits and then sees the first one's tag.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.bump.outputs.release }}
+      version: ${{ steps.bump.outputs.version }}
+      openai_upload: ${{ steps.bump.outputs.openai_upload }}
+    steps:
+      - name: Checkout the tip of master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Read the release labels of the merged pull request
+        id: labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          labels=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            --jq '[.[].labels[].name] | join(" ")' || true)
+          level=patch
+          skip=false
+          case " $labels " in *" release:skip "*) skip=true ;; esac
+          case " $labels " in
+            *" release:major "*) level=major ;;
+            *" release:minor "*) level=minor ;;
+          esac
+          echo "labels: ${labels:-none}; level: $level; skip: $skip"
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+
+      - name: Bump the plugins that changed since the last release
+        id: bump
+        if: steps.labels.outputs.skip != 'true'
+        run: python3 scripts/release_bump.py --level "${{ steps.labels.outputs.level }}"
+
+      - name: Check that the ChatGPT / Codex package builds
+        if: steps.bump.outputs.release == 'true'
+        run: tests/build-openai.sh --strict
+
+      - name: Commit the versions and tag the release
+        if: steps.bump.outputs.release == 'true'
+        run: |
+          version="${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- .claude-plugin/plugin.json '*/.claude-plugin/plugin.json'
+          git commit -m "Release v$version" -m "Changed: ${{ steps.bump.outputs.changed }}"
+          git tag "v$version"
+          git push origin HEAD:master "v$version"
+
+  # A tag pushed with the workflow's own token starts no other workflow, so
+  # the packages are built here and not by the tag trigger of release.yml.
+  release:
+    needs: bump
+    if: needs.bump.outputs.release == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: v${{ needs.bump.outputs.version }}
+      openai_upload: ${{ needs.bump.outputs.openai_upload == 'true' }}

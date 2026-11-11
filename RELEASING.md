@@ -5,38 +5,63 @@ How a change in this repo reaches users: the Claude Code marketplace,
 
 ## Versions
 
-Claude Code fetches a plugin update only when its `version` goes up.
+Claude Code fetches a plugin update only when its `version` goes up. The
+release workflow sets the versions, so a pull request does not bump them:
 
-- Bump the plugin whose files changed: `<skill-dir>/.claude-plugin/plugin.json`.
-- **If you change `infranodus/`, also bump `infranodus-all`** (root
-  `.claude-plugin/plugin.json`). The bundle ships the same skill folders, so
-  without a bump its users keep the old copy. The same applies to any other
-  skill the bundle lists.
-- The ChatGPT package takes its version from
+- Each plugin that changed since the last release gets the new release
+  version (`<skill-dir>/.claude-plugin/plugin.json`). A plugin's version is
+  the release it last changed in.
+- `infranodus-all` (root `.claude-plugin/plugin.json`) gets it too when any
+  skill it lists changed. The bundle ships the same skill folders, so without
+  a bump its users would keep the old copy.
+- A change in `openai/infranodus/` counts as a change to `infranodus`: the
+  ChatGPT package takes its version from
   `infranodus/.claude-plugin/plugin.json` (see `tests/build-openai.sh`).
+
+The rules live in `scripts/release_bump.py`. To see what the next merge would
+release: `python3 scripts/release_bump.py --dry-run`.
 
 ## Release (Claude marketplace, npx skills, zips)
 
-1. Merge the feature branches into `master` through PRs.
-2. Bump versions as above.
-3. Run the install and upgrade test against `master`:
-   `tests/split-test.sh . master v1.7.3`
-   (needs network; runs every `claude` call under a throwaway config).
-4. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-   `.github/workflows/release.yml` builds the Claude skill zips and attaches
-   `infranodus-openai.zip` to the GitHub release.
-5. Users update with `/plugin marketplace update infranodus-skills` and then
-   the plugin update in Claude Code; `npx skills` users re-run their `add`.
-   Nothing else is deployed: the marketplace reads this repo.
+Merging a pull request into `master` releases it.
+`.github/workflows/auto-release.yml` runs on every push to `master`:
+
+1. Finds the plugins that changed since the newest `v*` tag. None changed
+   (docs, tests, workflows only): no release.
+2. Bumps them and, when needed, the bundle; checks the ChatGPT package with
+   `tests/build-openai.sh --strict`.
+3. Commits `Release vX.Y.Z` to `master`, tags it and pushes.
+4. Calls `.github/workflows/release.yml`, which builds the Claude skill zips
+   and attaches `infranodus-openai.zip` to the GitHub release.
+
+Labels on the pull request change this:
+
+| Label | Effect |
+|---|---|
+| `release:skip` | No release for this merge. Its changes go out with the next one |
+| `release:minor` | Bump the minor version instead of the patch |
+| `release:major` | Bump the major version |
+
+Users update with `/plugin marketplace update infranodus-skills` and then
+the plugin update in Claude Code; `npx skills` users re-run their `add`.
+Nothing else is deployed: the marketplace reads this repo.
+
+Not run by the workflow: the install and upgrade test,
+`tests/split-test.sh . master v1.7.3`. It drives the `claude` CLI under a
+throwaway config and needs network. Run it by hand before merging a change
+to the manifests, the marketplace file or the install script.
+
+A release by hand still works: bump, `git tag vX.Y.Z && git push origin
+vX.Y.Z`, and `release.yml` runs on the tag.
 
 ## ChatGPT / Codex plugin directory (`infranodus` only)
 
 Manual: the directory does not read this repo.
 
 - **Skill or listing change** (anything in `infranodus/` or
-  `openai/infranodus/`): bump the `infranodus` version, run
-  `tests/build-openai.sh --strict`, and upload `dist/infranodus-openai.zip`
-  in the OpenAI dashboard. A re-upload with an unchanged version is rejected,
+  `openai/infranodus/`): the release notes of the GitHub release say when
+  this applies. Download `infranodus-openai.zip` from that release and
+  upload it in the OpenAI dashboard. A re-upload with an unchanged version is rejected,
   and every upload is reviewed again.
 - **MCP server change** (`mcp-server-infranodus`): no upload. After
   publication the directory rescans the live server; new tools come up for
