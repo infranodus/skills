@@ -5,6 +5,16 @@ on:
     tags:
       - "v*" # triggers on tags like v1.0.0, v1.0.1, etc.
   workflow_dispatch: # allows manual trigger
+  workflow_call: # called by auto-release.yml after it tags a merge
+    inputs:
+      tag:
+        description: The v* tag to build the release from
+        type: string
+        required: true
+      openai_upload:
+        description: The infranodus plugin changed, so the ChatGPT / Codex package needs a manual upload
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -16,6 +26,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Create skill packages
         run: |
@@ -106,6 +118,10 @@ jobs:
           For more details about each skill, see the individual skill documentation in the [repository](https://github.com/${{ github.repository }})
           EOF
 
+          if [ "${{ inputs.openai_upload }}" = "true" ]; then
+            printf '\n### ChatGPT / Codex plugin directory\n\nThe `infranodus` plugin changed in this release. Upload `infranodus-openai.zip` from this release in the OpenAI dashboard (see RELEASING.md).\n' >> release_notes.md
+          fi
+
           # Set the release notes as output
           echo "notes_file=release_notes.md" >> $GITHUB_OUTPUT
 
@@ -113,8 +129,8 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: InfraNodus Skills ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: InfraNodus Skills ${{ inputs.tag || github.ref_name }}
           body_path: release_notes.md
           draft: false
           prerelease: false
