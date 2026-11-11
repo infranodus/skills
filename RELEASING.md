@@ -79,7 +79,9 @@ Markdown, JSON and the icon only.
 - In a pull request that changes `infranodus/SKILL.md` or the sources, run
   the build and commit the result; `--check` fails when it is stale. The
   release workflow rebuilds it after the version bump and commits it with
-  the release, and the directory picks up the new commit.
+  the release. Whether the directory then takes the new commit by itself
+  is not confirmed: check the listing's version after a release and
+  resubmit in the portal when it has not moved.
 - Before a submission: `claude plugin validate claude-directory/infranodus
   --profile directory --strict`.
 
