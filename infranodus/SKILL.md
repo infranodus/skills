@@ -102,10 +102,23 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   lines (a digest principle, a memory item), or one selector plus `set`
   (add/remove categories, timestamp) / `replace: {pattern, with}` to
   relabel a source or rename a `[[concept]]` across a graph; same dry
-  run → `confirm: true` contract.
+  run → `confirm: true` contract. `delete_graph` removes a whole graph
+  and frees its name: irreversible, same dry run first, and only when
+  the user asked for it (to empty a graph but keep it, use
+  `delete_statements` with `deleteAll`).
 - What's missing / ideation: `generate_content_gaps` →
   `generate_research_questions` / `generate_research_ideas`;
   `develop_text_tool` for the combined pipeline.
+- Insight clusters: a response that has `contentGaps` may also have
+  `insightClusters`, the one to three clusters InfraNodus picks from the
+  state of the structure as the best place to intervene, each tagged
+  `gap`, `bridge` or `influence`. They differ from the content gaps (the
+  widest holes): bridging them is what moves a biased or dispersed graph
+  toward a balanced one. The research and `optimize_knowledge_base` tools
+  work on them by default (`optimize: "optimize"`). Name the clusters
+  when you present a question or idea, and raise `gapDepth` on the next
+  call to move to the next set instead of asking about the same one
+  again.
 - Retrieval: `retrieve_from_knowledge_base` (GraphRAG over a saved graph),
   `analyze_existing_graph_by_name` (structure of a saved graph),
   `generate_contextual_hint` (lightweight structural overview — good
@@ -114,6 +127,15 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   advice generated from a saved graph — good for advice/recommendation
   questions the graph should answer in its own voice),
   `list_graphs` / `search` / `fetch` for discovery.
+- One concept: `get_node_neighborhood` answers any "what is X connected
+  to / related to / what does it depend on?" question about a saved
+  graph, by hop distance, with the statements on those links. Call it
+  even when the graph's statements are already in context: the walk is
+  authoritative, reading links out of a statement list is not.
+  `get_graph_around_term` is the same question across graphs: every
+  statement that mentions a term (or several) in all the user's graphs
+  or the named ones, built into one graph with the term left out, so
+  the topics and gaps describe the context the term sits in.
 - Reasoning check: `optimize_reasoning` on a draft synthesis — diagnoses
   biased/focused/diversified/dispersed and suggests which topics or gaps
   to develop further.
@@ -121,7 +143,17 @@ Text network analysis and knowledge graph tools via the InfraNodus MCP server.
   `merged_graph_from_texts` (each takes a `contexts` array).
 - SEO/GEO: `generate_seo_report` (90s+ timeout) or the individual
   `analyze_google_search_results` / `analyze_related_search_queries` /
-  `search_queries_vs_search_results` tools.
+  `search_queries_vs_search_results` tools. For GEO,
+  `analyze_llm_results` asks a model to describe a topic and graphs the
+  answer: how that model frames it, and what it leaves out. For video,
+  `analyze_youtube_results` graphs YouTube search results, a channel or
+  playlist, comments or transcripts.
+- Kept memory: `memory_add_relations` / `memory_get_relations` write to
+  and read from a graph you name. With `scope` they use the user's kept
+  memory instead: `topic` (facts about an outside subject, client or
+  case) or `personal` (the user's own preferences and setup). That
+  memory has to exist first: `enable_memory` creates it, and only when
+  the user explicitly asked to keep memory of that kind.
 - Diversity stats in responses: `biased` → too concentrated, `focused` →
   somewhat concentrated, `diversified` → balanced, `dispersed` → scattered.
 
@@ -146,7 +178,11 @@ knowledge base:
    `compareWith` against a repo or vault graph.
 3. **Find gaps to bridge** with `generate_content_gaps` (and
    `develop_conceptual_bridges` for links to the wider context): each gap
-   is a missing connection between two groups of memories.
+   is a missing connection between two groups of memories. Start with
+   the `insightClusters` from step 2 when the report has them: those are
+   the groups whose connection improves the structure most. For another
+   round, call `optimize_knowledge_base` again with `gapDepth` one
+   higher.
 4. **Enhance the memories**: propose concrete edits — merge duplicates,
    fix contradictions, add a memory that bridges a gap, split overloaded
    ones — and show them to the user. Write changes back to the original
