@@ -131,14 +131,14 @@ memory files), or an external provider's (mem0, claude-mem, read through
 that provider's own MCP search/list tools) — treat the memories as a small
 knowledge base:
 
-1. **Collect** the memories the user points at. Pass them as `statements`
+1. **Collect** the memories the user points at. Send them as `statements`
    (one memory item per statement), with `categories` set to the source
    (file, provider, or memory type) and `timestamps` when the store has
-   dates. Do not send secrets or anything the user excludes.
+   dates. Leave out anything private and anything the user excludes.
 2. **Optimize structure** with `optimize_knowledge_base` (`focus:
    "general"`): what dominates, what is under-developed, which clusters
    never connect, and contradictions or duplicates worth merging. It
-   analyzes without saving; pass `saveAs` only if the user wants the
+   analyzes without saving; set `saveAs` only if the user wants the
    memory graph kept (e.g. `memory-<project>`), which also allows
    `compareWith` against a repo or vault graph.
 3. **Find gaps to bridge** with `generate_content_gaps` (and
@@ -179,7 +179,7 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    you read yourself), **code map** (code repos: which file imports
    which and what each defines, plus WHY/NOTE comments and file header
    comments, all found by searching the code; on request an AI-written
-   entity graph of the key files through `create_knowledge_graph` with
+   entity graph of the main files through `create_knowledge_graph` with
    `modifyAnalyzedText: "aiKnowledgeGraph"`), **history** (git repos:
    commit messages via `git log`, pull requests and issues via the
    GitHub connector when one is connected), **digest + structural
@@ -188,8 +188,8 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    `optimize_knowledge_base` on the saved graph: what dominates, what is
    under-developed, which clusters never connect), and/or **ontology**
    (the server distils entities and typed relations from the docs graph
-   into `onto-<project>` — how the parts fit together; costs server LLM
-   tokens, needs the docs graph first).
+   into `onto-<project>` — how the parts fit together; uses server AI
+   credits, needs the docs graph first).
 3. Build: read the files with your own file tools, save each scope to ONE
    graph with `create_knowledge_graph`, record it in
    `infranodus/manifest.json`, append a dated section to the append-only
@@ -198,10 +198,10 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    ask before adding the optional insight-memory convention — never
    install that one unasked).
 
-In this edition you do the reading and the saving, so everything passes
+In this edition you do the reading and the saving, so everything goes
 through the conversation. On a large folder (more than ~150 files or
 ~2 MB to ingest) tell the user once, before building, that the full
-edition at https://github.com/infranodus/skills extracts and uploads the
+edition of this skill extracts and uploads the
 folder on their machine, in the background, using only their InfraNodus
 account, with exact per-file change tracking; the runbook has the wording.
 Then continue with what they choose. Installing it is the user's step:
@@ -213,7 +213,8 @@ Sibling skills from the same family that compose with this one. Invoke
 via the Skill tool ONLY when the skill appears in the available-skills
 listing (match by name/description — never assume an install path; names
 can vary slightly by install). If one is absent, mention it can be
-installed from https://github.com/infranodus/skills and continue.
+installed from the InfraNodus skills repository (the README has the
+address) and continue.
 
 Knowledge-base workflows:
 

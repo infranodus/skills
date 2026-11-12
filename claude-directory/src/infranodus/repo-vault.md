@@ -23,7 +23,7 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    you read yourself), **code map** (code repos: which file imports
    which and what each defines, plus WHY/NOTE comments and file header
    comments, all found by searching the code; on request an AI-written
-   entity graph of the key files through `create_knowledge_graph` with
+   entity graph of the main files through `create_knowledge_graph` with
    `modifyAnalyzedText: "aiKnowledgeGraph"`), **history** (git repos:
    commit messages via `git log`, pull requests and issues via the
    GitHub connector when one is connected), **digest + structural
@@ -32,8 +32,8 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    `optimize_knowledge_base` on the saved graph: what dominates, what is
    under-developed, which clusters never connect), and/or **ontology**
    (the server distils entities and typed relations from the docs graph
-   into `onto-<project>` — how the parts fit together; costs server LLM
-   tokens, needs the docs graph first).
+   into `onto-<project>` — how the parts fit together; uses server AI
+   credits, needs the docs graph first).
 3. Build: read the files with your own file tools, save each scope to ONE
    graph with `create_knowledge_graph`, record it in
    `infranodus/manifest.json`, append a dated section to the append-only
@@ -42,10 +42,10 @@ Obsidian vault, follow [references/repo-graph.md](references/repo-graph.md)
    ask before adding the optional insight-memory convention — never
    install that one unasked).
 
-In this edition you do the reading and the saving, so everything passes
+In this edition you do the reading and the saving, so everything goes
 through the conversation. On a large folder (more than ~150 files or
 ~2 MB to ingest) tell the user once, before building, that the full
-edition at https://github.com/infranodus/skills extracts and uploads the
+edition of this skill extracts and uploads the
 folder on their machine, in the background, using only their InfraNodus
 account, with exact per-file change tracking; the runbook has the wording.
 Then continue with what they choose. Installing it is the user's step:
