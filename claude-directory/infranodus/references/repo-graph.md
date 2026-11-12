@@ -11,9 +11,8 @@ runs: this skill ships no programs.
 - **Reads**: the session's InfraNodus tools (any prefix: a server the user
   added, a plugin's, or the claude.ai connector's).
 - **No InfraNodus tools in the session**: say so in one line, ask the user
-  to connect the InfraNodus connector (claude.ai Settings → Connectors, or
-  `claude mcp add --transport http infranodus https://mcp.infranodus.com`)
-  and stop. Never ask for an API key and never guess an endpoint.
+  to connect the InfraNodus connector (claude.ai Settings → Connectors;
+  the plugin's README has the steps) and stop.
 
 After a build, each scope carries `endpoint`, `transport`, `account`, and
 `verified` in the manifest. When a later query fails, check those first —
@@ -270,8 +269,8 @@ and dependency-update commits, and commits whose message says nothing
 beyond the file names. Merged pull requests and issues come from the
 GitHub connector's tools when one is connected to this session; when none
 is, build the commits only and say that connecting a GitHub connector
-adds the rest. Never use a GitHub sign-in, token or command-line client
-found on the user's machine for this. Without a local repo (a chat client), a GitHub connector alone
+adds the rest. The connector is the only route to GitHub: never reach it
+through anything else on the user's machine. Without a local repo (a chat client), a GitHub connector alone
 gives all three for the repository the user names.
 
 ```text

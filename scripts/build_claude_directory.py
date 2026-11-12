@@ -72,6 +72,18 @@ FORBIDDEN = [
      "reads a credential from the environment"),
 ]
 
+# The directory's scan holds a skill whose instructions put a remote server
+# address beside words for a credential, even in a sentence that forbids
+# using one. The address and those words stay in the README, which is the
+# listing and not instructions.
+SKILL_FORBIDDEN = [
+    (re.compile(r"mcp\.infranodus\.com"), "names the server address"),
+    (re.compile(r"(?i)\bAPI key\b|\bcredentials?\b|\bpasswords?\b|\bsecret key\b"),
+     "uses a word for a credential"),
+    (re.compile(r"(?i)\b(sign-in|key|token)s?\b[^.\n]{0,60}\b(environment|machine|config files?)\b"),
+     "puts a credential word beside the user's machine"),
+]
+
 
 def split_skill(text):
     match = re.match(r"---\n(.*?)\n---\n", text, re.S)
@@ -177,6 +189,12 @@ def check_policy(out):
             if hit:
                 line = text.count("\n", 0, hit.start()) + 1
                 errors.append(f"{rel}:{line}: {why} ({hit.group(0)})")
+        if path.name != "README.md" and path.suffix.lower() == ".md":
+            for pattern, why in SKILL_FORBIDDEN:
+                hit = pattern.search(text)
+                if hit:
+                    line = text.count("\n", 0, hit.start()) + 1
+                    errors.append(f"{rel}:{line}: {why} ({hit.group(0)})")
 
     for forbidden_dir in ("scripts", "bin", "hooks", "workflows"):
         if (out / forbidden_dir).exists():
