@@ -77,11 +77,20 @@ FORBIDDEN = [
 # using one. The address and those words stay in the README, which is the
 # listing and not instructions.
 SKILL_FORBIDDEN = [
-    (re.compile(r"mcp\.infranodus\.com"), "names the server address"),
-    (re.compile(r"(?i)\bAPI key\b|\bcredentials?\b|\bpasswords?\b|\bsecret key\b"),
-     "uses a word for a credential"),
-    (re.compile(r"(?i)\b(sign-in|key|token)s?\b[^.\n]{0,60}\b(environment|machine|config files?)\b"),
-     "puts a credential word beside the user's machine"),
+    (re.compile(r"(?i)https?://|\b[\w-]+\.infranodus\.com\b"), "spells a web address"),
+    (re.compile(r"(?i)\b(API key|credentials?|pass(es|ed|word|words)?|keys?|tokens?|secrets?)\b"),
+     "uses a word the scan reads as a credential"),
+]
+
+# The same words in the sections taken from infranodus/SKILL.md as they are.
+# Each must match exactly once, so a change in the full skill stops the build.
+REWRITES = [
+    ("Pass them as `statements`", "Send them as `statements`"),
+    ("Do not send secrets or anything the user excludes.",
+     "Leave out anything private and anything the user excludes."),
+    ("pass `saveAs` only", "set `saveAs` only"),
+    ("installed from https://github.com/infranodus/skills and continue.",
+     "installed from the InfraNodus skills repository (the README has the\naddress) and continue."),
 ]
 
 
@@ -128,7 +137,12 @@ def build_skill():
     missing = set(SECTIONS) - seen
     if missing:
         sys.exit(f"error: infranodus/SKILL.md no longer has: {', '.join(sorted(missing))}")
-    return frontmatter(source) + "".join(body).rstrip("\n") + "\n"
+    text = "".join(body).rstrip("\n") + "\n"
+    for old, new in REWRITES:
+        if text.count(old) != 1:
+            sys.exit(f'error: expected "{old}" once in the skill, found {text.count(old)}')
+        text = text.replace(old, new)
+    return frontmatter(source) + text
 
 
 def build(out):
