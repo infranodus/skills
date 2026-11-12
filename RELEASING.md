@@ -1,7 +1,8 @@
 # Releasing
 
 How a change in this repo reaches users: the Claude Code marketplace,
-`npx skills`, release zips, and the ChatGPT / Codex plugin directory.
+`npx skills`, release zips, the Claude directory, and the ChatGPT / Codex
+plugin directory.
 
 ## Versions
 
@@ -53,6 +54,36 @@ to the manifests, the marketplace file or the install script.
 
 A release by hand still works: bump, `git tag vX.Y.Z && git push origin
 vX.Y.Z`, and `release.yml` runs on the tag.
+
+## Claude directory (`infranodus` only)
+
+Anthropic's directory (claude.ai/directory) reads this repo, at the plugin
+path `claude-directory/infranodus`. It accepts programs and scripts only
+from Verified organizations, so it does not get `infranodus/` (which ships
+the Python extraction programs) but a script-free edition of the same skill:
+Markdown, JSON and the icon only.
+
+- `claude-directory/infranodus/` is build output and is committed. Never
+  edit it: run `python3 scripts/build_claude_directory.py`.
+- The build takes the shared sections of `infranodus/SKILL.md` as they are
+  and the parts that differ (how the skill connects, the repo / vault
+  workflow, the runbook, the README shown as the listing, the skill
+  description) from `claude-directory/src/infranodus/`. The manifest and the
+  icon are copied from `infranodus/.claude-plugin/`, so there is one version.
+- A new `## ` section in `infranodus/SKILL.md` stops the build until
+  `SECTIONS` in the script says whether to keep or replace it.
+- The build fails on what the directory refuses or holds: a file that is not
+  Markdown, text, JSON, YAML or an image, a `#!` first line, a reference to
+  a bundled program, a credential read from the environment, frontmatter
+  keys other than `name` and `description`.
+- In a pull request that changes `infranodus/SKILL.md` or the sources, run
+  the build and commit the result; `--check` fails when it is stale. The
+  release workflow rebuilds it after the version bump and commits it with
+  the release. Whether the directory then takes the new commit by itself
+  is not confirmed: check the listing's version after a release and
+  resubmit in the portal when it has not moved.
+- Before a submission: `claude plugin validate claude-directory/infranodus
+  --profile directory --strict`.
 
 ## ChatGPT / Codex plugin directory (`infranodus` only)
 

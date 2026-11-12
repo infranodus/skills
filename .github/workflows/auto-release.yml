@@ -64,13 +64,17 @@ jobs:
         if: steps.bump.outputs.release == 'true'
         run: tests/build-openai.sh --strict
 
+      - name: Rebuild the Claude directory edition with the new version
+        if: steps.bump.outputs.release == 'true'
+        run: python3 scripts/build_claude_directory.py
+
       - name: Commit the versions and tag the release
         if: steps.bump.outputs.release == 'true'
         run: |
           version="${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- .claude-plugin/plugin.json '*/.claude-plugin/plugin.json'
+          git add -- .claude-plugin/plugin.json '*/.claude-plugin/plugin.json' claude-directory/infranodus
           git commit -m "Release v$version" -m "Changed: ${{ steps.bump.outputs.changed }}"
           git tag "v$version"
           git push origin HEAD:master "v$version"
